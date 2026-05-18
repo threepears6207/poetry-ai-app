@@ -82,8 +82,7 @@ def add_record(record: RecordIn):
 
     return {
         "success": True,
-        "message": "学习记录添加成功",
-        "data": new_record
+        "message": "记录成功",
     }
 
 

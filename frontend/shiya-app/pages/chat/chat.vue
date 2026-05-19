@@ -1,0 +1,573 @@
+<template>
+  <view class="page-root">
+    <view class="chat-app">
+      <view class="page">
+        <view class="topbar">
+          <button class="back" @tap="goBack">‹</button>
+
+          <view class="title-pill">
+            <view class="logo">🌱</view>
+            <text>和诗人聊聊</text>
+          </view>
+
+          <button
+            class="next-btn"
+            :class="{ active: canNext }"
+            @tap="handleNext"
+          >
+            下一步 →
+          </button>
+        </view>
+
+        <view class="main-layout">
+          <view class="poet-stage">
+            <view class="poet-name">{{ poemData.author }}</view>
+
+            <view class="left-poem-card">
+              <view class="left-poem-title">正在学习《{{ poemData.title }}》</view>
+              <view class="left-poem-author">{{ poemData.dynasty }} · {{ poemData.author }}</view>
+            </view>
+
+            <image class="poet-img-large" src="/static/孟浩然.png" mode="aspectFill"></image>
+          </view>
+
+          <view class="dialog-panel">
+            <scroll-view class="chat-card" scroll-y :scroll-top="chatScrollTop">
+              <view
+                v-for="(msg, index) in messages"
+                :key="index"
+                class="bubble-row"
+                :class="msg.role"
+              >
+                <view v-if="msg.role === 'poet'" class="mini-avatar">
+                  <image src="/static/孟浩然.png" mode="aspectFill"></image>
+                </view>
+
+                <view class="bubble">{{ msg.text }}</view>
+              </view>
+
+              <view v-if="isReplying" class="bubble-row poet">
+                <view class="mini-avatar">
+                  <image src="/static/孟浩然.png" mode="aspectFill"></image>
+                </view>
+
+                <view class="bubble">正在想一想怎么回答你……</view>
+              </view>
+
+              <view class="suggest-box">
+                <view class="suggest-title">接下来想问：</view>
+
+                <view class="chips">
+                  <view
+                    v-for="item in suggestions"
+                    :key="item"
+                    class="chip"
+                    @tap="askSuggestion(item)"
+                  >
+                    {{ item }}
+                  </view>
+                </view>
+              </view>
+            </scroll-view>
+
+            <view class="input-bar">
+              <button class="mic-btn" @tap="toast('语音输入后面接麦克风')">🎙️</button>
+
+              <input
+                class="text-input"
+                v-model="userInput"
+                placeholder="问问诗人这首诗里的问题"
+                confirm-type="send"
+                @confirm="sendMessage"
+              />
+
+              <button class="send-btn" @tap="sendMessage">➤</button>
+            </view>
+          </view>
+        </view>
+      </view>
+    </view>
+  </view>
+</template>
+
+<script setup>
+import { ref } from 'vue'
+import { onLoad } from '@dcloudio/uni-app'
+import { API, getLocalPoemById } from '@/utils/api.js'
+
+const poemId = ref('poem_001')
+const poemData = ref(getLocalPoemById('poem_001'))
+
+const userInput = ref('')
+const chatScrollTop = ref(0)
+const canNext = ref(false)
+const isReplying = ref(false)
+
+const messages = ref([])
+
+const suggestions = ref([
+  '鸟儿为什么在叫？',
+  '这首诗是什么意思？',
+  '诗人当时开心吗？',
+  '这首诗适合什么时候读？'
+])
+
+onLoad((options) => {
+  poemId.value = options.poem_id || 'poem_001'
+  poemData.value = getLocalPoemById(poemId.value)
+
+  messages.value = [
+    {
+      role: 'poet',
+      text: `小朋友你好，我是${poemData.value.author}。你刚刚学习了《${poemData.value.title}》，现在可以问我问题啦。`
+    },
+    {
+      role: 'poet',
+      text: `比如你可以问我：“这首诗是什么意思？”或者“你为什么要写这首诗？”`
+    }
+  ]
+})
+
+const goBack = () => {
+  uni.navigateBack({
+    fail: () => {
+      if (typeof window !== 'undefined') {
+        window.location.href = `#/pages/study/study?poem_id=${poemId.value}`
+      }
+    }
+  })
+}
+
+const fakeReply = (text) => {
+  if (text.includes('意思') || text.includes('什么意思')) {
+    return `《${poemData.value.title}》这首诗写的是一个很美的画面。我用简单的话告诉你：${poemData.value.translation}`
+  }
+
+  if (text.includes('鸟')) {
+    return '鸟儿在春天的早晨叫，是因为天气暖和了，大自然变热闹了。诗里写鸟叫，是想让小朋友感受到春天来了。'
+  }
+
+  if (text.includes('开心') || text.includes('心情')) {
+    return `写《${poemData.value.title}》的时候，我的心情是轻轻松松的。我看见自然里的景色，也听见身边的声音，所以把它写进了诗里。`
+  }
+
+  if (text.includes('为什么')) {
+    return '你问得真好。古诗里的每一句话，都是诗人看到、听到或者想到的东西。我们可以慢慢读，一句一句理解。'
+  }
+
+  return `小朋友，这个问题问得很好。我们正在学习《${poemData.value.title}》，你可以把诗里的画面想象出来，这样就更容易明白它的意思了。`
+}
+
+const sendMessage = async () => {
+  const text = userInput.value.trim()
+  if (!text || isReplying.value) return
+
+  messages.value.push({
+    role: 'user',
+    text
+  })
+
+  userInput.value = ''
+  isReplying.value = true
+  chatScrollTop.value += 260
+
+  try {
+    const prompt = `我正在学习古诗《${poemData.value.title}》，作者是${poemData.value.author}。请你用适合儿童理解的语言回答这个问题：${text}`
+
+    const res = await API.chatWithPoet(prompt, poemId.value)
+
+    if (res && res.success && res.reply) {
+      messages.value.push({
+        role: 'poet',
+        text: res.reply
+      })
+    } else {
+      messages.value.push({
+        role: 'poet',
+        text: fakeReply(text)
+      })
+    }
+  } catch (err) {
+    console.log('AI 对话接口暂不可用，使用本地假回复', err)
+
+    messages.value.push({
+      role: 'poet',
+      text: fakeReply(text)
+    })
+  }
+
+  isReplying.value = false
+  canNext.value = true
+  chatScrollTop.value += 360
+}
+
+const askSuggestion = (text) => {
+  userInput.value = text
+  sendMessage()
+}
+
+const handleNext = () => {
+  if (!canNext.value) {
+    toast('先和诗人聊一句吧')
+    return
+  }
+
+  uni.navigateTo({
+    url: `/pages/recommend/recommend?poem_id=${poemId.value}`,
+    fail: () => {
+      if (typeof window !== 'undefined') {
+        window.location.href = `#/pages/recommend/recommend?poem_id=${poemId.value}`
+      }
+    }
+  })
+}
+
+const toast = (title) => {
+  uni.showToast({
+    title,
+    icon: 'none'
+  })
+}
+</script>
+
+<style scoped>
+* {
+  box-sizing: border-box;
+}
+
+button::after {
+  border: none;
+}
+
+.page-root {
+  width: 100vw;
+  height: 100vh;
+  background: #1a1a1a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  font-family: "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  color: #5b508d;
+}
+
+.chat-app {
+  position: relative;
+  width: 844px;
+  height: 390px;
+  max-width: 100vw;
+  max-height: 100vh;
+  overflow: hidden;
+  border-radius: 0;
+  background:
+    radial-gradient(circle at 8% 8%, rgba(255, 225, 105, 0.28), transparent 24%),
+    radial-gradient(circle at 88% 18%, rgba(255, 210, 145, 0.16), transparent 25%),
+    linear-gradient(180deg, #fffaf2 0%, #fff1e8 55%, #ffe9df 100%);
+}
+.page {
+  position: absolute;
+  inset: 0;
+  padding: 7px 16px 14px;
+  display: grid;
+  grid-template-rows: 58px minmax(0, 1fr);
+  gap: 8px;
+  overflow: hidden;
+}
+
+.topbar {
+  position: relative;
+  height: 44px;
+  z-index: 20;
+}
+
+.back {
+  position: absolute;
+  left: 0;
+  top: 4px;
+  width: 36px;
+  height: 36px;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.86);
+  color: #5b508d;
+  font-size: 26px;
+  line-height: 1;
+  box-shadow: 0 7px 16px rgba(112, 79, 54, 0.14);
+}
+
+.title-pill {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  transform: translateX(-50%);
+  height: 42px;
+  min-width: 160px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  padding: 6px 18px 6px 11px;
+  border-radius: 999px;
+  border: 4px solid #ffe057;
+  background: rgba(255, 255, 255, 0.9);
+  color: #5b508d;
+  font-weight: 950;
+  font-size: 17px;
+  letter-spacing: 1px;
+  box-shadow: 0 7px 16px rgba(111, 84, 55, 0.09);
+}
+
+.logo {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: #ff964b;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  font-size: 18px;
+}
+
+.next-btn {
+  position: absolute;
+  right: 0;
+  top: 4px;
+  height: 36px;
+  border: 0;
+  border-radius: 999px;
+  padding: 0 18px;
+  background: rgba(255, 255, 255, 0.72);
+  color: #aaa0c8;
+  font-size: 14px;
+  font-weight: 900;
+  box-shadow: 0 7px 16px rgba(112, 79, 54, 0.1);
+}
+
+.next-btn.active {
+  background: linear-gradient(180deg, #ffac68, #ff7d32);
+  color: #ffffff;
+}
+
+.main-layout {
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 285px minmax(0, 1fr);
+  gap: 16px;
+}
+
+.poet-stage {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  border-radius: 28px;
+  background:
+    radial-gradient(circle at 50% 84%, rgba(139, 216, 157, 0.28), transparent 28%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.75), rgba(255, 248, 232, 0.9));
+  box-shadow: 0 12px 24px rgba(74, 55, 42, 0.13);
+  overflow: hidden;
+  display: grid;
+  place-items: end center;
+  padding: 14px 12px 0;
+}
+
+.poet-name {
+  position: absolute;
+  left: 16px;
+  top: 16px;
+  z-index: 3;
+  padding: 7px 14px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.88);
+  color: #5b508d;
+  font-size: 18px;
+  font-weight: 950;
+  box-shadow: 0 7px 16px rgba(111, 84, 55, 0.1);
+}
+
+.left-poem-card {
+  position: absolute;
+  left: 16px;
+  bottom: 16px;
+  z-index: 4;
+  width: 145px;
+  padding: 8px 10px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 8px 18px rgba(111, 84, 55, 0.13);
+  border: 2px solid rgba(255, 224, 87, 0.65);
+}
+
+.left-poem-title {
+  font-size: 14px;
+  font-weight: 950;
+  color: #5b508d;
+  line-height: 1.2;
+}
+
+.left-poem-author {
+  margin-top: 3px;
+  font-size: 12px;
+  font-weight: 900;
+  color: #ff914d;
+}
+
+.poet-img-large {
+  width: 225px;
+  height: 270px;
+  object-fit: cover;
+  object-position: center top;
+  border-radius: 32px 32px 0 0;
+  background: #fff8ea;
+  transform: translateX(24px);
+  animation: poetFloat 2.8s ease-in-out infinite;
+  transform-origin: center bottom;
+}
+
+@keyframes poetFloat {
+  0%, 100% {
+    transform: translateX(24px) translateY(0) scale(1);
+  }
+
+  50% {
+    transform: translateX(24px) translateY(-4px) scale(1.015);
+  }
+}
+
+.dialog-panel {
+  min-width: 0;
+  min-height: 0;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) 54px;
+  gap: 10px;
+}
+
+.chat-card {
+  min-height: 0;
+  border-radius: 28px;
+  background: rgba(255, 255, 255, 0.88);
+  box-shadow: 0 13px 24px rgba(74, 55, 42, 0.12);
+  padding: 12px;
+  overflow: hidden;
+}
+
+.bubble-row {
+  display: flex;
+  margin: 5px 0;
+  gap: 8px;
+  align-items: flex-end;
+}
+
+.bubble-row.user {
+  justify-content: flex-end;
+}
+
+.mini-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #fff0dc;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.mini-avatar image {
+  width: 100%;
+  height: 100%;
+}
+
+.bubble {
+  max-width: 84%;
+  padding: 8px 11px;
+  border-radius: 17px;
+  font-size: 13px;
+  line-height: 1.38;
+  font-weight: 850;
+}
+
+.poet .bubble {
+  background: #f4f1ff;
+  color: #645a95;
+  border-bottom-left-radius: 8px;
+}
+
+.user .bubble {
+  background: linear-gradient(180deg, #ffac68, #ff853b);
+  color: #fff;
+  border-bottom-right-radius: 8px;
+}
+
+.suggest-box {
+  margin: 6px 0 2px 40px;
+  padding: 8px;
+  border-radius: 18px;
+  background: #fff7e9;
+}
+
+.suggest-title {
+  font-size: 13px;
+  font-weight: 950;
+  color: #ff914d;
+  margin-bottom: 7px;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.chip {
+  border-radius: 999px;
+  padding: 5px 9px;
+  background: #eafff9;
+  color: #2cbf9d;
+  font-size: 12px;
+  font-weight: 950;
+}
+
+.input-bar {
+  height: 54px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 2px 0;
+}
+
+.mic-btn,
+.send-btn {
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: 50%;
+  font-size: 20px;
+  flex-shrink: 0;
+  font-weight: 900;
+}
+
+.mic-btn {
+  background: #eafff9;
+  color: #2cbf9d;
+  box-shadow: 0 5px 0 #b9eee0;
+}
+
+.send-btn {
+  background: linear-gradient(180deg, #ffac68, #ff7d32);
+  color: #fff;
+  box-shadow: 0 5px 0 #f16012;
+}
+
+.text-input {
+  flex: 1;
+  min-width: 0;
+  height: 44px;
+  border: 0;
+  border-radius: 22px;
+  background: #f7f4ff;
+  color: #5b508d;
+  font-size: 14px;
+  font-weight: 850;
+  padding: 0 14px;
+}
+</style>

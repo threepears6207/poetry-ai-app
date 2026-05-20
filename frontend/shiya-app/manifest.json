@@ -69,5 +69,12 @@
         "enable" : false
     },
     "vueVersion" : "3",
-    "fallbackLocale" : "zh-Hans"
+    "fallbackLocale" : "zh-Hans",
+	"h5" : {
+	    "router" : {
+	        "mode" : "hash",
+	        "base" : "/poetry-ai-app/"
+	    },
+	    "publicPath" : "/poetry-ai-app/"
+	}
 }

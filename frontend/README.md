@@ -4,7 +4,7 @@
 
 ## 方法一：直接看页面效果
 
-github pages在线预览链接：
+github pages在线预览链接：https://threepears6207.github.io/poetry-ai-app/
 
 
 ## 方法二：本地运行项目

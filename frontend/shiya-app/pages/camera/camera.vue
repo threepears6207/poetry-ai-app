@@ -22,10 +22,13 @@
 
             <view class="poem-paper">
               <view class="poem-paper-title">{{ matchedPoem.title }}</view>
-              <text class="poem-paper-line">春眠不觉晓</text>
-              <text class="poem-paper-line">处处闻啼鸟</text>
-              <text class="poem-paper-line">夜来风雨声</text>
-              <text class="poem-paper-line">花落知多少</text>
+            <text
+             v-for="line in matchedPoem.content"
+             :key="line"
+            class="poem-paper-line"
+           >
+            {{ line }}
+          </text>
             </view>
 
             <view class="scan-line"></view>
@@ -85,13 +88,14 @@
             <view class="poem-result">
               <view class="result-title">{{ matchedPoem.title }}</view>
               <view class="author">{{ matchedPoem.dynasty }} · {{ matchedPoem.author }}</view>
-
               <view class="poem-lines">
-                <text>春眠不觉晓</text>
-                <text>处处闻啼鸟</text>
-                <text>夜来风雨声</text>
-                <text>花落知多少</text>
-              </view>
+               <text
+                v-for="line in matchedPoem.content"
+                :key="line"
+              >
+                {{ line }}
+              </text>
+            </view>
             </view>
 
             <view class="tag-panel">
@@ -124,16 +128,12 @@
 
 <script setup>
 import { ref } from 'vue'
+import { API, getLocalPoemById } from '@/utils/api.js'
 
 const pageState = ref('camera')
 const mode = ref('poem')
 
-const matchedPoem = ref({
-  id: 'poem_001',
-  title: '春晓',
-  author: '孟浩然',
-  dynasty: '唐'
-})
+const matchedPoem = ref(getLocalPoemById('poem_001'))
 
 const goBack = () => {
   uni.navigateBack({
@@ -145,15 +145,40 @@ const goBack = () => {
   })
 }
 
-const showResult = () => {
+const showResult = async () => {
   uni.showLoading({
     title: '识别中...'
   })
 
-  setTimeout(() => {
+  try {
+    // 当前演示版：先用固定文字模拟 OCR 识别结果
+    // 后续接真实图片 OCR 时，只需要把 demoText 换成真实 OCR 返回文本
+    const demoText = mode.value === 'poem'
+      ? '床前明月光疑是地上霜'
+      : '白日依山尽黄河入海流'
+
+    const res = await API.recognizePoem(demoText, 'text')
+
+    if (res && res.success && res.matched_poem) {
+      matchedPoem.value = res.matched_poem
+    } else {
+      uni.showToast({
+        title: '暂未识别到古诗',
+        icon: 'none'
+      })
+      matchedPoem.value = getLocalPoemById('poem_001')
+    }
+  } catch (err) {
+    console.log('识诗接口调用失败：', err)
+    uni.showToast({
+      title: '识别失败，使用默认古诗',
+      icon: 'none'
+    })
+    matchedPoem.value = getLocalPoemById('poem_001')
+  } finally {
     uni.hideLoading()
     pageState.value = 'result'
-  }, 600)
+  }
 }
 
 const goStudy = () => {

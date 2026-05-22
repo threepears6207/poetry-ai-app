@@ -109,11 +109,22 @@ export const API = {
     })
   },
 
-  getRecommend(limit = 5) {
-    return request({
-      url: `/recommend?user_id=${DEFAULT_USER_ID}&limit=${limit}`
-    })
-  }
+getRecommend(limit = 5) {
+  return request({
+    url: `/recommend?user_id=${DEFAULT_USER_ID}&limit=${limit}`
+  })
+},
+
+recognizePoem(text, mode = 'text') {
+  return request({
+    url: '/ocr',
+    method: 'POST',
+    data: {
+      image: text,
+      mode
+    }
+  })
+},
 }
 
 export const getLocalPoemById = (poemId) => {

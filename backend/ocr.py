@@ -1,69 +1,137 @@
+import json
+from pathlib import Path
 from fastapi import APIRouter
 from pydantic import BaseModel
 
 router = APIRouter()
 
-# TODO: 陈誉文负责实现
-#
-# 该接口支持两种模式，由前端传入 mode 参数决定：
-#
-# 模式1：text（拍文字）
-#   拍摄书本、墙上写的古诗等
-#   流程：图片 → OCR识别文字 → 数据库匹配古诗
-#   使用：腾讯云通用OCR 或 百度OCR API
-#
-# 模式2：scene（拍风景）
-#   拍摄湖、山、月亮、雨天等自然环境
-#   流程：图片 → AI识图理解场景内容 → 根据意境推荐匹配的古诗
-#   使用：蓝心大模型（支持图片输入）或 vivo 通用OCR的图像理解能力
-#   提示词参考：
-#     "请描述这张图片的场景和意境，然后推荐3首最匹配的古诗，
-#      只返回JSON格式：{scene_desc: '...', poems: [{title, author, reason}]}"
+DATA_PATH = Path(__file__).parent / "data" / "poems.json"
 
 
 class PhotoRequest(BaseModel):
-    image: str   # 图片的 Base64 编码字符串
-    mode: str    # "text"（拍文字）或 "scene"（拍风景）
+    image: str
+    mode: str = "text"
+
+
+def load_poems():
+    if not DATA_PATH.exists():
+        return []
+
+    with open(DATA_PATH, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+
+def normalize_text(text: str) -> str:
+    """
+    去掉标点、空格、换行，方便匹配。
+    例如：
+    床前明月光，疑是地上霜。
+    会变成：
+    床前明月光疑是地上霜
+    """
+    remove_chars = [
+        "，", "。", "？", "！", ",", ".", "?", "!",
+        "、", "；", ";", "：", ":", "\n", "\r", " ",
+        "“", "”", "\"", "'", "《", "》"
+    ]
+
+    for ch in remove_chars:
+        text = text.replace(ch, "")
+
+    return text.strip()
+
+
+def match_poem_by_text(recognized_text: str):
+    poems = load_poems()
+    cleaned_input = normalize_text(recognized_text)
+
+    best_match = None
+    best_score = 0
+
+    for poem in poems:
+        title = poem.get("title", "")
+        author = poem.get("author", "")
+        dynasty = poem.get("dynasty", "")
+        content_list = poem.get("content", [])
+
+        content_text = normalize_text("".join(content_list))
+
+        score = 0
+
+        # 1. 标题命中
+        if title and title in cleaned_input:
+            score += 10
+
+        # 2. 作者命中
+        if author and author in cleaned_input:
+            score += 3
+
+        # 3. 完整诗句文本命中
+        if content_text and content_text in cleaned_input:
+            score += 20
+
+        # 4. 单句命中
+        for line in content_list:
+            clean_line = normalize_text(line)
+
+            if clean_line and clean_line in cleaned_input:
+                score += 5
+
+            # 输入内容是某一句的一部分，例如“床前明月光”
+            if cleaned_input and cleaned_input in clean_line:
+                score += 4
+
+        # 5. 输入内容是整首诗的一部分
+        if cleaned_input and cleaned_input in content_text:
+            score += 8
+
+        if score > best_score:
+            best_score = score
+            best_match = poem
+
+    if best_score <= 0:
+        return None
+
+    return best_match
 
 
 @router.post("/ocr")
 def recognize_photo(request: PhotoRequest):
     """
-    拍照识诗，支持两种模式：
-    - mode="text"：拍含有古诗文字的图片，识别文字并匹配数据库中的古诗
-    - mode="scene"：拍自然风景，AI理解场景意境后推荐匹配的古诗
+    拍照识诗接口临时版。
+
+    当前阶段：
+    - 不调用真实 OCR
+    - 先把 request.image 当作“已经识别出来的文字”
+    - 再用这段文字去 poems.json 里匹配古诗
+
+    后续接真实 OCR 时：
+    - 只需要把 recognized_text = request.image
+    - 替换成 OCR API 返回的文字即可
     """
-    if request.mode == "text":
-        # TODO: 调用 OCR API 识别文字，再去数据库匹配古诗
-        # 成功返回示例：
-        # {
-        #   "success": True,
-        #   "mode": "text",
-        #   "recognized_text": "床前明月光疑是地上霜",
-        #   "matched_poem": {
-        #     "id": "poem_001",
-        #     "title": "静夜思",
-        #     "author": "李白",
-        #     "dynasty": "唐",
-        #     "content": ["床前明月光", "疑是地上霜", "举头望明月", "低头思故乡"]
-        #   }
-        # }
-        return {"success": False, "mode": "text", "error": "接口待实现"}
 
-    elif request.mode == "scene":
-        # TODO: 把图片传给 AI（蓝心大模型或其他支持图片的模型）
-        # 让 AI 描述图片场景，并推荐意境匹配的古诗列表
-        # 成功返回示例：
-        # {
-        #   "success": True,
-        #   "mode": "scene",
-        #   "scene_desc": "图片展示了一轮明月挂在夜空，月光洒在平静的湖面上",
-        #   "matched_poems": [
-        #     {"id": "poem_001", "title": "静夜思", "author": "李白", "reason": "月夜思乡意境"},
-        #     {"id": "poem_002", "title": "春江花月夜", "author": "张若虚", "reason": "月色江景相映"}
-        #   ]
-        # }
-        return {"success": False, "mode": "scene", "error": "接口待实现"}
+    if request.mode != "text":
+        return {
+            "success": False,
+            "mode": request.mode,
+            "error": "当前阶段只支持 mode='text'"
+        }
 
-    else:
-        return {"success": False, "error": "mode 参数只能是 'text' 或 'scene'"}
+    recognized_text = request.image
+
+    matched_poem = match_poem_by_text(recognized_text)
+
+    if not matched_poem:
+        return {
+            "success": False,
+            "mode": "text",
+            "recognized_text": recognized_text,
+            "error": "未匹配到古诗"
+        }
+
+    return {
+        "success": True,
+        "mode": "text",
+        "recognized_text": recognized_text,
+        "matched_poem": matched_poem
+    }

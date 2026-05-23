@@ -18,7 +18,9 @@
             <view class="summary-card">
               <view>
                 <view class="summary-title">今日学习<br />小朋友表现很棒</view>
-                <view class="summary-sub">已完成 2 首古诗学习</view>
+                <view class="summary-sub">
+                  已完成 {{ summary.learned_count }} 首古诗学习
+                </view>
               </view>
 
               <view class="kid-icon">👧</view>
@@ -26,13 +28,18 @@
 
             <view class="stats">
               <view class="stat-card">
-                <view class="stat-label">学习记录</view>
-                <view class="stat-value">12<text class="stat-unit">首</text></view>
+                <view class="stat-label">已学古诗</view>
+                <view class="stat-value">
+                  {{ summary.learned_count }}
+                  <text class="stat-unit">首</text>
+                </view>
               </view>
 
               <view class="stat-card">
-                <view class="stat-label">使用时长</view>
-                <view class="stat-value">18<text class="stat-unit">分钟</text></view>
+                <view class="stat-label">累计时长</view>
+                <view class="stat-value duration-value">
+                  {{ formatDuration(summary.total_duration_seconds) }}
+                </view>
               </view>
             </view>
 
@@ -55,12 +62,21 @@
           </view>
 
           <view class="right-panel">
-            <view class="section-title">📚 学习记录</view>
+            <view class="section-title">📚 最近学习记录</view>
 
             <scroll-view class="record-list" scroll-y>
+              <view v-if="loading" class="empty-state">
+                正在加载学习统计...
+              </view>
+
+              <view v-else-if="displayRecords.length === 0" class="empty-state">
+                暂无学习记录，快去学习一首古诗吧～
+              </view>
+
               <view
-                v-for="item in records"
-                :key="item.title"
+                v-else
+                v-for="item in displayRecords"
+                :key="item.key"
                 class="record-item"
               >
                 <view class="record-icon">{{ item.icon }}</view>
@@ -81,48 +97,123 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted, computed } from 'vue'
+import { API } from '@/utils/api.js'
 
 const reminderEnabled = ref(true)
+const loading = ref(false)
 
-const records = ref([
-  {
-    icon: '🌸',
-    title: '春晓',
-    desc: '完成朗读与诗意问答',
-    time: '8分钟'
-  },
-  {
-    icon: '🦢',
-    title: '咏鹅',
-    desc: '已完成跟读和连连看',
-    time: '6分钟'
-  },
-  {
-    icon: '🌙',
-    title: '静夜思',
-    desc: '学习中，可继续巩固',
-    time: '4分钟'
-  },
-  {
-    icon: '🌾',
-    title: '悯农',
-    desc: '完成诗句跟读',
-    time: '5分钟'
-  },
-  {
-    icon: '🏯',
-    title: '登鹳雀楼',
-    desc: '推荐学习，尚未开始',
-    time: '0分钟'
-  },
-  {
-    icon: '🐝',
-    title: '蜂',
-    desc: '适合后续学习',
-    time: '0分钟'
+const summary = ref({
+  learned_count: 0,
+  record_count: 0,
+  total_duration_seconds: 0,
+  learned_poems: [],
+  recent_records: []
+})
+
+const formatDuration = (seconds) => {
+  const total = Number(seconds || 0)
+
+  if (total < 60) {
+    return `${total} 秒`
   }
-])
+
+  const minutes = Math.floor(total / 60)
+  const restSeconds = total % 60
+
+  if (minutes < 60) {
+    return restSeconds > 0 ? `${minutes} 分 ${restSeconds} 秒` : `${minutes} 分`
+  }
+
+  const hours = Math.floor(minutes / 60)
+  const restMinutes = minutes % 60
+
+  return restMinutes > 0 ? `${hours} 小时 ${restMinutes} 分` : `${hours} 小时`
+}
+
+const getPoemIcon = (poem) => {
+  const title = poem?.title || ''
+  const tags = poem?.tags || []
+  const tagText = Array.isArray(tags) ? tags.join('') : String(tags)
+
+  if (title.includes('春') || tagText.includes('春')) return '🌸'
+  if (title.includes('鹅') || tagText.includes('动物')) return '🦢'
+  if (title.includes('月') || tagText.includes('月') || tagText.includes('思乡')) return '🌙'
+  if (title.includes('农') || tagText.includes('劳动')) return '🌾'
+  if (title.includes('楼') || tagText.includes('登高')) return '🏯'
+  if (title.includes('蜂')) return '🐝'
+
+  return '📖'
+}
+
+const displayRecords = computed(() => {
+  const poemMap = {}
+
+  summary.value.learned_poems.forEach((poem) => {
+    poemMap[poem.id] = poem
+  })
+
+  if (summary.value.recent_records.length > 0) {
+    return summary.value.recent_records.map((record, index) => {
+      const poem = poemMap[record.poem_id] || {}
+
+      return {
+        key: record.id || `${record.poem_id}-${record.created_at || index}`,
+        icon: getPoemIcon(poem),
+        title: poem.title || record.poem_id || '未知古诗',
+        desc: poem.author
+          ? `${poem.dynasty || ''} · ${poem.author}`
+          : '学习记录',
+        time: formatDuration(record.duration_seconds)
+      }
+    })
+  }
+
+  return summary.value.learned_poems.map((poem) => {
+    return {
+      key: poem.id,
+      icon: getPoemIcon(poem),
+      title: poem.title,
+      desc: `${poem.dynasty || ''} · ${poem.author || ''}`,
+      time: '已学习'
+    }
+  })
+})
+
+const loadRecordSummary = async () => {
+  loading.value = true
+
+  try {
+    const res = await API.getRecordSummary()
+
+    if (res && res.success) {
+      summary.value = {
+        learned_count: res.learned_count || 0,
+        record_count: res.record_count || 0,
+        total_duration_seconds: res.total_duration_seconds || 0,
+        learned_poems: res.learned_poems || [],
+        recent_records: res.recent_records || []
+      }
+    } else {
+      uni.showToast({
+        title: '学习统计获取失败',
+        icon: 'none'
+      })
+    }
+  } catch (err) {
+    console.log('获取学习统计失败：', err)
+    uni.showToast({
+      title: '接口暂不可用',
+      icon: 'none'
+    })
+  } finally {
+    loading.value = false
+  }
+}
+
+onMounted(() => {
+  loadRecordSummary()
+})
 
 const toggleReminder = () => {
   reminderEnabled.value = !reminderEnabled.value
@@ -324,6 +415,11 @@ button::after {
   line-height: 1;
 }
 
+.duration-value {
+  font-size: 21px;
+  line-height: 1.15;
+}
+
 .stat-unit {
   font-size: 13px;
   color: #ff914d;
@@ -469,5 +565,20 @@ button::after {
   color: #ff914d;
   font-size: 14px;
   font-weight: 950;
+}
+
+.empty-state {
+  height: 100%;
+  min-height: 170px;
+  border-radius: 24px;
+  background: #fff8ee;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #9a90c0;
+  font-size: 16px;
+  font-weight: 850;
+  text-align: center;
+  padding: 20px;
 }
 </style>

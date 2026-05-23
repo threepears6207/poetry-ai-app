@@ -115,6 +115,12 @@ getRecommend(limit = 5) {
   })
 },
 
+getRecordSummary() {
+  return request({
+    url: `/record/summary?user_id=${DEFAULT_USER_ID}`
+  })
+},
+
 recognizePoem(text, mode = 'text') {
   return request({
     url: '/ocr',

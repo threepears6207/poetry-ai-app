@@ -10,6 +10,7 @@ router = APIRouter()
 
 DATA_DIR = Path(__file__).parent / "data"
 RECORD_PATH = DATA_DIR / "records.json"
+POEMS_PATH = DATA_DIR / "poems.json"
 
 
 class RecordIn(BaseModel):
@@ -41,6 +42,12 @@ def load_records():
     with open(RECORD_PATH, "r", encoding="utf-8") as f:
         return json.load(f)
 
+def load_json(path, default):
+    if not path.exists():
+        return default
+
+    with open(path, "r", encoding="utf-8") as f:
+        return json.load(f)
 
 def save_records(records):
     """
@@ -105,4 +112,63 @@ def get_records(user_id: Optional[str] = "test_user"):
         "success": True,
         "total": len(user_records),
         "data": user_records
+    }
+
+@router.get("/record/summary")
+def get_learning_summary(user_id: str = "test_user"):
+    """
+    获取用户学习统计信息。
+
+    用途：
+    1. 给家长页展示学习情况
+    2. 给推荐算法提供基础数据
+    3. 给后续学习报告功能使用
+    """
+    records = load_json(RECORD_PATH, [])
+    poems = load_json(POEMS_PATH, [])
+
+    user_records = [
+        record for record in records
+        if record.get("user_id") == user_id
+    ]
+
+    learned_poem_ids = []
+    for record in user_records:
+        poem_id = record.get("poem_id")
+        if poem_id and poem_id not in learned_poem_ids:
+            learned_poem_ids.append(poem_id)
+
+    poem_map = {
+        poem.get("id"): poem
+        for poem in poems
+    }
+
+    learned_poems = []
+    for poem_id in learned_poem_ids:
+        poem = poem_map.get(poem_id)
+        if poem:
+            learned_poems.append({
+                "id": poem.get("id"),
+                "title": poem.get("title"),
+                "author": poem.get("author"),
+                "dynasty": poem.get("dynasty"),
+                "tags": poem.get("tags", [])
+            })
+
+    total_duration_seconds = sum(
+        int(record.get("duration_seconds", 0) or 0)
+        for record in user_records
+    )
+
+    recent_records = user_records[-5:]
+    recent_records.reverse()
+
+    return {
+        "success": True,
+        "user_id": user_id,
+        "learned_count": len(learned_poem_ids),
+        "record_count": len(user_records),
+        "total_duration_seconds": total_duration_seconds,
+        "learned_poems": learned_poems,
+        "recent_records": recent_records
     }

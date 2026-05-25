@@ -105,28 +105,119 @@ const isReplying = ref(false)
 
 const messages = ref([])
 
+// 这个 history 是专门传给后端 /chat 的
+// 后端需要的格式是：
+// [
+//   { role: 'user', content: '...' },
+//   { role: 'assistant', content: '...' }
+// ]
+const history = ref([])
+
 const suggestions = ref([
-  '鸟儿为什么在叫？',
   '这首诗是什么意思？',
   '诗人当时开心吗？',
+  '这句诗里有什么画面？',
   '这首诗适合什么时候读？'
 ])
 
-onLoad((options) => {
+onLoad(async (options) => {
   poemId.value = options.poem_id || 'poem_001'
   poemData.value = getLocalPoemById(poemId.value)
 
-  messages.value = [
-    {
-      role: 'poet',
-      text: `小朋友你好，我是${poemData.value.author}。你刚刚学习了《${poemData.value.title}》，现在可以问我问题啦。`
-    },
-    {
-      role: 'poet',
-      text: `比如你可以问我：“这首诗是什么意思？”或者“你为什么要写这首诗？”`
+  // 优先从后端获取古诗详情
+  // 如果后端失败，就继续使用 api.js 里的 LOCAL_POEMS 本地数据
+  try {
+    const detailRes = await API.getPoemDetail(poemId.value)
+
+    if (detailRes && detailRes.success && detailRes.data) {
+      poemData.value = detailRes.data
     }
-  ]
+  } catch (err) {
+    console.log('古诗详情接口暂不可用，使用本地数据', err)
+  }
+
+  await initPoetChat()
 })
+
+const getPoemContentText = () => {
+  if (!poemData.value) return ''
+
+  if (Array.isArray(poemData.value.content)) {
+    return poemData.value.content.join('，')
+  }
+
+  return String(poemData.value.content || '')
+}
+
+const initPoetChat = async () => {
+  isReplying.value = true
+  messages.value = []
+  history.value = []
+
+  try {
+    const res = await API.chatWithPoet({
+      message: '__init__',
+      poet_name: poemData.value.author || '古代诗人',
+      dynasty: poemData.value.dynasty || '唐',
+      poem_title: poemData.value.title || '',
+      poem_content: getPoemContentText(),
+      history: []
+    })
+
+    if (res && res.success && res.reply) {
+      messages.value = [
+        {
+          role: 'poet',
+          text: res.reply
+        }
+      ]
+
+      history.value = [
+        {
+          role: 'assistant',
+          content: res.reply
+        }
+      ]
+    } else {
+      const fallbackText = `小朋友你好，我是${poemData.value.dynasty || '唐'}代诗人${poemData.value.author}。你刚刚学习了《${poemData.value.title}》，现在可以问我问题。`
+
+      messages.value = [
+        {
+          role: 'poet',
+          text: fallbackText
+        }
+      ]
+
+      history.value = [
+        {
+          role: 'assistant',
+          content: fallbackText
+        }
+      ]
+    }
+  } catch (err) {
+    console.log('诗人开场白接口失败，使用本地开场白', err)
+
+    const fallbackText = `小朋友你好，我是${poemData.value.dynasty || '唐'}代诗人${poemData.value.author}。你刚刚学习了《${poemData.value.title}》，现在可以问我问题。`
+
+    messages.value = [
+      {
+        role: 'poet',
+        text: fallbackText
+      }
+    ]
+
+    history.value = [
+      {
+        role: 'assistant',
+        content: fallbackText
+      }
+    ]
+  } finally {
+    isReplying.value = false
+    chatScrollTop.value += 200
+  }
+}
 
 const goBack = () => {
   uni.navigateBack({
@@ -140,22 +231,22 @@ const goBack = () => {
 
 const fakeReply = (text) => {
   if (text.includes('意思') || text.includes('什么意思')) {
-    return `《${poemData.value.title}》这首诗写的是一个很美的画面。我用简单的话告诉你：${poemData.value.translation}`
+    return `《${poemData.value.title}》这首诗写的是一个很美的画面。你可以先想一想诗里出现了什么，再慢慢读每一句。`
   }
 
   if (text.includes('鸟')) {
-    return '鸟儿在春天的早晨叫，是因为天气暖和了，大自然变热闹了。诗里写鸟叫，是想让小朋友感受到春天来了。'
+    return '鸟儿在诗里出现，是为了让画面变得更热闹。小朋友读到鸟叫，就像真的听见春天来了。'
   }
 
   if (text.includes('开心') || text.includes('心情')) {
-    return `写《${poemData.value.title}》的时候，我的心情是轻轻松松的。我看见自然里的景色，也听见身边的声音，所以把它写进了诗里。`
+    return `写《${poemData.value.title}》的时候，诗人看见眼前的景色，心里有一种特别深的感受，所以把它写成了诗。`
   }
 
   if (text.includes('为什么')) {
-    return '你问得真好。古诗里的每一句话，都是诗人看到、听到或者想到的东西。我们可以慢慢读，一句一句理解。'
+    return '你问得真好。古诗里的每一句话，都是诗人看到、听到或者想到的东西。我们可以一句一句慢慢看。'
   }
 
-  return `小朋友，这个问题问得很好。我们正在学习《${poemData.value.title}》，你可以把诗里的画面想象出来，这样就更容易明白它的意思了。`
+  return `小朋友，这个问题问得很好。我们正在学习《${poemData.value.title}》，你可以把诗里的画面想出来，这样就更容易明白它了。`
 }
 
 const sendMessage = async () => {
@@ -172,27 +263,66 @@ const sendMessage = async () => {
   chatScrollTop.value += 260
 
   try {
-    const prompt = `我正在学习古诗《${poemData.value.title}》，作者是${poemData.value.author}。请你用适合儿童理解的语言回答这个问题：${text}`
-
-    const res = await API.chatWithPoet(prompt, poemId.value)
+    const res = await API.chatWithPoet({
+      message: text,
+      poet_name: poemData.value.author || '古代诗人',
+      dynasty: poemData.value.dynasty || '唐',
+      poem_title: poemData.value.title || '',
+      poem_content: getPoemContentText(),
+      history: history.value
+    })
 
     if (res && res.success && res.reply) {
       messages.value.push({
         role: 'poet',
         text: res.reply
       })
+
+      history.value.push({
+        role: 'user',
+        content: text
+      })
+
+      history.value.push({
+        role: 'assistant',
+        content: res.reply
+      })
     } else {
+      const fallbackText = fakeReply(text)
+
       messages.value.push({
         role: 'poet',
-        text: fakeReply(text)
+        text: fallbackText
+      })
+
+      history.value.push({
+        role: 'user',
+        content: text
+      })
+
+      history.value.push({
+        role: 'assistant',
+        content: fallbackText
       })
     }
   } catch (err) {
     console.log('AI 对话接口暂不可用，使用本地假回复', err)
 
+    const fallbackText = fakeReply(text)
+
     messages.value.push({
       role: 'poet',
-      text: fakeReply(text)
+      text: fallbackText
+    })
+
+    history.value.push({
+      role: 'user',
+      content: text
+    })
+
+    history.value.push({
+      role: 'assistant',
+      content: fallbackText
     })
   }
 
@@ -264,6 +394,7 @@ button::after {
     radial-gradient(circle at 88% 18%, rgba(255, 210, 145, 0.16), transparent 25%),
     linear-gradient(180deg, #fffaf2 0%, #fff1e8 55%, #ffe9df 100%);
 }
+
 .page {
   position: absolute;
   inset: 0;

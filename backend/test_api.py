@@ -72,7 +72,6 @@ def test_record_summary():
     )
     print_result("GET /record/summary", response)
 
-
 def test_ocr():
     response = requests.post(
         f"{BASE_URL}/ocr",
@@ -81,7 +80,18 @@ def test_ocr():
             "mode": "text"
         }
     )
-    print_result("POST /ocr", response)
+    print_result("POST /ocr text mode", response)
+
+
+def test_ocr_image_base64_placeholder():
+    response = requests.post(
+        f"{BASE_URL}/ocr",
+        json={
+            "image": "test_base64_string",
+            "mode": "image_base64"
+        }
+    )
+    print_result("POST /ocr image_base64 placeholder mode", response)
 
 
 if __name__ == "__main__":
@@ -95,5 +105,6 @@ if __name__ == "__main__":
     test_add_record()
     test_record_summary()
     test_ocr()
+    test_ocr_image_base64_placeholder()
 
     print("\n全部测试执行完毕。")

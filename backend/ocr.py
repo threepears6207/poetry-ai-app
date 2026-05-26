@@ -93,45 +93,70 @@ def match_poem_by_text(recognized_text: str):
         return None
 
     return best_match
+def recognize_text_from_image_base64(image_base64: str) -> str:
+    """
+    真实 OCR 预留函数。
 
+    当前阶段：
+    - 暂时不调用第三方 OCR
+    - 只做接口结构预留
+    - 后续拿到腾讯云 OCR / 百度 OCR Key 后，在这里实现图片文字识别
+
+    参数：
+    - image_base64: 前端上传的图片 base64 字符串
+
+    返回：
+    - OCR 识别出的文字
+    """
+    # TODO: 后续在这里接入真实 OCR API
+    return ""
 
 @router.post("/ocr")
 def recognize_photo(request: PhotoRequest):
     """
-    拍照识诗接口临时版。
+    拍照识诗接口。
 
-    当前阶段：
-    - 不调用真实 OCR
-    - 先把 request.image 当作“已经识别出来的文字”
-    - 再用这段文字去 poems.json 里匹配古诗
+    支持两种模式：
+    1. mode='text'
+       当前演示版，直接把 image 字段当作已识别文本。
 
-    后续接真实 OCR 时：
-    - 只需要把 recognized_text = request.image
-    - 替换成 OCR API 返回的文字即可
+    2. mode='image_base64'
+       真实图片 OCR 预留模式，后续用于接入腾讯云 OCR / 百度 OCR。
     """
 
-    if request.mode != "text":
+    if request.mode == "text":
+        recognized_text = request.image
+
+    elif request.mode == "image_base64":
+        recognized_text = recognize_text_from_image_base64(request.image)
+
+        if not recognized_text:
+            return {
+                "success": False,
+                "mode": "image_base64",
+                "error": "图片 OCR 功能暂未接入真实服务，请先使用 mode='text' 进行演示测试"
+            }
+
+    else:
         return {
             "success": False,
             "mode": request.mode,
-            "error": "当前阶段只支持 mode='text'"
+            "error": "不支持的识别模式，目前支持 text 和 image_base64"
         }
-
-    recognized_text = request.image
 
     matched_poem = match_poem_by_text(recognized_text)
 
     if not matched_poem:
         return {
             "success": False,
-            "mode": "text",
+            "mode": request.mode,
             "recognized_text": recognized_text,
             "error": "未匹配到古诗"
         }
 
     return {
         "success": True,
-        "mode": "text",
+        "mode": request.mode,
         "recognized_text": recognized_text,
         "matched_poem": matched_poem
     }

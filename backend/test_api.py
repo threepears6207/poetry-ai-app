@@ -93,6 +93,15 @@ def test_ocr_image_base64_placeholder():
     )
     print_result("POST /ocr image_base64 placeholder mode", response)
 
+def test_tts():
+    response = requests.post(
+        f"{BASE_URL}/tts",
+        json={
+            "text": "床前明月光，疑是地上霜。",
+            "voice": "child"
+        }
+    )
+    print_result("POST /tts", response)
 
 if __name__ == "__main__":
     print("开始测试后端接口，请确认 FastAPI 已经启动：")
@@ -106,5 +115,6 @@ if __name__ == "__main__":
     test_record_summary()
     test_ocr()
     test_ocr_image_base64_placeholder()
+    test_tts()
 
     print("\n全部测试执行完毕。")

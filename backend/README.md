@@ -61,7 +61,7 @@ VIVO_APP_ID=你的蓝心APPID
 | poems.py | 古诗搜索与详情接口，支持关键词、作者、朝代、标签筛选 |
 | generate.py | AI 配图接口 `POST /generate/image`，用于按诗句生成连续插画分镜 |
 | tts.py | 语音朗读接口 `POST /tts`，当前仍为待实现占位接口 |
-| ocr.py | 拍照识诗接口 `POST /ocr`，当前为演示版文字匹配 OCR |
+| ocr.py | 拍照识诗接口 `POST /ocr`，- 文字匹配演示流程已完成；图片 base64 模式入口已完成；真实第三方 OCR 调用暂未完成。|
 | record.py | 学习记录接口，包含记录写入、查询和学习统计 |
 | recommend.py | 推荐接口 `GET /recommend`，基于学习记录推荐未学习古诗 |
 | test_api.py | 后端接口稳定性测试脚本，用于快速检查主要接口是否可用 |
@@ -103,7 +103,7 @@ VIVO_APP_ID=你的蓝心APPID
 | `/record` | GET | 查询用户学习记录 | ✅ 已完成 |
 | `/record/summary` | GET | 用户学习统计，供家长端展示 | ✅ 已完成 |
 | `/recommend` | GET | 推荐未学习古诗 | ✅ 已完成 |
-| `/ocr` | POST | 拍照识诗，当前为文字模拟 OCR 匹配 | ✅ 演示版已完成，真实图片 OCR 待接入 |
+| `/ocr` | POST | 拍照识诗，当前支持两种模式，根据文字匹配，真实图片ocr预留 | ✅ 演示版已完成，真实图片 OCR 待接入 |
 | `/generate/image` | POST | AI 配图生成 | ✅ 已完成接口逻辑，需配置 `VIVO_APP_KEY` 并继续联调 |
 | `/tts` | POST | 语音朗读 | ⏳ 待实现 |
 
@@ -488,7 +488,7 @@ python test_api.py
 - 测试脚本主要用于冒烟测试，检查接口是否可访问；
 - 脚本会调用 `POST /record`，因此运行后可能修改 `data/records.json`；
 - 测试完成后如不需要保留测试记录，应恢复 `records.json`。
-
+-`test_api.py` 已覆盖 `/ocr` 的 `text` 模式和 `image_base64` 占位模式，可用于检查 OCR 接口结构是否正常。
 ---
 
 ## 前端联调说明

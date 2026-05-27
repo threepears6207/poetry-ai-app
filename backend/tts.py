@@ -1,10 +1,9 @@
-import base64
-import os
+import asyncio
 import time
 from pathlib import Path
 from typing import Optional
 
-import requests
+import edge_tts
 from fastapi import APIRouter
 from pydantic import BaseModel
 
@@ -25,9 +24,27 @@ class TTSRequest(BaseModel):
     voice: Optional[str] = "child"
 
 
+def map_voice_to_edge_voice(voice: str) -> str:
+    """
+    将前端传入的 voice 映射为 edge-tts 支持的中文音色。
+    """
+    voice_map = {
+        "child": "zh-CN-XiaoxiaoNeural",
+        "female": "zh-CN-XiaoxiaoNeural",
+        "male": "zh-CN-YunxiNeural",
+        "default": "zh-CN-XiaoxiaoNeural",
+        "xiaoxiao": "zh-CN-XiaoxiaoNeural",
+        "yunxi": "zh-CN-YunxiNeural",
+        "xiaoyi": "zh-CN-XiaoyiNeural",
+        "yunjian": "zh-CN-YunjianNeural"
+    }
+
+    return voice_map.get(voice or "default", "zh-CN-XiaoxiaoNeural")
+
+
 def save_audio_file(audio_bytes: bytes) -> str:
     """
-    保存音频文件，并返回前端可访问的相对路径
+    保存 mp3 音频文件，并返回前端可访问的相对路径。
     """
     filename = f"tts_{int(time.time() * 1000)}.mp3"
     file_path = AUDIO_DIR / filename
@@ -38,58 +55,34 @@ def save_audio_file(audio_bytes: bytes) -> str:
     return f"/static/audio/{filename}"
 
 
-def call_lanxin_tts(text: str, voice: str = "child") -> bytes:
+async def call_edge_tts_async(text: str, voice: str = "child") -> bytes:
     """
-    调用蓝心 TTS 服务。
-
-    当前函数是蓝心 TTS 接入位置。
-    需要根据比赛平台提供的接口文档填写真实 URL、鉴权参数和请求格式。
-    不要把 API Key 写死在代码中，应通过环境变量读取。
+    调用 edge-tts 生成语音，返回 mp3 音频 bytes。
     """
+    edge_voice = map_voice_to_edge_voice(voice)
 
-    tts_url = os.getenv("LANXIN_TTS_URL")
-    app_id = os.getenv("LANXIN_APP_ID")
-    api_key = os.getenv("LANXIN_API_KEY")
-    api_secret = os.getenv("LANXIN_API_SECRET")
-
-    if not tts_url or not api_key:
-        raise RuntimeError("蓝心 TTS 配置未完成，请检查 LANXIN_TTS_URL 和 LANXIN_API_KEY")
-
-    # 下面 headers 和 payload 需要按照比赛官方提供的蓝心 TTS 文档调整。
-    # 如果文档要求 app_id、timestamp、signature，也要在这里补。
-    headers = {
-        "Content-Type": "application/json",
-        "Authorization": f"Bearer {api_key}"
-    }
-
-    payload = {
-        "text": text,
-        "voice": voice,
-        "format": "mp3"
-    }
-
-    response = requests.post(
-        tts_url,
-        json=payload,
-        headers=headers,
-        timeout=30
+    communicate = edge_tts.Communicate(
+        text=text,
+        voice=edge_voice
     )
 
-    response.raise_for_status()
+    audio_bytes = b""
 
-    result = response.json()
+    async for chunk in communicate.stream():
+        if chunk["type"] == "audio":
+            audio_bytes += chunk["data"]
 
-    # 常见 TTS 返回形式：
-    # 1. 返回 base64 音频字段，例如 audio_base64；
-    # 2. 返回音频 URL；
-    # 3. 直接返回二进制音频。
-    # 这里先按 base64 返回写，后续根据真实文档调整字段名。
-    audio_base64 = result.get("audio_base64") or result.get("audio")
+    if not audio_bytes:
+        raise RuntimeError("edge-tts 未返回音频数据")
 
-    if not audio_base64:
-        raise RuntimeError("蓝心 TTS 返回中未找到音频字段")
+    return audio_bytes
 
-    return base64.b64decode(audio_base64)
+
+def call_edge_tts(text: str, voice: str = "child") -> bytes:
+    """
+    在同步 FastAPI 接口中调用异步 edge-tts。
+    """
+    return asyncio.run(call_edge_tts_async(text, voice))
 
 
 @router.post("/tts")
@@ -103,7 +96,6 @@ def generate_tts(request: TTSRequest):
       "voice": "child"
     }
     """
-
     text = request.text.strip()
 
     if not text:
@@ -113,12 +105,13 @@ def generate_tts(request: TTSRequest):
         }
 
     try:
-        audio_bytes = call_lanxin_tts(text, request.voice)
+        audio_bytes = call_edge_tts(text, request.voice)
         audio_url = save_audio_file(audio_bytes)
 
         return {
             "success": True,
             "message": "语音生成成功",
+            "provider": "edge-tts",
             "audio_url": audio_url
         }
 
@@ -126,5 +119,6 @@ def generate_tts(request: TTSRequest):
         return {
             "success": False,
             "message": "TTS 语音生成失败",
+            "provider": "edge-tts",
             "error": str(e)
         }

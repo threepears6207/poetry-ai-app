@@ -22,13 +22,13 @@
 
             <view class="poem-paper">
               <view class="poem-paper-title">{{ matchedPoem.title }}</view>
-            <text
-             v-for="line in matchedPoem.content"
-             :key="line"
-            class="poem-paper-line"
-           >
-            {{ line }}
-          </text>
+              <text
+                v-for="line in matchedPoem.content"
+                :key="line"
+                class="poem-paper-line"
+              >
+                {{ line }}
+              </text>
             </view>
 
             <view class="scan-line"></view>
@@ -66,7 +66,7 @@
             <text>拍摄</text>
           </button>
 
-          <button class="side-btn" @tap="showResult">
+          <button class="side-btn" @tap="chooseAlbumAndRecognize">
             <text class="side-icon">🖼️</text>
             <text>相册</text>
           </button>
@@ -89,19 +89,23 @@
               <view class="result-title">{{ matchedPoem.title }}</view>
               <view class="author">{{ matchedPoem.dynasty }} · {{ matchedPoem.author }}</view>
               <view class="poem-lines">
-               <text
-                v-for="line in matchedPoem.content"
-                :key="line"
-              >
-                {{ line }}
-              </text>
-            </view>
+                <text
+                  v-for="line in matchedPoem.content"
+                  :key="line"
+                >
+                  {{ line }}
+                </text>
+              </view>
             </view>
 
             <view class="tag-panel">
-              <view class="tag">🌸 春天</view>
-              <view class="tag">🐦 鸟儿</view>
-              <view class="tag">🌙 清晨</view>
+              <view
+                v-for="tag in displayTags"
+                :key="tag"
+                class="tag"
+              >
+                {{ tag }}
+              </view>
             </view>
           </view>
 
@@ -127,13 +131,31 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { API, getLocalPoemById } from '@/utils/api.js'
+
+const BASE_URL = 'http://127.0.0.1:8000'
 
 const pageState = ref('camera')
 const mode = ref('poem')
+const albumRecognizing = ref(false)
 
 const matchedPoem = ref(getLocalPoemById('poem_001'))
+
+const sceneTags = ref([])
+const matchType = ref('text')
+
+const displayTags = computed(() => {
+  if (sceneTags.value.length > 0) {
+    return sceneTags.value.slice(0, 3).map((tag) => `✨ ${tag}`)
+  }
+
+  if (matchType.value === 'scene') {
+    return ['🌿 风景', '📷 图片', '✨ 匹配']
+  }
+
+  return ['🌸 春天', '🐦 鸟儿', '🌙 清晨']
+})
 
 const goBack = () => {
   uni.navigateBack({
@@ -145,22 +167,176 @@ const goBack = () => {
   })
 }
 
+const readBlobAsBase64 = (blob) => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+
+    reader.onload = () => {
+      const result = reader.result || ''
+      const base64 = String(result).split(',')[1] || ''
+
+      if (!base64) {
+        reject(new Error('图片 base64 转换失败'))
+        return
+      }
+
+      resolve(base64)
+    }
+
+    reader.onerror = () => {
+      reject(new Error('图片读取失败'))
+    }
+
+    reader.readAsDataURL(blob)
+  })
+}
+
+const fileToBase64 = async (chooseRes) => {
+  console.log('相册选择完整结果：', chooseRes)
+
+  const tempFile = chooseRes.tempFiles && chooseRes.tempFiles[0]
+  const tempPath = chooseRes.tempFilePaths && chooseRes.tempFilePaths[0]
+
+  if (tempFile instanceof Blob) {
+    return await readBlobAsBase64(tempFile)
+  }
+
+  if (tempFile && tempFile.file instanceof Blob) {
+    return await readBlobAsBase64(tempFile.file)
+  }
+
+  if (tempFile && tempFile.path) {
+    const blob = await fetch(tempFile.path).then((res) => res.blob())
+    return await readBlobAsBase64(blob)
+  }
+
+  if (tempPath) {
+    const blob = await fetch(tempPath).then((res) => res.blob())
+    return await readBlobAsBase64(blob)
+  }
+
+  throw new Error('没有获取到可读取的图片文件')
+}
+
+const recognizeImageBase64 = (imageBase64) => {
+  return new Promise((resolve, reject) => {
+    uni.request({
+      url: `${BASE_URL}/ocr`,
+      method: 'POST',
+      data: {
+        image: imageBase64,
+        mode: 'image_base64'
+      },
+      header: {
+        'Content-Type': 'application/json'
+      },
+      timeout: 60000,
+      success: (res) => {
+        console.log('POST /ocr 原始响应：', res)
+
+        if (res.statusCode >= 200 && res.statusCode < 300) {
+          resolve(res.data)
+        } else {
+          reject(new Error(`后端返回状态码：${res.statusCode}`))
+        }
+      },
+      fail: (err) => {
+        reject(err)
+      }
+    })
+  })
+}
+
+const chooseAlbumAndRecognize = async () => {
+  if (albumRecognizing.value) return
+
+  try {
+    const chooseRes = await uni.chooseImage({
+      count: 1,
+      sizeType: ['compressed'],
+      sourceType: ['album']
+    })
+
+    albumRecognizing.value = true
+
+    uni.showLoading({
+      title: '识别中...'
+    })
+
+    const imageBase64 = await fileToBase64(chooseRes)
+
+    console.log('图片 base64 长度：', imageBase64.length)
+
+    const res = await recognizeImageBase64(imageBase64)
+
+    console.log('相册识诗结果：', res)
+    console.log('相册识诗结果JSON：', JSON.stringify(res, null, 2))
+
+    if (res && res.success) {
+      const poem = res.data || res.matched_poem
+
+      if (poem && poem.id) {
+        matchedPoem.value = poem
+        sceneTags.value = res.scene_tags || []
+        matchType.value = res.match_type || 'text'
+        pageState.value = 'result'
+
+        uni.showToast({
+          title: `识别到《${poem.title}》`,
+          icon: 'none'
+        })
+      } else {
+        uni.showToast({
+          title: '识别成功但没有古诗ID',
+          icon: 'none'
+        })
+      }
+    } else {
+      sceneTags.value = res?.scene_tags || []
+      matchType.value = res?.match_type || 'text'
+
+      console.log('后端识别失败原因：', res)
+
+      uni.showToast({
+        title: res?.message || res?.error || '未识别到相关古诗',
+        icon: 'none'
+      })
+    }
+  } catch (err) {
+    console.log('相册识诗失败详情：', err)
+
+    uni.showToast({
+      title: err?.message || '图片识别失败',
+      icon: 'none'
+    })
+  } finally {
+    uni.hideLoading()
+    albumRecognizing.value = false
+  }
+}
+
 const showResult = async () => {
   uni.showLoading({
     title: '识别中...'
   })
 
   try {
-    // 当前演示版：先用固定文字模拟 OCR 识别结果
-    // 后续接真实图片 OCR 时，只需要把 demoText 换成真实 OCR 返回文本
     const demoText = mode.value === 'poem'
       ? '床前明月光疑是地上霜'
       : '白日依山尽黄河入海流'
 
     const res = await API.recognizePoem(demoText, 'text')
 
-    if (res && res.success && res.matched_poem) {
-      matchedPoem.value = res.matched_poem
+    if (res && res.success) {
+      const poem = res.data || res.matched_poem
+
+      if (poem) {
+        matchedPoem.value = poem
+        matchType.value = 'text'
+        sceneTags.value = []
+      } else {
+        matchedPoem.value = getLocalPoemById('poem_001')
+      }
     } else {
       uni.showToast({
         title: '暂未识别到古诗',

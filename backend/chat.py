@@ -194,7 +194,7 @@ def chat(request: ChatRequest):
             "messages": messages,
         }
 
-        response = requests.post(url, json=data, headers=headers)
+        response = requests.post(url, json=data, headers=headers, timeout=60)
         result = response.json()
 
         print("vivo API 返回：", result)

@@ -55,7 +55,7 @@
             </view>
 
             <view class="guide-buttons">
-              <button class="guide-btn white-btn" @tap="showGuide = false">再看一遍</button>
+              <button class="guide-btn white-btn" @tap="replayAudio">再看一遍</button>
               <button class="guide-btn orange-btn" @tap="goChat">和诗人聊聊天 💬</button>
             </view>
           </view>
@@ -70,9 +70,15 @@ import { computed, ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import { API, getLocalPoemById } from '@/utils/api.js'
 
+const BACKEND_BASE_URL = 'http://127.0.0.1:8000'
+
 const showGuide = ref(false)
 const poemId = ref('poem_001')
 const poemData = ref(getLocalPoemById('poem_001'))
+
+const ttsLoading = ref(false)
+const audioContext = ref(null)
+const lastAudioUrl = ref('')
 
 const sceneText = computed(() => {
   if (poemData.value.title === '春晓') return '春天的早晨，睡得香香的。'
@@ -80,6 +86,14 @@ const sceneText = computed(() => {
   if (poemData.value.title === '咏鹅') return '白鹅在水里快乐地游来游去。'
   if (poemData.value.title === '悯农') return '每一粒米饭都来得很辛苦。'
   return '一起走进古诗里的画面吧。'
+})
+
+const poemText = computed(() => {
+  const title = poemData.value.title || ''
+  const author = poemData.value.author || ''
+  const content = poemData.value.content || []
+
+  return `${title}，${author}。${content.join('，')}。`
 })
 
 onLoad(async (options) => {
@@ -101,9 +115,98 @@ onLoad(async (options) => {
   } catch (err) {
     console.log('学习记录接口暂不可用，先跳过', err)
   }
+
+  setTimeout(() => {
+    playPoemAudio()
+  }, 500)
 })
 
+const requestTTS = (text, voice = 'child') => {
+  return new Promise((resolve, reject) => {
+    uni.request({
+      url: `${BACKEND_BASE_URL}/tts`,
+      method: 'POST',
+      data: {
+        text,
+        voice
+      },
+      header: {
+        'Content-Type': 'application/json'
+      },
+      timeout: 60000,
+      success: (res) => {
+        resolve(res.data)
+      },
+      fail: (err) => {
+        reject(err)
+      }
+    })
+  })
+}
+
+const playByUrl = (audioUrl) => {
+  if (audioContext.value) {
+    audioContext.value.stop()
+    audioContext.value.destroy()
+  }
+
+  const innerAudioContext = uni.createInnerAudioContext()
+  audioContext.value = innerAudioContext
+
+  innerAudioContext.src = audioUrl
+  innerAudioContext.autoplay = true
+
+  innerAudioContext.onPlay(() => {
+    console.log('开始播放古诗朗读')
+  })
+
+  innerAudioContext.onEnded(() => {
+    console.log('古诗朗读播放结束')
+  })
+
+  innerAudioContext.onError((err) => {
+    console.log('音频播放失败：', err)
+  })
+}
+
+const playPoemAudio = async () => {
+  if (ttsLoading.value) return
+
+  ttsLoading.value = true
+
+  try {
+    const data = await requestTTS(poemText.value, 'child')
+
+    if (data && data.success && data.audio_url) {
+      const audioUrl = `${BACKEND_BASE_URL}${data.audio_url}`
+      lastAudioUrl.value = audioUrl
+      playByUrl(audioUrl)
+    } else {
+      console.log('朗读生成失败：', data)
+    }
+  } catch (err) {
+    console.log('TTS 接口调用失败：', err)
+  } finally {
+    ttsLoading.value = false
+  }
+}
+
+const replayAudio = () => {
+  showGuide.value = false
+
+  if (lastAudioUrl.value) {
+    playByUrl(lastAudioUrl.value)
+  } else {
+    playPoemAudio()
+  }
+}
+
 const goBack = () => {
+  if (audioContext.value) {
+    audioContext.value.stop()
+    audioContext.value.destroy()
+  }
+
   uni.navigateBack({
     fail: () => {
       if (typeof window !== 'undefined') {
@@ -114,6 +217,11 @@ const goBack = () => {
 }
 
 const goChat = () => {
+  if (audioContext.value) {
+    audioContext.value.stop()
+    audioContext.value.destroy()
+  }
+
   uni.navigateTo({
     url: `/pages/chat/chat?poem_id=${poemData.value.id}`,
     fail: () => {

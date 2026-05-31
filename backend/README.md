@@ -42,13 +42,20 @@ uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 ```env
 VIVO_APP_KEY=你的蓝心APIKey
 VIVO_APP_ID=你的蓝心APPID
+OCR_PROVIDER=baidu
+BAIDU_OCR_API_KEY=你的百度OCR API Key
+BAIDU_OCR_SECRET_KEY=你的百度OCR Secret Key
+BAIDU_IMAGE_API_KEY=你的百度图像识别 API Key
+BAIDU_IMAGE_SECRET_KEY=你的百度图像识别 Secret Key
 ```
 
 说明：
 
 - `VIVO_APP_KEY`：用于 AI 诗人对话和 AI 配图接口。
 - `VIVO_APP_ID`：当前主要用于 `/ping` 健康检查接口返回环境配置状态。
-- 如果未配置 `VIVO_APP_KEY`，基础业务接口仍可运行，但 `/chat`、`/generate/image` 等 AI 能力可能无法正常调用。
+- `BAIDU_OCR_API_KEY` / `BAIDU_OCR_SECRET_KEY`：用于有文字图片的 OCR 识别。
+- `BAIDU_IMAGE_API_KEY` / `BAIDU_IMAGE_SECRET_KEY`：用于无文字风景图的场景识别。
+- 如果未配置 `VIVO_APP_KEY`，基础业务接口仍可运行，但 `/chat`、`/generate/image` 等 AI 能力无法正常调用。
 
 ---
 
@@ -59,33 +66,32 @@ VIVO_APP_ID=你的蓝心APPID
 | main.py | 主入口，注册所有路由，配置 CORS，提供 `/` 和 `/ping` |
 | chat.py | AI 诗人对话接口 `POST /chat` |
 | poems.py | 古诗搜索与详情接口，支持关键词、作者、朝代、标签筛选 |
-| generate.py | AI 配图接口 `POST /generate/image`，用于按诗句生成连续插画分镜 |
-| tts.py | 语音朗读接口 `POST /tts`，当前仍为待实现占位接口 |
-| ocr.py | 拍照识诗接口 `POST /ocr`，- 文字匹配演示流程已完成；图片 base64 模式入口已完成；真实第三方 OCR 调用暂未完成。|
+| generate.py | AI 配图接口 `POST /generate/image`，按诗句生成连续插画分镜，含本地缓存机制 |
+| tts.py | 语音朗读接口 `POST /tts`，使用 edge-tts 生成中文朗读音频，返回本地音频 URL |
+| ocr.py | 拍照识诗接口 `POST /ocr`，支持文字图片调用百度 OCR 识别、风景图调用百度图像识别匹配古诗 |
 | record.py | 学习记录接口，包含记录写入、查询和学习统计 |
 | recommend.py | 推荐接口 `GET /recommend`，基于学习记录推荐未学习古诗 |
 | test_api.py | 后端接口稳定性测试脚本，用于快速检查主要接口是否可用 |
 | test_chat.py | AI 对话接口测试脚本 |
 | data/poems.json | 本地古诗数据文件 |
-| data/records.json | 本地学习记录数据文件，测试时会变化，提交前需注意不要误提交测试数据 |
+| data/records.json | 本地学习记录数据文件，测试时会变化，提交前注意不要误提交测试数据 |
+| static/poem_images_cache.json | AI 配图本地缓存文件，存储已生成过的诗句图片路径，避免重复调用模型 |
 | API.md | 完整接口文档（入参/出参格式） |
 
 ---
 
 ## 当前功能进度概览
 
-根据项目书中"输入—理解—互动—巩固—记录—家长共育"的功能目标，目前后端已完成基础业务闭环，并完成部分 AI 能力接入。
-
 | 项目功能目标 | 当前实现情况 | 对应后端能力 |
 |---|---|---|
-| 古诗识别与输入 | 部分实现 | 已支持文字模拟 OCR 匹配古诗；真实图片 OCR 尚未接入 |
+| 古诗识别与输入 | 已实现 | 支持文字图片百度 OCR 识别 + 风景图场景识别匹配古诗 |
 | 古诗搜索与详情 | 已实现 | 支持搜索、详情查询、作者/朝代/标签筛选 |
-| 智能讲解与交互 | 已实现接口逻辑 | 已实现 AI 诗人对话接口，依赖蓝心 API Key |
-| 多模态内容生成 | 部分实现 | 已实现 AI 配图接口逻辑，需配置蓝心 API 并继续联调稳定性 |
-| 语音朗读 | 未实现 | `/tts` 当前仍返回"接口待实现" |
+| 智能讲解与交互 | 已实现 | 已实现 AI 诗人对话接口，依赖蓝心 API Key |
+| 多模态内容生成 | 已实现 | 已实现 AI 配图接口，含分镜规划和本地缓存，已生成古诗秒回 |
+| 语音朗读 | 已实现 | `/tts` 使用 edge-tts 生成中文朗读音频，返回可播放音频 URL |
 | 趣味学习与巩固 | 暂未实现独立后端接口 | 前端可先做页面演示，后续可补充闯关、跟读、配对等记录接口 |
 | 学习记录与推荐 | 已实现 | 支持记录学习、查询记录、学习统计、推荐未学习古诗 |
-| 家长管理与共育 | 部分实现 | 已提供学习统计接口，前端家长端已可接入真实学习数据；时长限制等管理能力仍可扩展 |
+| 家长管理与共育 | 部分实现 | 已提供学习统计接口，前端家长端已可接入真实学习数据 |
 | 接口稳定性保障 | 已实现基础脚本 | `test_api.py` 可快速测试主要后端接口 |
 
 ---
@@ -96,16 +102,16 @@ VIVO_APP_ID=你的蓝心APPID
 |---|---|---|---|
 | `/` | GET | 后端根路径，返回 API 运行状态 | ✅ 已完成 |
 | `/ping` | GET | 健康检查，返回 vivo 配置状态 | ✅ 已完成 |
-| `/chat` | POST | AI 诗人对话 | ✅ 已完成接口逻辑，需配置 `VIVO_APP_KEY` |
+| `/chat` | POST | AI 诗人对话 | ✅ 已完成，需配置 `VIVO_APP_KEY` |
 | `/poems/search` | GET | 古诗搜索，支持关键词、作者、朝代、标签、分页 | ✅ 已完成 |
 | `/poems/{poem_id}` | GET | 古诗详情 | ✅ 已完成 |
 | `/record` | POST | 添加学习记录 | ✅ 已完成 |
 | `/record` | GET | 查询用户学习记录 | ✅ 已完成 |
 | `/record/summary` | GET | 用户学习统计，供家长端展示 | ✅ 已完成 |
 | `/recommend` | GET | 推荐未学习古诗 | ✅ 已完成 |
-| `/ocr` | POST | 拍照识诗，当前支持两种模式，根据文字匹配，真实图片ocr预留 | ✅ 演示版已完成，真实图片 OCR 待接入 |
-| `/generate/image` | POST | AI 配图生成 | ✅ 已完成（优化中） |
-| `/tts` | POST | 语音朗读 | ⏳ 待实现 |
+| `/ocr` | POST | 拍照识诗，支持文字图片 OCR 识别和风景图场景识别 | ✅ 已完成 |
+| `/generate/image` | POST | AI 配图生成，含本地缓存 | ✅ 已完成 |
+| `/tts` | POST | 语音朗读，使用 edge-tts 生成音频 | ✅ 已完成 |
 
 ---
 
@@ -328,28 +334,26 @@ GET /recommend?user_id=test_user&limit=5
 
 `POST /ocr`
 
-当前为演示版 OCR：
+支持两种模式：
 
-- 暂不调用真实 OCR 服务；
-- 先把 `image` 字段当作"已经识别出的文字"；
-- 再用文字匹配 `poems.json` 中的古诗；
-- 前端拍照页已可通过测试文字完成"识别文本 → 匹配古诗 → 展示结果 → 跳转详情"的演示闭环。
+- **文字图片模式**：调用百度 OCR 识别图片中的诗句文字，再匹配古诗；
+- **风景图模式**：调用百度图像识别，识别场景标签后匹配古诗；
+- 需配置 `BAIDU_OCR_API_KEY`、`BAIDU_OCR_SECRET_KEY`、`BAIDU_IMAGE_API_KEY`、`BAIDU_IMAGE_SECRET_KEY`。
 
-请求体示例：
+请求体示例（图片 base64 模式）：
 
 ```json
 {
-  "image": "床前明月光疑是地上霜",
-  "mode": "text"
+  "image_base64": "图片的base64字符串"
 }
 ```
 
-返回示例：
+返回示例（文字图片）：
 
 ```json
 {
   "success": true,
-  "mode": "text",
+  "mode": "image_base64",
   "recognized_text": "床前明月光疑是地上霜",
   "matched_poem": {
     "id": "poem_002",
@@ -357,12 +361,10 @@ GET /recommend?user_id=test_user&limit=5
     "author": "李白",
     "dynasty": "唐",
     "content": ["床前明月光", "疑是地上霜", "举头望明月", "低头思故乡"],
-    "tags": ["月亮", "思乡", "儿童启蒙"]
+    "tags": ["月亮", "思乡", "李白"]
   }
 }
 ```
-
-后续计划：接入腾讯云 OCR、百度 OCR 或其他文字识别服务，将真实图片识别结果传入现有匹配逻辑。
 
 ---
 
@@ -396,7 +398,20 @@ GET /recommend?user_id=test_user&limit=5
 
 `POST /generate/image`
 
-用于为古诗每句话生成一张横版配图，并尽量保持连续分镜效果。
+为古诗每句话生成一张横版配图，图片之间保持连续分镜效果。已生成过的古诗自动缓存，下次请求直接返回，不重复调用模型。
+
+**参数说明：**
+
+注意 poems.json 与接口参数的字段名对应关系：
+
+| poems.json 字段 | 接口参数名 |
+|---|---|
+| `id` | `poem_id` |
+| `title` | `poem_title` |
+| `content` | `poem_content` |
+| `author` | `poet_name` |
+| `dynasty` | `dynasty` |
+| `tags` | `tags` |
 
 请求体示例：
 
@@ -407,31 +422,35 @@ GET /recommend?user_id=test_user&limit=5
   "poem_content": ["床前明月光", "疑是地上霜", "举头望明月", "低头思故乡"],
   "poet_name": "李白",
   "dynasty": "唐",
-  "tags": ["月亮", "思乡"]
+  "tags": ["月亮", "思乡", "李白"]
 }
 ```
 
-- `poem_content` 直接传 poems.json 里的 `content` 数组；
-- `tags` 传 poems.json 里的 `tags` 字段；
-- 每句诗生成一张图，4句诗约需 2-4 分钟；
-- 图片尺寸 `2560x1440`，横版 16:9；
-- 生成流程：整体分镜规划 → 逐句构建 prompt → 逐句调用图像 API。
+**缓存机制：**
 
-响应结构：
+- 同一首诗（按 `poem_id` 识别）生成成功后自动写入 `static/poem_images_cache.json`；
+- 下次请求同一首诗时直接返回缓存，`from_cache: true`，秒回，不再调用模型；
+- 当前已预生成：《静夜思》（poem_002）；
+- 如需强制重新生成，请求体加 `"force_regenerate": true`。
+
+**响应结构：**
 
 ```json
 {
   "success": true,
+  "from_cache": true,
   "poem_title": "静夜思",
   "has_character": true,
   "character_desc": "人物形象描述",
+  "recurring_elements": "固定建筑元素描述",
   "total_lines": 4,
   "frames": [
     {
       "index": 0,
       "line": "床前明月光",
       "scene": "规划的场景描述",
-      "image_url": "https://...",
+      "shot_type": "中景",
+      "image_url": "/static/images/poems/poem_002/frame_0.jpg",
       "duration_ms": 3000
     }
   ],
@@ -439,9 +458,13 @@ GET /recommend?user_id=test_user&limit=5
 }
 ```
 
-⚠️ **前端注意：请求超时时间必须设 120 秒以上，生成期间显示 loading 状态**
+**前端接入注意事项：**
 
-该接口依赖 `VIVO_APP_KEY`，仍需继续进行真实 API 联调和稳定性测试。
+- `image_url` 为本地静态路径，拼接 `http://127.0.0.1:8000` 前缀即可访问；
+- 已缓存的诗秒回；未缓存的诗首次生成约需 1-2 分钟，前端**必须显示 loading 动画**；
+- 建议进入详情页时立即发起请求，不要等用户点击；
+- 请求超时时间必须设置为 **120 秒以上**；
+- `success: false` 时 `frames` 为空数组，页面显示"配图生成中，请稍后重试"，不要白屏。
 
 ---
 
@@ -449,24 +472,40 @@ GET /recommend?user_id=test_user&limit=5
 
 `POST /tts`
 
+使用 edge-tts 生成中文朗读音频，返回本地可访问的 mp3 音频 URL。
+
 请求体示例：
 
 ```json
 {
-  "text": "床前明月光，疑是地上霜。"
+  "text": "床前明月光，疑是地上霜。",
+  "voice": "child"
 }
 ```
 
-当前状态：占位接口，返回：
+支持的 voice 参数：
+
+| voice 值 | 对应音色 |
+|---|---|
+| child / female / default | 晓晓（女声，适合儿童） |
+| male | 云希（男声） |
+| xiaoyi | 晓伊 |
+| yunjian | 云健 |
+
+返回示例：
 
 ```json
 {
-  "success": false,
-  "error": "接口待实现"
+  "success": true,
+  "message": "语音生成成功",
+  "provider": "edge-tts",
+  "audio_url": "/static/audio/tts_1234567890.mp3"
 }
 ```
 
-后续计划：接入文字转语音能力，返回音频 URL 或可播放音频资源。
+- `audio_url` 为本地静态路径，拼接 `http://127.0.0.1:8000` 前缀即可播放；
+- edge-tts 需要访问微软服务器，网络异常时可能失败；
+- 失败时返回 `"success": false` 和错误信息。
 
 ---
 
@@ -478,13 +517,16 @@ GET /recommend?user_id=test_user&limit=5
 |---|---|
 | `data/poems.json` | 古诗基础数据 |
 | `data/records.json` | 用户学习记录 |
+| `static/poem_images_cache.json` | AI 配图缓存，存储已生成图片的本地路径 |
+| `static/images/poems/{poem_id}/` | 各首古诗的生成图片，按 poem_id 分文件夹存放 |
+| `static/audio/` | TTS 生成的音频文件 |
 
 注意：
 
 - 当前阶段未接入 MySQL 或 SQLite；
-- `records.json` 会在调用 `POST /record` 或运行测试脚本时发生变化；
-- 提交代码前应检查 `records.json` 是否只是测试数据变化，避免误提交无关学习记录；
-- 后续如需支持多用户、部署和长期数据保存，应升级为数据库存储。
+- `records.json` 会在调用 `POST /record` 或运行测试脚本时发生变化，提交前注意检查；
+- `static/audio/` 下的音频文件为运行时生成，无需提交到 GitHub；
+- `static/images/` 和 `static/poem_images_cache.json` 建议提交，前端联调时可直接使用已缓存的图片。
 
 ---
 
@@ -519,7 +561,6 @@ python test_api.py
 - 测试脚本主要用于冒烟测试，检查接口是否可访问；
 - 脚本会调用 `POST /record`，因此运行后可能修改 `data/records.json`；
 - 测试完成后如不需要保留测试记录，应恢复 `records.json`。
-- `test_api.py` 已覆盖 `/ocr` 的 `text` 模式和 `image_base64` 占位模式，可用于检查 OCR 接口结构是否正常。
 
 ---
 
@@ -560,7 +601,9 @@ uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 - 完成学习记录写入和查询接口；
 - 完成学习统计接口 `/record/summary`，可供家长端展示；
 - 完成推荐接口 `/recommend`，可推荐用户未学习过的古诗；
-- 完成演示版 OCR `/ocr`，支持文字匹配古诗；
+- 完成 OCR 接口 `/ocr`，支持文字图片百度 OCR 识别和风景图场景识别；
 - 完成 AI 诗人对话接口 `/chat` 的核心逻辑；
-- 完成 AI 配图接口 `/generate/image` 的核心逻辑；
-- 完成后端接口测试脚本 `test_api.py`。
+- 完成 AI 配图接口 `/generate/image`，含两阶段分镜规划和本地缓存机制；
+- 完成语音朗读接口 `/tts`，使用 edge-tts 生成中文朗读音频；
+- 完成后端接口测试脚本 `test_api.py`；
+- 预生成《静夜思》配图并写入缓存，前端可直接使用。

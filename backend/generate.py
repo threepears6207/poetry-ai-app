@@ -1,14 +1,26 @@
-from fastapi import APIRouter
-from pydantic import BaseModel
-from typing import List
+import json
+import re
 import os
 import uuid
 import time
+import hashlib
+from pathlib import Path
+from typing import List
+
 import requests
+from fastapi import APIRouter
+from pydantic import BaseModel
 
 router = APIRouter()
 
 VIVO_APP_KEY = os.getenv("VIVO_APP_KEY")
+
+BASE_DIR = Path(__file__).parent
+STATIC_DIR = BASE_DIR / "static"
+IMAGES_DIR = STATIC_DIR / "images" / "poems"
+CACHE_FILE = STATIC_DIR / "poem_images_cache.json"
+
+IMAGES_DIR.mkdir(parents=True, exist_ok=True)
 
 
 # ── 请求模型 ──────────────────────────────────────────────────────────────────
@@ -30,6 +42,50 @@ SHARED_STYLE = (
     "整体氛围温暖治愈，国风古典美感，"
     "横版构图，适合手机横屏全屏展示，画面干净，无文字无水印"
 )
+
+
+# ── 缓存工具函数 ──────────────────────────────────────────────────────────────
+
+def get_cache_key(poem_id: str, poem_title: str) -> str:
+    """
+    优先用 poem_id 作为缓存 key；没有 poem_id 时用诗名 md5 兜底。
+    """
+    if poem_id:
+        return poem_id
+    return hashlib.md5(poem_title.encode("utf-8")).hexdigest()
+
+
+def load_cache() -> dict:
+    if CACHE_FILE.exists():
+        try:
+            with open(CACHE_FILE, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            return {}
+    return {}
+
+
+def save_cache(cache: dict) -> None:
+    try:
+        with open(CACHE_FILE, "w", encoding="utf-8") as f:
+            json.dump(cache, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        print(f"缓存写入失败（不影响功能）：{e}")
+
+
+def download_image(url: str, save_path: Path) -> bool:
+    """
+    把外部图片 URL 下载到本地，返回是否成功。
+    """
+    try:
+        resp = requests.get(url, timeout=30)
+        if resp.status_code == 200:
+            with open(save_path, "wb") as f:
+                f.write(resp.content)
+            return True
+    except Exception as e:
+        print(f"图片下载失败：{e}")
+    return False
 
 
 # ── 第一阶段：整首诗统一规划 ─────────────────────────────────────────────────
@@ -179,11 +235,7 @@ character_desc必须同时包含五项（缺一不可）：
         response = requests.post(url, json=data, headers=headers, timeout=30)
         result = response.json()
         content = result["choices"][0]["message"]["content"].strip()
-
-        import re
         content = re.sub(r"```json|```", "", content).strip()
-
-        import json
         plan = json.loads(content)
         print(f"整体规划结果：\n{json.dumps(plan, ensure_ascii=False, indent=2)}")
         return plan
@@ -300,11 +352,23 @@ def call_image_api(prompt: str) -> dict:
 @router.post("/generate/image")
 def generate_image(request: GenerateRequest):
     """
-    为古诗每句话生成一张横版配图，图片之间有连续性，像动画分镜。
+    为古诗每句话生成一张横版配图。
+    已生成过的诗直接返回本地缓存，不重复调用模型。
     """
     if not request.poem_content:
         return {"success": False, "error": "poem_content 不能为空"}
 
+    # ── 命中缓存：直接返回，不调模型 ──────────────────────────────────────────
+    cache_key = get_cache_key(request.poem_id, request.poem_title)
+    cache = load_cache()
+
+    if cache_key in cache:
+        print(f"《{request.poem_title}》命中缓存，直接返回")
+        cached = cache[cache_key]
+        cached["from_cache"] = True
+        return cached
+
+    # ── 未命中缓存：正常生成流程 ──────────────────────────────────────────────
     print(f"\n《{request.poem_title}》开始生成，共 {len(request.poem_content)} 句")
     print("── 第一阶段：整体规划分镜 ──")
 
@@ -327,6 +391,10 @@ def generate_image(request: GenerateRequest):
 
     frames = []
     errors = []
+
+    # 为这首诗创建本地图片目录
+    poem_img_dir = IMAGES_DIR / cache_key
+    poem_img_dir.mkdir(parents=True, exist_ok=True)
 
     for i, frame_plan in enumerate(planned_frames):
         line = frame_plan.get(
@@ -355,20 +423,44 @@ def generate_image(request: GenerateRequest):
         result = call_image_api(prompt)
 
         if result["success"]:
+            # 把外部 URL 的图片下载到本地，避免外部链接过期
+            local_filename = f"frame_{i}.jpg"
+            local_path = poem_img_dir / local_filename
+            local_url = f"/static/images/poems/{cache_key}/{local_filename}"
+
+            if download_image(result["image_url"], local_path):
+                image_url = local_url
+                print(f"第{i+1}句图片已保存到本地：{local_url}")
+            else:
+                # 下载失败则暂时用外部 URL，不阻断流程
+                image_url = result["image_url"]
+                print(f"第{i+1}句图片下载失败，使用外部URL")
+
             frames.append({
                 "index": i,
                 "line": line,
                 "scene": scene,
                 "shot_type": shot_type,
-                "image_url": result["image_url"],
+                "image_url": image_url,
                 "duration_ms": 3000,
             })
         else:
             errors.append({"index": i, "line": line, "error": result["error"]})
             print(f"第{i+1}句生成失败：{result['error']}")
 
-    return {
-        "success": len(frames) > 0,
+    # ── 兜底：全部失败时返回明确错误，不让前端空白 ────────────────────────────
+    if not frames:
+        return {
+            "success": False,
+            "error": "所有诗句配图均生成失败，请检查 API 配置或稍后重试",
+            "poem_title": request.poem_title,
+            "frames": [],
+            "errors": errors,
+        }
+
+    # ── 写入缓存 ───────────────────────────────────────────────────────────────
+    result_data = {
+        "success": True,
         "poem_title": request.poem_title,
         "has_character": has_character,
         "character_desc": character_desc,
@@ -376,4 +468,12 @@ def generate_image(request: GenerateRequest):
         "total_lines": len(request.poem_content),
         "frames": frames,
         "errors": errors,
+        "from_cache": False,
     }
+
+    if cache_key:
+        cache[cache_key] = result_data
+        save_cache(cache)
+        print(f"《{request.poem_title}》已写入缓存，key={cache_key}")
+
+    return result_data

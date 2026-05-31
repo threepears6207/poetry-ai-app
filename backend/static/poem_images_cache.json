@@ -1,0 +1,46 @@
+{
+  "poem_002": {
+    "success": true,
+    "poem_title": "静夜思",
+    "has_character": true,
+    "character_desc": "约30岁，男性，身着白色宽袖交领长衫系浅灰色布腰带，黑色长发束成发髻以玉簪固定，身材修长挺拔",
+    "recurring_elements": "深棕色木格推拉窗，窗框有简洁回纹雕刻；矮脚木床，床头有如意云头状雕花，床单为浅灰色麻布",
+    "total_lines": 4,
+    "frames": [
+      {
+        "index": 0,
+        "line": "床前明月光",
+        "scene": "中景，人物坐在矮脚木床左侧床沿，双手轻放膝上。月光从深棕色木格推拉窗斜射入室，将床前地面木板染成冷白色。人物侧身望向地面光斑。",
+        "shot_type": "中景",
+        "image_url": "/static/images/poems/poem_002/frame_0.jpg",
+        "duration_ms": 3000
+      },
+      {
+        "index": 1,
+        "line": "疑是地上霜",
+        "scene": "近景，人物站在床前月光照亮的地板处，右手微抬指向地面，左手垂于身侧。人物头顶右上方飘着一个手绘风格的大问号，眉头微皱，头略微歪向一侧。",
+        "shot_type": "近景",
+        "image_url": "/static/images/poems/poem_002/frame_1.jpg",
+        "duration_ms": 3000
+      },
+      {
+        "index": 2,
+        "line": "举头望明月",
+        "scene": "主观视角，镜头模拟人物抬头望向窗外的动作。深棕色木格窗框占据画面下方，窗外是深蓝色夜空和一轮明亮的满月，月光皎洁。",
+        "shot_type": "主观视角",
+        "image_url": "/static/images/poems/poem_002/frame_2.jpg",
+        "duration_ms": 3000
+      },
+      {
+        "index": 3,
+        "line": "低头思故乡",
+        "scene": "近景，人物站在木格推拉窗旁，双手扶窗沿，低头。人物头部左侧有白色半透明云朵气泡，气泡内画出远处山峦和几间茅草屋的剪影，屋顶有炊烟。背景色调偏冷蓝。",
+        "shot_type": "近景",
+        "image_url": "/static/images/poems/poem_002/frame_3.jpg",
+        "duration_ms": 3000
+      }
+    ],
+    "errors": [],
+    "from_cache": false
+  }
+}

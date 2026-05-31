@@ -42,5 +42,44 @@
     ],
     "errors": [],
     "from_cache": false
+  },
+  "poem_001": {
+    "success": true,
+    "poem_title": "春晓",
+    "has_character": true,
+    "character_desc": "约30岁，男性，身着浅青色交领宽袖长衫系深蓝色腰带，黑色长发束于头顶以玉簪固定，中等身材略显清瘦",
+    "recurring_elements": "木格推拉窗（窗框深棕色，窗纸半透明），矮脚木床（床头有简单云纹雕花，铺着浅灰色被褥）",
+    "total_lines": 4,
+    "frames": [
+      {
+        "index": 0,
+        "line": "春眠不觉晓",
+        "scene": "中景。人物侧卧在矮脚木床左侧，头枕浅灰色枕头，双眼紧闭，右手搭在身前被褥上，左手自然垂放。清晨微弱的晨光从深棕色木格窗斜射进来，照亮床前一片地面。",
+        "shot_type": "中景",
+        "image_url": "/static/images/poems/poem_001/frame_0.jpg",
+        "duration_ms": 3000
+      },
+      {
+        "index": 1,
+        "line": "处处闻啼鸟",
+        "scene": "近景。人物坐在床沿，双手扶在膝盖上，头微微抬起转向深棕色木格窗方向，嘴角上扬。窗外树枝上停着两只黄鹂鸟，张着嘴仿佛在鸣叫。",
+        "shot_type": "近景",
+        "image_url": "/static/images/poems/poem_001/frame_1.jpg",
+        "duration_ms": 3000
+      }
+    ],
+    "errors": [
+      {
+        "index": 2,
+        "line": "夜来风雨声",
+        "error": "Rate limit exceeded for model Doubao-Seedream-4.5"
+      },
+      {
+        "index": 3,
+        "line": "花落知多少",
+        "error": "Rate limit exceeded for model Doubao-Seedream-4.5"
+      }
+    ],
+    "from_cache": false
   }
 }

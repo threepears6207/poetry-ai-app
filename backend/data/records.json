@@ -75,5 +75,40 @@
     "poem_id": "poem_008",
     "duration_seconds": 0,
     "created_at": "2026-05-25 16:08:42"
+  },
+  {
+    "id": 12,
+    "user_id": "test_user",
+    "poem_id": "poem_001",
+    "duration_seconds": 77,
+    "created_at": "2026-05-31 20:26:37"
+  },
+  {
+    "id": 13,
+    "user_id": "test_user",
+    "poem_id": "poem_001",
+    "duration_seconds": 5,
+    "created_at": "2026-05-31 20:32:54"
+  },
+  {
+    "id": 14,
+    "user_id": "test_user",
+    "poem_id": "poem_001",
+    "duration_seconds": 2,
+    "created_at": "2026-05-31 20:43:00"
+  },
+  {
+    "id": 15,
+    "user_id": "test_user",
+    "poem_id": "poem_001",
+    "duration_seconds": 20,
+    "created_at": "2026-05-31 20:47:32"
+  },
+  {
+    "id": 16,
+    "user_id": "test_user",
+    "poem_id": "poem_006",
+    "duration_seconds": 13,
+    "created_at": "2026-05-31 20:49:14"
   }
 ]

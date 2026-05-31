@@ -54,7 +54,8 @@
     "navigationBarTextStyle": "black",
     "navigationBarTitleText": "诗芽小学堂",
     "navigationBarBackgroundColor": "#FFF9F0",
-    "backgroundColor": "#FFF9F0"
+    "backgroundColor": "#FFF9F0",
+    "pageOrientation": "landscape"
   },
   "uniIdRouter": {}
 }

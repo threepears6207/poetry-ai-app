@@ -301,6 +301,10 @@ button::after {
   box-shadow: 0 7px 16px rgba(112, 79, 54, 0.14);
   cursor: pointer;
   z-index: 30;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: auto;
 }
 
 .title-pill {

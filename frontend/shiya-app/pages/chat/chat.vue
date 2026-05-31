@@ -3,7 +3,7 @@
     <view class="chat-app">
       <view class="page">
         <view class="topbar">
-          <button class="back" @tap="goBack">‹</button>
+          <view class="back" @tap.stop="goBack">‹</view>
 
           <view class="title-pill">
             <view class="logo">🌱</view>
@@ -220,10 +220,26 @@ const initPoetChat = async () => {
 }
 
 const goBack = () => {
-  uni.navigateBack({
+  const pages = typeof getCurrentPages === 'function' ? getCurrentPages() : []
+  const fallbackUrl = `/pages/study/study?poem_id=${poemId.value || poemData.id || 'poem_001'}`
+
+  if (pages.length > 1) {
+    uni.navigateBack({
+      delta: 1,
+      fail: () => {
+        uni.reLaunch({
+          url: fallbackUrl
+        })
+      }
+    })
+    return
+  }
+
+  uni.reLaunch({
+    url: fallbackUrl,
     fail: () => {
       if (typeof window !== 'undefined') {
-        window.location.href = `#/pages/study/study?poem_id=${poemId.value}`
+        window.location.replace(`#${fallbackUrl}`)
       }
     }
   })
@@ -424,6 +440,12 @@ button::after {
   font-size: 26px;
   line-height: 1;
   box-shadow: 0 7px 16px rgba(112, 79, 54, 0.14);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  z-index: 9999;
+  pointer-events: auto;
 }
 
 .title-pill {

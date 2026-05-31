@@ -3,7 +3,7 @@
     <view class="camera-app">
       <view v-if="pageState === 'camera'" class="camera-page">
         <view class="camera-header">
-          <button class="camera-back" @tap="goBack">‹</button>
+          <view class="camera-back" @tap.stop="goBack">‹</view>
 
           <view class="camera-title-pill">
             <view class="camera-logo">🌱</view>
@@ -15,23 +15,20 @@
 
         <view class="camera-shell">
           <view class="camera-card">
+            <view class="camera-fallback">
+              <view>
+                点击“拍摄”会调起手机系统相机<br />
+                点击“相册”可以选择已有图片
+              </view>
+            </view>
+
             <view class="corner c1"></view>
             <view class="corner c2"></view>
             <view class="corner c3"></view>
             <view class="corner c4"></view>
 
-            <view class="poem-paper">
-              <view class="poem-paper-title">{{ matchedPoem.title }}</view>
-              <text
-                v-for="line in matchedPoem.content"
-                :key="line"
-                class="poem-paper-line"
-              >
-                {{ line }}
-              </text>
-            </view>
-
             <view class="scan-line"></view>
+            <view class="camera-guide-text">请把诗句或风景放进取景框</view>
           </view>
         </view>
 
@@ -56,17 +53,17 @@
         </view>
 
         <view class="right-actions">
-          <button class="side-btn" @tap="toast('演示模式：暂不切换摄像头')">
-            <text class="side-icon">🔄</text>
-            <text>反转</text>
+          <button class="side-btn" @tap="goBack">
+            <text class="side-icon">🏠</text>
+            <text>返回</text>
           </button>
 
-          <button class="shoot-btn" @tap="showResult">
+          <button class="shoot-btn" :disabled="recognizing" @tap="shootAndRecognize">
             <text class="shoot-icon">📷</text>
             <text>拍摄</text>
           </button>
 
-          <button class="side-btn" @tap="chooseAlbumAndRecognize">
+          <button class="side-btn" :disabled="recognizing" @tap="chooseAlbumAndRecognize">
             <text class="side-icon">🖼️</text>
             <text>相册</text>
           </button>
@@ -75,7 +72,7 @@
 
       <view v-if="pageState === 'result'" class="camera-page result-page">
         <view class="camera-header">
-          <button class="camera-back" @tap="pageState = 'camera'">‹</button>
+          <view class="camera-back" @tap.stop="pageState = 'camera'">‹</view>
 
           <view class="camera-title-pill">
             <view class="camera-logo">🌱</view>
@@ -116,7 +113,7 @@
           <view class="speech-area">
             <view class="speech-card">
               诗芽为你找到了最合适的古诗，要不要进入学习？<br />
-              进入后可以听朗读、看诗意画面，还能和诗人聊聊这首诗。
+              进入后可以看诗意画面，还能和诗人聊聊这首诗。
             </view>
 
             <view class="inline-actions">
@@ -134,14 +131,11 @@
 import { computed, ref } from 'vue'
 import { API, getLocalPoemById } from '@/utils/api.js'
 
-const BASE_URL = 'http://127.0.0.1:8000'
-
 const pageState = ref('camera')
 const mode = ref('poem')
-const albumRecognizing = ref(false)
+const recognizing = ref(false)
 
 const matchedPoem = ref(getLocalPoemById('poem_001'))
-
 const sceneTags = ref([])
 const matchType = ref('text')
 
@@ -154,18 +148,42 @@ const displayTags = computed(() => {
     return ['🌿 风景', '📷 图片', '✨ 匹配']
   }
 
-  return ['🌸 春天', '🐦 鸟儿', '🌙 清晨']
+  return ['🌸 古诗', '📷 图片', '✨ 识别']
 })
 
 const goBack = () => {
-  uni.navigateBack({
+  const pages = typeof getCurrentPages === 'function' ? getCurrentPages() : []
+
+  if (pages.length > 1) {
+    uni.navigateBack({
+      delta: 1,
+      fail: () => {
+        uni.reLaunch({
+          url: '/pages/index/index'
+        })
+      }
+    })
+    return
+  }
+
+  uni.reLaunch({
+    url: '/pages/index/index',
     fail: () => {
       if (typeof window !== 'undefined') {
-        window.location.href = '#/pages/index/index'
+        window.location.replace('#/pages/index/index')
       }
     }
   })
 }
+
+const toast = (title) => {
+  uni.showToast({
+    title,
+    icon: 'none'
+  })
+}
+
+
 
 const readBlobAsBase64 = (blob) => {
   return new Promise((resolve, reject) => {
@@ -191,11 +209,68 @@ const readBlobAsBase64 = (blob) => {
   })
 }
 
+const pathToBase64 = (filePath) => {
+  return new Promise((resolve, reject) => {
+    if (!filePath) {
+      reject(new Error('没有获取到图片路径'))
+      return
+    }
+
+    const path = String(filePath)
+
+    if (path.startsWith('data:image')) {
+      resolve(path.split(',')[1] || '')
+      return
+    }
+
+    // 小程序 / 部分 App 环境
+    if (typeof uni.getFileSystemManager === 'function') {
+      try {
+        const fs = uni.getFileSystemManager()
+
+        fs.readFile({
+          filePath: path,
+          encoding: 'base64',
+          success: (res) => resolve(res.data),
+          fail: (err) => {
+            console.log('getFileSystemManager 读取失败，尝试 H5 fetch：', err)
+
+            if (typeof fetch === 'function' && typeof FileReader !== 'undefined') {
+              fetch(path)
+                .then((res) => res.blob())
+                .then((blob) => readBlobAsBase64(blob))
+                .then(resolve)
+                .catch(reject)
+            } else {
+              reject(err)
+            }
+          }
+        })
+        return
+      } catch (err) {
+        console.log('getFileSystemManager 不可用：', err)
+      }
+    }
+
+    // H5 环境
+    if (typeof fetch === 'function' && typeof FileReader !== 'undefined') {
+      fetch(path)
+        .then((res) => res.blob())
+        .then((blob) => readBlobAsBase64(blob))
+        .then(resolve)
+        .catch(reject)
+      return
+    }
+
+    reject(new Error('当前平台暂不支持读取图片，请尝试相册上传或真机运行'))
+  })
+}
+
 const fileToBase64 = async (chooseRes) => {
-  console.log('相册选择完整结果：', chooseRes)
+  console.log('图片选择/拍摄完整结果：', chooseRes)
 
   const tempFile = chooseRes.tempFiles && chooseRes.tempFiles[0]
-  const tempPath = chooseRes.tempFilePaths && chooseRes.tempFilePaths[0]
+  const tempPath = chooseRes.tempImagePath || (chooseRes.tempFilePaths && chooseRes.tempFilePaths[0])
 
   if (tempFile instanceof Blob) {
     return await readBlobAsBase64(tempFile)
@@ -206,49 +281,99 @@ const fileToBase64 = async (chooseRes) => {
   }
 
   if (tempFile && tempFile.path) {
-    const blob = await fetch(tempFile.path).then((res) => res.blob())
-    return await readBlobAsBase64(blob)
+    return await pathToBase64(tempFile.path)
   }
 
   if (tempPath) {
-    const blob = await fetch(tempPath).then((res) => res.blob())
-    return await readBlobAsBase64(blob)
+    return await pathToBase64(tempPath)
   }
 
   throw new Error('没有获取到可读取的图片文件')
 }
 
-const recognizeImageBase64 = (imageBase64) => {
-  return new Promise((resolve, reject) => {
-    uni.request({
-      url: `${BASE_URL}/ocr`,
-      method: 'POST',
-      data: {
-        image: imageBase64,
-        mode: 'image_base64'
-      },
-      header: {
-        'Content-Type': 'application/json'
-      },
-      timeout: 60000,
-      success: (res) => {
-        console.log('POST /ocr 原始响应：', res)
+const handleOcrResult = (res) => {
+  console.log('识诗结果：', res)
 
-        if (res.statusCode >= 200 && res.statusCode < 300) {
-          resolve(res.data)
-        } else {
-          reject(new Error(`后端返回状态码：${res.statusCode}`))
-        }
-      },
-      fail: (err) => {
-        reject(err)
-      }
+  if (!res || !res.success) {
+    sceneTags.value = res?.scene_tags || []
+    matchType.value = res?.match_type || 'text'
+
+    toast(res?.message || res?.error || '未识别到相关古诗')
+    return
+  }
+
+  const poem = res.data?.matched_poem || res.data || res.matched_poem
+
+  if (!poem || !poem.id) {
+    toast('识别成功但没有匹配到古诗')
+    return
+  }
+
+  matchedPoem.value = {
+    ...poem,
+    content: Array.isArray(poem.content)
+      ? poem.content
+      : String(poem.content || '').split(/[，,。\n]/).filter(Boolean)
+  }
+
+  sceneTags.value = res.scene_tags || poem.tags || []
+  matchType.value = res.match_type || res.mode || 'text'
+  pageState.value = 'result'
+
+  toast(`识别到《${matchedPoem.value.title}》`)
+}
+
+const recognizeByBase64 = async (imageBase64) => {
+  const res = await API.recognizePoemImage(imageBase64)
+  handleOcrResult(res)
+}
+
+const chooseCameraBySystem = () => {
+  return new Promise((resolve, reject) => {
+    uni.chooseImage({
+      count: 1,
+      sizeType: ['compressed'],
+      sourceType: ['camera'],
+      success: resolve,
+      fail: reject
     })
   })
 }
 
+
+const shootAndRecognize = async () => {
+  if (recognizing.value) return
+
+  recognizing.value = true
+
+  try {
+    const photoRes = await chooseCameraBySystem()
+
+    uni.showLoading({
+      title: '识别中...'
+    })
+
+    const imageBase64 = await fileToBase64(photoRes)
+    await recognizeByBase64(imageBase64)
+  } catch (err) {
+    console.log('拍照识诗失败：', err)
+
+    const msg = err?.errMsg || err?.message || ''
+    if (msg.includes('cancel')) {
+      return
+    }
+
+    toast('拍照识别失败，请检查相机权限')
+  } finally {
+    uni.hideLoading()
+    recognizing.value = false
+  }
+}
+
 const chooseAlbumAndRecognize = async () => {
-  if (albumRecognizing.value) return
+  if (recognizing.value) return
+
+  recognizing.value = true
 
   try {
     const chooseRes = await uni.chooseImage({
@@ -257,103 +382,19 @@ const chooseAlbumAndRecognize = async () => {
       sourceType: ['album']
     })
 
-    albumRecognizing.value = true
-
     uni.showLoading({
       title: '识别中...'
     })
 
     const imageBase64 = await fileToBase64(chooseRes)
-
-    console.log('图片 base64 长度：', imageBase64.length)
-
-    const res = await recognizeImageBase64(imageBase64)
-
-    console.log('相册识诗结果：', res)
-    console.log('相册识诗结果JSON：', JSON.stringify(res, null, 2))
-
-    if (res && res.success) {
-      const poem = res.data || res.matched_poem
-
-      if (poem && poem.id) {
-        matchedPoem.value = poem
-        sceneTags.value = res.scene_tags || []
-        matchType.value = res.match_type || 'text'
-        pageState.value = 'result'
-
-        uni.showToast({
-          title: `识别到《${poem.title}》`,
-          icon: 'none'
-        })
-      } else {
-        uni.showToast({
-          title: '识别成功但没有古诗ID',
-          icon: 'none'
-        })
-      }
-    } else {
-      sceneTags.value = res?.scene_tags || []
-      matchType.value = res?.match_type || 'text'
-
-      console.log('后端识别失败原因：', res)
-
-      uni.showToast({
-        title: res?.message || res?.error || '未识别到相关古诗',
-        icon: 'none'
-      })
-    }
+    await recognizeByBase64(imageBase64)
   } catch (err) {
-    console.log('相册识诗失败详情：', err)
+    console.log('相册识诗失败：', err)
 
-    uni.showToast({
-      title: err?.message || '图片识别失败',
-      icon: 'none'
-    })
+    toast(err?.message || '图片识别失败')
   } finally {
     uni.hideLoading()
-    albumRecognizing.value = false
-  }
-}
-
-const showResult = async () => {
-  uni.showLoading({
-    title: '识别中...'
-  })
-
-  try {
-    const demoText = mode.value === 'poem'
-      ? '床前明月光疑是地上霜'
-      : '白日依山尽黄河入海流'
-
-    const res = await API.recognizePoem(demoText, 'text')
-
-    if (res && res.success) {
-      const poem = res.data || res.matched_poem
-
-      if (poem) {
-        matchedPoem.value = poem
-        matchType.value = 'text'
-        sceneTags.value = []
-      } else {
-        matchedPoem.value = getLocalPoemById('poem_001')
-      }
-    } else {
-      uni.showToast({
-        title: '暂未识别到古诗',
-        icon: 'none'
-      })
-      matchedPoem.value = getLocalPoemById('poem_001')
-    }
-  } catch (err) {
-    console.log('识诗接口调用失败：', err)
-    uni.showToast({
-      title: '识别失败，使用默认古诗',
-      icon: 'none'
-    })
-    matchedPoem.value = getLocalPoemById('poem_001')
-  } finally {
-    uni.hideLoading()
-    pageState.value = 'result'
+    recognizing.value = false
   }
 }
 
@@ -365,13 +406,6 @@ const goStudy = () => {
         window.location.href = `#/pages/study/study?poem_id=${matchedPoem.value.id}`
       }
     }
-  })
-}
-
-const toast = (title) => {
-  uni.showToast({
-    title,
-    icon: 'none'
   })
 }
 </script>
@@ -441,6 +475,12 @@ button::after {
   font-size: 26px;
   line-height: 1;
   box-shadow: 0 7px 16px rgba(112, 79, 54, 0.14);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  z-index: 9999;
+  pointer-events: auto;
 }
 
 .camera-title-pill {
@@ -897,4 +937,50 @@ button::after {
   color: #6a5f97;
   box-shadow: 0 5px 0 rgba(220, 211, 236, 0.9);
 }
+
+
+.live-camera {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+}
+
+.camera-fallback {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  text-align: center;
+  background:
+    radial-gradient(circle at 50% 44%, rgba(255, 255, 255, 0.16), transparent 31%),
+    linear-gradient(180deg, rgba(64, 67, 76, 0.92), rgba(27, 31, 39, 0.96));
+  color: #fffdf5;
+  font-size: 16px;
+  font-weight: 950;
+  line-height: 1.6;
+}
+
+.camera-guide-text {
+  position: absolute;
+  left: 50%;
+  bottom: 16px;
+  z-index: 4;
+  transform: translateX(-50%);
+  padding: 7px 14px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.42);
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+button[disabled] {
+  opacity: 0.6;
+}
+
 </style>

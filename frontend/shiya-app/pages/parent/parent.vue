@@ -3,7 +3,7 @@
     <view class="parent-app">
       <view class="page">
         <view class="topbar">
-          <button class="back" @tap="goBack">‹</button>
+          <view class="back" @tap.stop="goBack">‹</view>
 
           <view class="title-pill">
             <view class="logo">🌱</view>
@@ -225,10 +225,25 @@ const toggleReminder = () => {
 }
 
 const goBack = () => {
-  uni.navigateBack({
+  const pages = typeof getCurrentPages === 'function' ? getCurrentPages() : []
+
+  if (pages.length > 1) {
+    uni.navigateBack({
+      delta: 1,
+      fail: () => {
+        uni.reLaunch({
+          url: '/pages/index/index'
+        })
+      }
+    })
+    return
+  }
+
+  uni.reLaunch({
+    url: '/pages/index/index',
     fail: () => {
       if (typeof window !== 'undefined') {
-        window.location.href = '#/pages/index/index'
+        window.location.replace('#/pages/index/index')
       }
     }
   })
@@ -299,6 +314,12 @@ button::after {
   font-size: 26px;
   line-height: 1;
   box-shadow: 0 7px 16px rgba(112, 79, 54, 0.14);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  z-index: 9999;
+  pointer-events: auto;
 }
 
 .title-pill {

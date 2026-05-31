@@ -3,11 +3,10 @@
 // =====================================================
 // 1. 后端基础地址
 // =====================================================
-// 现在你是在电脑本机：VSCode 跑后端 + HBuilderX 跑 Edge
-// 所以这里用 127.0.0.1 是对的
+// 电脑浏览器本机联调：使用 127.0.0.1
 const BASE_URL = 'http://127.0.0.1:8000'
 
-// 后面如果打包到 vivo 手机真机运行，不能继续用 127.0.0.1
+// 手机真机联调时，不要用 127.0.0.1。
 // 要改成你电脑的局域网 IP，例如：
 // const BASE_URL = 'http://192.168.1.23:8000'
 
@@ -73,7 +72,32 @@ export const LOCAL_POEMS = [
 
 
 // =====================================================
-// 3. 统一请求封装
+// 3. 静态资源地址处理
+// =====================================================
+export const normalizeAssetUrl = (url) => {
+  if (!url) return ''
+
+  const value = String(url).trim()
+
+  if (
+    value.startsWith('http://') ||
+    value.startsWith('https://') ||
+    value.startsWith('data:image') ||
+    value.startsWith('blob:')
+  ) {
+    return value
+  }
+
+  if (value.startsWith('/')) {
+    return `${BASE_URL}${value}`
+  }
+
+  return `${BASE_URL}/${value}`
+}
+
+
+// =====================================================
+// 4. 统一请求封装
 // =====================================================
 export const request = (options) => {
   return new Promise((resolve, reject) => {
@@ -85,19 +109,16 @@ export const request = (options) => {
         'Content-Type': 'application/json',
         ...(options.header || {})
       },
-      // AI 对话、AI 生成图片可能比较慢，所以不能只给 5 秒
       timeout: options.timeout || 30000,
 
       success: (res) => {
         console.log('[接口成功]', options.method || 'GET', options.url, res)
 
-        // 正常返回
         if (res.statusCode >= 200 && res.statusCode < 300) {
           resolve(res.data)
           return
         }
 
-        // HTTP 状态码异常
         reject({
           message: '接口状态码异常',
           statusCode: res.statusCode,
@@ -115,7 +136,7 @@ export const request = (options) => {
 
 
 // =====================================================
-// 4. 后端接口 API
+// 5. 后端接口 API
 // =====================================================
 export const API = {
   // -----------------------------------------------------
@@ -132,11 +153,37 @@ export const API = {
 
   // -----------------------------------------------------
   // 搜索古诗
-  // GET /poems/search?keyword=xxx&page=1&page_size=10
+  // 支持两种写法：
+  // API.searchPoems('静夜思')
+  // API.searchPoems({ keyword: '静夜思', author: '李白', dynasty: '唐', tag: '月亮' })
   // -----------------------------------------------------
-  searchPoems(keyword, page = 1, pageSize = 10) {
+  searchPoems(params = '', page = 1, pageSize = 10) {
+    let queryParams = {}
+
+    if (typeof params === 'string') {
+      queryParams = {
+        keyword: params,
+        page,
+        page_size: pageSize
+      }
+    } else {
+      queryParams = {
+        keyword: params.keyword || '',
+        author: params.author || '',
+        dynasty: params.dynasty || '',
+        tag: params.tag || '',
+        page: params.page || 1,
+        page_size: params.pageSize || params.page_size || 10
+      }
+    }
+
+    const query = Object.keys(queryParams)
+      .filter((key) => queryParams[key] !== undefined && queryParams[key] !== null && queryParams[key] !== '')
+      .map((key) => `${encodeURIComponent(key)}=${encodeURIComponent(queryParams[key])}`)
+      .join('&')
+
     return request({
-      url: `/poems/search?keyword=${encodeURIComponent(keyword || '')}&page=${page}&page_size=${pageSize}`,
+      url: `/poems/search?${query}`,
       method: 'GET'
     })
   },
@@ -165,7 +212,7 @@ export const API = {
       data: {
         poem_id: poemId,
         user_id: DEFAULT_USER_ID,
-        duration_seconds: durationSeconds
+        duration_seconds: Math.max(0, Math.round(Number(durationSeconds || 0)))
       }
     })
   },
@@ -210,37 +257,27 @@ export const API = {
   // -----------------------------------------------------
   // AI 诗人对话
   // POST /chat
-  //
-  // data 示例：
-  // {
-  //   message: '这首诗是什么意思？',
-  //   poet_name: '李白',
-  //   dynasty: '唐',
-  //   poem_title: '静夜思',
-  //   poem_content: '床前明月光，疑是地上霜...',
-  //   history: [
-  //     { role: 'user', content: '你好' },
-  //     { role: 'assistant', content: '小朋友你好...' }
-  //   ]
-  // }
   // -----------------------------------------------------
   chatWithPoet(data) {
     return request({
       url: '/chat',
       method: 'POST',
-      data,
-      timeout: 30000
+      data: {
+        message: data.message || '',
+        poet_name: data.poet_name || '古代诗人',
+        dynasty: data.dynasty || '唐',
+        poem_title: data.poem_title || '',
+        poem_content: data.poem_content || '',
+        history: Array.isArray(data.history) ? data.history : []
+      },
+      timeout: 60000
     })
   },
 
 
   // -----------------------------------------------------
-  // 拍照识诗 / 临时文字识别版
+  // 拍照识诗 / 文字演示版
   // POST /ocr
-  //
-  // 目前后端临时版不是传真实图片
-  // 而是把 image 当作已经识别出来的文字
-  // 所以前端可以传：'床前明月光疑是地上霜'
   // -----------------------------------------------------
   recognizePoem(text, mode = 'text') {
     return request({
@@ -249,7 +286,35 @@ export const API = {
       data: {
         image: text,
         mode
-      }
+      },
+      timeout: 60000
+    })
+  },
+
+
+  // -----------------------------------------------------
+  // 拍照识诗 / 真实图片 base64 版
+  // POST /ocr
+  //
+  // 为兼容后端不同版本，同时传 image 和 image_base64：
+  // - image：带 data:image/jpeg;base64, 前缀
+  // - image_base64：纯 base64
+  // -----------------------------------------------------
+  recognizePoemImage(imageBase64) {
+    const pureBase64 = String(imageBase64 || '').replace(/^data:image\/\w+;base64,/, '')
+    const imageDataUrl = pureBase64.startsWith('data:image')
+      ? pureBase64
+      : `data:image/jpeg;base64,${pureBase64}`
+
+    return request({
+      url: '/ocr',
+      method: 'POST',
+      data: {
+        image: imageDataUrl,
+        image_base64: pureBase64,
+        mode: 'image_base64'
+      },
+      timeout: 90000
     })
   },
 
@@ -257,22 +322,27 @@ export const API = {
   // -----------------------------------------------------
   // AI 配图生成
   // POST /generate/image
-  //
-  // 注意：这个接口可能比较慢
   // -----------------------------------------------------
   generateImage(poem) {
+    const content = Array.isArray(poem.content)
+      ? poem.content
+      : String(poem.content || '')
+          .split(/[，,。\n]/)
+          .map((line) => line.trim())
+          .filter(Boolean)
+
     return request({
       url: '/generate/image',
       method: 'POST',
       data: {
-        poem_id: poem.id || '',
-        poem_title: poem.title || '',
-        poem_content: Array.isArray(poem.content) ? poem.content : [],
-        poet_name: poem.author || '',
+        poem_id: poem.id || poem.poem_id || '',
+        poem_title: poem.title || poem.poem_title || '',
+        poem_content: content,
+        poet_name: poem.author || poem.poet_name || '',
         dynasty: poem.dynasty || '',
         tags: Array.isArray(poem.tags) ? poem.tags : []
       },
-      timeout: 120000
+      timeout: 300000
     })
   },
 
@@ -280,25 +350,24 @@ export const API = {
   // -----------------------------------------------------
   // 语音朗读
   // POST /tts
-  //
-  // 注意：目前后端 tts.py 还是待实现
-  // 前端可以先保留这个方法，但页面里不要强依赖它
+  // 当前学习页不使用该接口，保留封装方便以后扩展
   // -----------------------------------------------------
-  textToSpeech(text) {
+  textToSpeech(text, voice = 'zh-CN-XiaoxiaoNeural') {
     return request({
       url: '/tts',
       method: 'POST',
       data: {
-        text
+        text,
+        voice
       },
-      timeout: 30000
+      timeout: 60000
     })
   }
 }
 
 
 // =====================================================
-// 5. 本地数据辅助方法
+// 6. 本地数据辅助方法
 // =====================================================
 export const getLocalPoemById = (poemId) => {
   return LOCAL_POEMS.find(item => item.id === poemId) || LOCAL_POEMS[0]

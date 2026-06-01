@@ -147,35 +147,13 @@ const getPoemIcon = (poem) => {
 }
 
 const displayRecords = computed(() => {
-  const poemMap = {}
-
-  summary.value.learned_poems.forEach((poem) => {
-    poemMap[poem.id] = poem
-  })
-
-  if (summary.value.recent_records.length > 0) {
-    return summary.value.recent_records.map((record, index) => {
-      const poem = poemMap[record.poem_id] || {}
-
-      return {
-        key: record.id || `${record.poem_id}-${record.created_at || index}`,
-        icon: getPoemIcon(poem),
-        title: poem.title || record.poem_id || '未知古诗',
-        desc: poem.author
-          ? `${poem.dynasty || ''} · ${poem.author}`
-          : '学习记录',
-        time: formatDuration(record.duration_seconds)
-      }
-    })
-  }
-
   return summary.value.learned_poems.map((poem) => {
     return {
-      key: poem.id,
+      key: poem.poem_id || poem.id,
       icon: getPoemIcon(poem),
-      title: poem.title,
-      desc: `${poem.dynasty || ''} · ${poem.author || ''}`,
-      time: '已学习'
+      title: poem.title || '未知古诗',
+      desc: `最新学习时长：${formatDuration(poem.latest_duration_seconds)}`,
+      time: `总计：${formatDuration(poem.total_duration_seconds)}`
     }
   })
 })

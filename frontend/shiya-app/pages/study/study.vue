@@ -1,115 +1,80 @@
 <template>
   <view class="page-root">
-    <view class="study-app">
-      <view class="page">
-        <view class="topbar">
-          <button class="back" @tap="goBack">‹</button>
+    <view class="video-app">
+      <view class="topbar">
+        <button class="back-btn" @tap="goBack">‹</button>
 
-          <view class="title-pill">
-            <view class="logo">🌱</view>
-            <text>诗意学习</text>
-          </view>
-
-          <button class="next-btn" @tap="goChat">和诗人聊聊 →</button>
+        <view class="title-pill">
+          正在播放：{{ poemData.title }}
         </view>
 
-        <view class="main-layout">
-          <view class="left-panel">
-            <view class="video-card">
-              <view v-if="hasAiFrames" class="ai-stage">
-                <image
-                  class="ai-image"
-                  :src="currentFrame.image_url"
-                  mode="aspectFill"
-                />
+        <button class="done-btn" @tap="finishStudy">
+          播完了 ✓
+        </button>
+      </view>
 
-                <view class="frame-mask"></view>
+      <view class="video-stage">
+        <image
+          v-if="currentFrameImage"
+          class="ai-frame-image"
+          :src="currentFrameImage"
+          mode="aspectFill"
+        ></image>
 
-                <view class="frame-caption">
-                  <view class="frame-line">{{ currentFrame.line }}</view>
-                </view>
+        <template v-if="!currentFrameImage">
+          <view class="sun"></view>
+          <view class="cloud cloud-one">☁️</view>
+          <view class="cloud cloud-two">☁️</view>
+          <view class="mountain mountain-one"></view>
+          <view class="mountain mountain-two"></view>
+          <view class="willow">🌿</view>
+          <view class="bird bird-one">🐦</view>
+          <view class="bird bird-two">🐦</view>
 
-                <view class="frame-index">
-                  {{ currentFrameIndex + 1 }} / {{ frames.length }}
-                </view>
-              </view>
+          <view class="scene-card">
+            <view class="scene-child">👧</view>
+            <view class="scene-bed">🛏️</view>
+            <view class="scene-text">{{ sceneText }}</view>
+          </view>
+        </template>
+      </view>
 
-              <view v-else class="fallback-stage">
-                <view class="sun"></view>
-                <view class="cloud cloud-one">☁️</view>
-                <view class="cloud cloud-two">☁️</view>
-                <view class="mountain mountain-one"></view>
-                <view class="mountain mountain-two"></view>
-                <view class="scene-child">👧</view>
-                <view class="fallback-text">
-                  {{ imageLoading ? '正在为这首诗作画...' : '先看默认诗意画面' }}
-                </view>
-              </view>
-            </view>
+      <view class="subtitle-box">
+        <button
+          class="voice-btn"
+          :class="{ playing: isPlayingAudio }"
+          :disabled="ttsLoading"
+          @tap.stop="toggleReadPoem"
+        >
+          {{ ttsLoading ? '…' : isPlayingAudio ? '🔊' : '🔈' }}
+        </button>
 
-            <view class="control-row">
-              <button class="control-btn primary" @tap="replayFrames">
-                {{ hasAiFrames ? '再看一遍' : '播放画面' }}
-              </button>
+        <view class="subtitle-text">
+          <text class="active-text">{{ subtitleFirst }}</text>
+          <text v-if="subtitleSecond">，{{ subtitleSecond }}。</text>
+        </view>
 
-              <button class="control-btn secondary" :disabled="imageLoading" @tap="loadAiFrames">
-                {{ imageLoading ? '生成中...' : '重新生成配图' }}
-              </button>
+        <view class="progress-track">
+          <view class="progress-bar" :style="{ width: progressPercent + '%' }"></view>
+        </view>
+      </view>
 
-              <button class="control-btn finish" @tap="finishStudy">学完了</button>
-            </view>
-
-            <view v-if="imageError" class="error-tip">
-              {{ imageError }}
-            </view>
+      <view v-if="showGuide" class="guide-mask">
+        <view class="guide-card">
+          <view class="guide-avatar-wrap">
+            <image class="guide-avatar" src="/static/孟浩然.png" mode="aspectFill"></image>
           </view>
 
-          <view class="right-panel">
-            <view class="poem-card">
-              <button
-                class="voice-btn"
-                :class="{ playing: audioPlaying, loading: audioLoading }"
-                @tap.stop="togglePoemAudio"
-              >
-                <text v-if="audioLoading">…</text>
-                <text v-else-if="audioPlaying">🔊</text>
-                <text v-else>🔈</text>
-              </button>
+          <view class="guide-content">
+            <view class="guide-title">太棒了！我们一起看完了</view>
 
-              <view class="poem-title">{{ poemData.title }}</view>
-              <view class="poem-author">{{ poemData.dynasty }} · {{ poemData.author }}</view>
-
-              <scroll-view class="poem-scroll" scroll-y>
-                <view
-                  v-for="(line, index) in poemLines"
-                  :key="`${line}-${index}`"
-                  class="poem-line"
-                  :class="{ active: index === currentFrameIndex }"
-                  @tap="selectFrame(index)"
-                >
-                  <text class="line-index">{{ index + 1 }}</text>
-                  <text class="line-text">{{ line }}</text>
-                </view>
-              </scroll-view>
+            <view class="guide-text">
+              我是作者<text class="orange-text">{{ poemData.author }}</text>，想知道我写这首诗的时候在想什么吗？快来聊聊吧！
             </view>
 
-            <view class="explain-card">
-              <view class="explain-title">诗芽小讲解</view>
-              <scroll-view class="explain-scroll" scroll-y>
-                <view class="explain-text">
-                  {{ poemData.translation || '这首诗描写了诗人看到的景色和心里的感受。你可以一边看画面，一边读诗句。' }}
-                </view>
-              </scroll-view>
-            </view>
-
-            <view class="tag-row">
-              <view
-                v-for="tag in poemTags"
-                :key="tag"
-                class="tag"
-              >
-                {{ tag }}
-              </view>
+            <view class="guide-buttons">
+              <button class="guide-btn white-btn" @tap="showGuide = false">再看一遍</button>
+              <button class="guide-btn orange-btn" @tap="goChat">和诗人聊聊天 💬</button>
             </view>
           </view>
         </view>
@@ -119,345 +84,287 @@
 </template>
 
 <script setup>
-import { computed, onUnmounted, ref } from 'vue'
-import { onLoad } from '@dcloudio/uni-app'
+import { computed, ref } from 'vue'
+import { onLoad, onUnload } from '@dcloudio/uni-app'
 import { API, getLocalPoemById, normalizeAssetUrl } from '@/utils/api.js'
 
+const showGuide = ref(false)
 const poemId = ref('poem_001')
 const poemData = ref(getLocalPoemById('poem_001'))
-
-const frames = ref([])
+const ttsLoading = ref(false)
+const isPlayingAudio = ref(false)
+const aiFrames = ref([])
 const currentFrameIndex = ref(0)
-const imageLoading = ref(false)
-const imageError = ref('')
+const progressPercent = ref(0)
 
-const audioLoading = ref(false)
-const audioPlaying = ref(false)
-const audioContext = ref(null)
-const audioUrl = ref('')
+let audioContext = null
+let studyStartTime = Date.now()
+let studyRecorded = false
+let frameTimer = null
+let progressTimer = null
 
-const startTime = ref(Date.now())
-let playTimer = null
+const sceneText = computed(() => {
+  if (poemData.value.title === '春晓') return '春天的早晨，睡得香香的。'
+  if (poemData.value.title === '静夜思') return '夜晚月光亮亮的，想起远方的家。'
+  if (poemData.value.title === '咏鹅') return '白鹅在水里快乐地游来游去。'
+  if (poemData.value.title === '悯农') return '每一粒米饭都来得很辛苦。'
+  return '一起走进古诗里的画面吧。'
+})
 
-const poemLines = computed(() => {
+const poemText = computed(() => {
   if (Array.isArray(poemData.value.content)) {
-    return poemData.value.content.filter(Boolean)
+    return poemData.value.content.join('，')
   }
 
   return String(poemData.value.content || '')
-    .split(/[，,。\n]/)
-    .map((line) => line.trim())
-    .filter(Boolean)
 })
-
-const poemTags = computed(() => {
-  if (Array.isArray(poemData.value.tags) && poemData.value.tags.length > 0) {
-    return poemData.value.tags.slice(0, 4)
-  }
-
-  return ['古诗', '诗意', '学习']
-})
-
-const hasAiFrames = computed(() => frames.value.length > 0)
 
 const currentFrame = computed(() => {
-  return frames.value[currentFrameIndex.value] || {
-    line: poemLines.value[currentFrameIndex.value] || poemLines.value[0] || '',
-    image_url: ''
+  return aiFrames.value[currentFrameIndex.value] || null
+})
+
+const currentFrameImage = computed(() => {
+  return currentFrame.value?.image_url || ''
+})
+
+const subtitleFirst = computed(() => {
+  if (currentFrame.value?.line) {
+    return currentFrame.value.line
   }
+
+  return poemData.value.content?.[0] || ''
 })
 
-onLoad(async (options) => {
-  poemId.value = options.poem_id || options.id || 'poem_001'
-  poemData.value = getLocalPoemById(poemId.value)
-  startTime.value = Date.now()
+const subtitleSecond = computed(() => {
+  if (currentFrame.value?.line) {
+    return ''
+  }
 
-  await loadPoemDetail()
-  await loadAiFrames()
+  return poemData.value.content?.[1] || ''
 })
 
-onUnmounted(() => {
-  clearPlayTimer()
-  stopPoemAudio()
-})
+const clearFrameTimers = () => {
+  if (frameTimer) {
+    clearTimeout(frameTimer)
+    frameTimer = null
+  }
 
-const clearPlayTimer = () => {
-  if (playTimer) {
-    clearTimeout(playTimer)
-    playTimer = null
+  if (progressTimer) {
+    clearInterval(progressTimer)
+    progressTimer = null
   }
 }
 
-const getPoemReadText = () => {
-  const poem = poemData.value || {}
-  const title = poem.title || ''
-  const dynasty = poem.dynasty || ''
-  const author = poem.author || ''
+const startFramePlayback = () => {
+  clearFrameTimers()
 
-  const content = Array.isArray(poem.content)
-    ? poem.content.join('，')
-    : String(poem.content || '')
-
-  return `${title}，${dynasty}，${author}。${content}`
-}
-
-const stopPoemAudio = () => {
-  if (audioContext.value) {
-    try {
-      audioContext.value.stop()
-      audioContext.value.destroy()
-    } catch (err) {
-      console.log('停止朗读失败：', err)
-    }
-  }
-
-  audioContext.value = null
-  audioPlaying.value = false
-}
-
-const playPoemAudio = (url) => {
-  stopPoemAudio()
-
-  const finalUrl = normalizeAssetUrl(url)
-
-  if (!finalUrl) {
-    uni.showToast({
-      title: '朗读地址为空',
-      icon: 'none'
-    })
+  if (!aiFrames.value.length) {
+    progressPercent.value = 0
     return
   }
 
-  const ctx = uni.createInnerAudioContext()
-  audioContext.value = ctx
+  currentFrameIndex.value = 0
+  progressPercent.value = 0
 
-  ctx.src = finalUrl
-  ctx.autoplay = true
-
-  ctx.onPlay(() => {
-    audioPlaying.value = true
+  const durations = aiFrames.value.map((item) => {
+    return Number(item.duration_ms || item.duration || 3000)
   })
 
-  ctx.onEnded(() => {
-    audioPlaying.value = false
-    audioContext.value = null
-  })
+  const totalDuration = durations.reduce((sum, item) => sum + item, 0)
+  const startTime = Date.now()
 
-  ctx.onStop(() => {
-    audioPlaying.value = false
-  })
+  progressTimer = setInterval(() => {
+    const used = Date.now() - startTime
+    progressPercent.value = Math.min(100, Math.round((used / totalDuration) * 100))
+  }, 120)
 
-  ctx.onError((err) => {
-    console.log('朗读播放失败：', err)
-    audioPlaying.value = false
-    audioContext.value = null
+  const playFrame = (index) => {
+    currentFrameIndex.value = index
 
-    uni.showToast({
-      title: '朗读播放失败',
-      icon: 'none'
-    })
-  })
-
-  ctx.play()
-}
-
-const togglePoemAudio = async () => {
-  if (audioLoading.value) return
-
-  if (audioPlaying.value) {
-    stopPoemAudio()
-    return
-  }
-
-  if (audioUrl.value) {
-    playPoemAudio(audioUrl.value)
-    return
-  }
-
-  try {
-    audioLoading.value = true
-
-    const res = await API.textToSpeech(getPoemReadText())
-
-    const url =
-      res?.audio_url ||
-      res?.url ||
-      res?.data?.audio_url ||
-      res?.data?.url ||
-      ''
-
-    if (res && res.success && url) {
-      audioUrl.value = url
-      playPoemAudio(url)
-    } else {
-      uni.showToast({
-        title: res?.error || res?.message || '朗读生成失败',
-        icon: 'none'
-      })
-    }
-  } catch (err) {
-    console.log('生成朗读失败：', err)
-
-    uni.showToast({
-      title: '朗读接口不可用',
-      icon: 'none'
-    })
-  } finally {
-    audioLoading.value = false
-  }
-}
-
-const loadPoemDetail = async () => {
-  try {
-    const res = await API.getPoemDetail(poemId.value)
-
-    if (res && res.success && res.data) {
-      poemData.value = {
-        ...res.data,
-        content: Array.isArray(res.data.content)
-          ? res.data.content
-          : String(res.data.content || '').split(/[，,。\n]/).filter(Boolean)
+    frameTimer = setTimeout(() => {
+      if (index >= aiFrames.value.length - 1) {
+        progressPercent.value = 100
+        clearFrameTimers()
+        return
       }
-    }
-  } catch (err) {
-    console.log('古诗详情接口暂不可用，使用本地数据：', err)
-  }
-}
 
-const normalizeFrames = (rawFrames) => {
-  return (rawFrames || [])
-    .filter((frame) => frame && frame.image_url)
-    .map((frame, index) => ({
-      index: Number(frame.index ?? index),
-      line: frame.line || poemLines.value[index] || '',
-      image_url: normalizeAssetUrl(frame.image_url),
-      duration_ms: Number(frame.duration_ms || 3000)
-    }))
-    .sort((a, b) => a.index - b.index)
+      playFrame(index + 1)
+    }, durations[index])
+  }
+
+  playFrame(0)
 }
 
 const loadAiFrames = async () => {
-  if (imageLoading.value) return
-
-  imageLoading.value = true
-  imageError.value = ''
-
   try {
-    uni.showLoading({
-      title: '正在作画...'
-    })
-
     const res = await API.generateImage(poemData.value)
 
-    if (res && res.success && Array.isArray(res.frames) && res.frames.length > 0) {
-      frames.value = normalizeFrames(res.frames)
-      currentFrameIndex.value = 0
-      replayFrames()
-    } else {
-      frames.value = []
-      imageError.value = res?.error || 'AI 配图暂时不可用，已显示默认画面。'
-    }
-  } catch (err) {
-    console.log('AI 配图接口失败：', err)
-    frames.value = []
-    imageError.value = 'AI 配图接口暂时没有连上，请检查后端 /generate/image 和大模型 Key。'
-  } finally {
-    uni.hideLoading()
-    imageLoading.value = false
-  }
-}
+    const rawFrames = res?.frames || res?.data?.frames || []
 
-const getSafeFrameIndex = (index) => {
-  if (!hasAiFrames.value) {
-    return Math.min(Math.max(index, 0), Math.max(poemLines.value.length - 1, 0))
-  }
-
-  return Math.min(Math.max(index, 0), frames.value.length - 1)
-}
-
-const selectFrame = (index) => {
-  clearPlayTimer()
-  currentFrameIndex.value = getSafeFrameIndex(index)
-}
-
-const replayFrames = () => {
-  clearPlayTimer()
-  currentFrameIndex.value = 0
-
-  if (!hasAiFrames.value) {
-    uni.showToast({
-      title: '正在播放默认画面',
-      icon: 'none'
-    })
-    return
-  }
-
-  playNextFrame()
-}
-
-const playNextFrame = () => {
-  clearPlayTimer()
-
-  if (!hasAiFrames.value) return
-
-  const frame = currentFrame.value
-  const duration = Math.max(1500, Number(frame.duration_ms || 3000))
-
-  playTimer = setTimeout(() => {
-    if (currentFrameIndex.value >= frames.value.length - 1) {
-      clearPlayTimer()
+    if (!res?.success || !Array.isArray(rawFrames) || !rawFrames.length) {
+      console.log('AI 配图暂不可用，使用默认动画', res)
+      progressPercent.value = 0
       return
     }
 
-    currentFrameIndex.value += 1
-    playNextFrame()
-  }, duration)
+    aiFrames.value = rawFrames
+      .map((item, index) => {
+        const imageUrl = item.image_url || item.url || item.image || ''
+
+        return {
+          ...item,
+          index: Number(item.index ?? index),
+          line: item.line || poemData.value.content?.[index] || '',
+          image_url: normalizeAssetUrl(imageUrl),
+          duration_ms: Number(item.duration_ms || item.duration || 3000)
+        }
+      })
+      .filter((item) => item.image_url)
+      .sort((a, b) => a.index - b.index)
+
+    startFramePlayback()
+  } catch (err) {
+    console.log('AI 配图接口暂不可用，使用默认动画', err)
+    progressPercent.value = 0
+  }
 }
 
-const finishStudy = async () => {
-  const durationSeconds = Math.max(1, Math.round((Date.now() - startTime.value) / 1000))
+onLoad(async (options) => {
+  studyStartTime = Date.now()
+  studyRecorded = false
+  poemId.value = options.poem_id || 'poem_001'
+  poemData.value = getLocalPoemById(poemId.value)
+  aiFrames.value = []
+  currentFrameIndex.value = 0
+  progressPercent.value = 0
+  clearFrameTimers()
 
   try {
-    await API.addRecord(poemId.value, durationSeconds)
+    const detailRes = await API.getPoemDetail(poemId.value)
 
-    uni.showToast({
-      title: '已记录学习',
-      icon: 'none'
-    })
+    if (detailRes && detailRes.success && detailRes.data) {
+      poemData.value = detailRes.data
+    }
   } catch (err) {
-    console.log('学习记录接口失败：', err)
-
-    uni.showToast({
-      title: '学习记录暂未保存',
-      icon: 'none'
-    })
+    console.log('古诗详情接口暂不可用，使用本地数据', err)
   }
 
-  goChat()
-}
+  loadAiFrames()
+})
 
-const goChat = () => {
-  clearPlayTimer()
-  stopPoemAudio()
-
-  uni.navigateTo({
-    url: `/pages/chat/chat?poem_id=${poemId.value}`,
-    fail: () => {
-      if (typeof window !== 'undefined') {
-        window.location.href = `#/pages/chat/chat?poem_id=${poemId.value}`
-      }
-    }
+const toast = (title) => {
+  uni.showToast({
+    title,
+    icon: 'none'
   })
 }
 
-const goBack = () => {
-  clearPlayTimer()
-  stopPoemAudio()
+const recordStudyOnce = async () => {
+  if (studyRecorded) return
 
+  const usedSeconds = Math.max(30, Math.round((Date.now() - studyStartTime) / 1000))
+
+  try {
+    await API.addRecord(poemId.value, usedSeconds)
+    studyRecorded = true
+  } catch (err) {
+    console.log('学习记录接口暂不可用，先跳过', err)
+  }
+}
+
+const finishStudy = async () => {
+  await recordStudyOnce()
+  showGuide.value = true
+}
+
+const stopAudio = () => {
+  if (audioContext) {
+    try {
+      audioContext.stop()
+      audioContext.destroy()
+    } catch (err) {
+      console.log('停止朗读失败：', err)
+    }
+
+    audioContext = null
+  }
+
+  isPlayingAudio.value = false
+}
+
+const toggleReadPoem = async () => {
+  if (isPlayingAudio.value) {
+    stopAudio()
+    return
+  }
+
+  if (ttsLoading.value) return
+
+  const text = poemText.value.trim()
+
+  if (!text) {
+    toast('暂无可朗读的诗句')
+    return
+  }
+
+  ttsLoading.value = true
+
+  try {
+    const res = await API.textToSpeech(text, 'child')
+
+    const audioUrl = res?.audio_url || res?.url || res?.data?.audio_url || res?.data?.url || ''
+
+    if (res && res.success && audioUrl) {
+      stopAudio()
+
+      audioContext = uni.createInnerAudioContext()
+      audioContext.src = normalizeAssetUrl(audioUrl)
+      audioContext.autoplay = true
+
+      audioContext.onEnded(() => {
+        stopAudio()
+      })
+
+      audioContext.onError((err) => {
+        console.log('朗读播放失败：', err)
+        stopAudio()
+        toast('朗读播放失败')
+      })
+
+      isPlayingAudio.value = true
+      audioContext.play()
+    } else {
+      toast(res?.message || res?.error || '语音生成失败')
+    }
+  } catch (err) {
+    console.log('语音朗读接口失败：', err)
+    toast('语音朗读暂不可用')
+  } finally {
+    ttsLoading.value = false
+  }
+}
+
+onUnload(() => {
+  stopAudio()
+  clearFrameTimers()
+})
+
+const goBack = () => {
   uni.navigateBack({
     fail: () => {
       if (typeof window !== 'undefined') {
         window.location.href = '#/pages/index/index'
+      }
+    }
+  })
+}
+
+const goChat = () => {
+  uni.navigateTo({
+    url: `/pages/chat/chat?poem_id=${poemData.value.id}`,
+    fail: () => {
+      if (typeof window !== 'undefined') {
+        window.location.href = `#/pages/chat/chat?poem_id=${poemData.value.id}`
       }
     }
   })
@@ -473,10 +380,6 @@ button::after {
   border: none;
 }
 
-button[disabled] {
-  opacity: 0.62;
-}
-
 .page-root {
   width: 100vw;
   height: 100vh;
@@ -486,47 +389,37 @@ button[disabled] {
   justify-content: center;
   overflow: hidden;
   font-family: "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
-  color: #5b508d;
 }
 
-.study-app {
+.video-app {
   position: relative;
   width: 844px;
   height: 390px;
   max-width: 100vw;
   max-height: 100vh;
+  background: #fffbf0;
   overflow: hidden;
-  background:
-    radial-gradient(circle at 8% 10%, rgba(255, 224, 96, 0.28), transparent 24%),
-    radial-gradient(circle at 96% 16%, rgba(150, 212, 255, 0.25), transparent 22%),
-    linear-gradient(180deg, #fffaf2 0%, #fff2e9 54%, #ffe9df 100%);
-}
-
-.page {
-  width: 100%;
-  height: 100%;
-  padding: 8px 16px 14px;
-  display: grid;
-  grid-template-rows: 46px minmax(0, 1fr);
-  gap: 9px;
+  border-radius: 0;
 }
 
 .topbar {
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  position: absolute;
+  top: 7px;
+  left: 16px;
+  right: 16px;
+  height: 44px;
+  z-index: 50;
 }
 
-.back {
+.back-btn {
   position: absolute;
   left: 0;
-  top: 5px;
+  top: 4px;
   width: 36px;
   height: 36px;
   border: 0;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.88);
+  background: rgba(255, 255, 255, 0.86);
   color: #5b508d;
   font-size: 26px;
   line-height: 1;
@@ -534,402 +427,332 @@ button[disabled] {
 }
 
 .title-pill {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  transform: translateX(-50%);
   height: 42px;
-  min-width: 188px;
+  min-width: 200px;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 9px;
-  padding: 6px 18px 6px 11px;
+  background: rgba(255, 255, 255, 0.9);
+  padding: 6px 18px;
   border-radius: 999px;
   border: 4px solid #ffe057;
-  background: rgba(255, 255, 255, 0.9);
-  font-weight: 950;
+  color: #5d4e8c;
   font-size: 17px;
-  letter-spacing: 1px;
-  box-shadow: 0 7px 16px rgba(111, 84, 55, 0.09);
+  font-weight: 950;
 }
 
-.logo {
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
-  background: #ff964b;
-  display: grid;
-  place-items: center;
-  color: #fff;
-  font-size: 18px;
-}
-
-.next-btn {
+.done-btn {
   position: absolute;
   right: 0;
-  top: 5px;
+  top: 4px;
   height: 36px;
-  border: 0;
+  background: #66cdaa;
+  color: #ffffff;
+  font-size: 15px;
+  font-weight: 900;
   border-radius: 999px;
-  padding: 0 16px;
-  background: linear-gradient(180deg, #ffac68, #ff7d32);
-  color: white;
-  font-size: 14px;
-  font-weight: 950;
-  box-shadow: 0 5px 0 #f16012;
+  border: 0;
+  padding: 0 22px;
+  box-shadow: 0 7px 16px rgba(102, 205, 170, 0.28);
 }
 
-.main-layout {
-  min-height: 0;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 232px;
-  gap: 12px;
-}
-
-.left-panel,
-.right-panel {
-  min-height: 0;
-}
-
-.left-panel {
-  display: grid;
-  grid-template-rows: minmax(0, 1fr) 50px 20px;
-  gap: 10px;
-  padding-bottom: 2px;
-}
-
-.video-card {
-  position: relative;
-  min-height: 0;
-  overflow: hidden;
-  border-radius: 24px;
-  border: 4px solid rgba(255, 255, 255, 0.78);
-  background: linear-gradient(180deg, #cdefff, #fff4df);
-  box-shadow: 0 14px 24px rgba(74, 55, 42, 0.16);
-}
-
-.ai-stage,
-.fallback-stage {
+.video-stage {
   position: absolute;
   inset: 0;
+  background: linear-gradient(to bottom, #e0f2fe, #fef3c7);
   overflow: hidden;
 }
 
-.ai-image {
+.ai-frame-image {
   width: 100%;
   height: 100%;
-}
-
-.frame-mask {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(180deg, transparent 58%, rgba(38, 34, 55, 0.62));
-}
-
-.frame-caption {
-  position: absolute;
-  left: 18px;
-  right: 18px;
-  bottom: 16px;
-  color: #fff;
-  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
-}
-
-.frame-line {
-  font-size: 25px;
-  font-weight: 950;
-  letter-spacing: 4px;
-}
-
-.frame-scene {
-  margin-top: 5px;
-  font-size: 12px;
-  font-weight: 850;
-  line-height: 1.45;
-  opacity: 0.94;
-}
-
-.frame-index {
-  position: absolute;
-  right: 14px;
-  top: 12px;
-  border-radius: 999px;
-  padding: 5px 10px;
-  background: rgba(0, 0, 0, 0.38);
-  color: white;
-  font-size: 12px;
-  font-weight: 900;
-}
-
-.fallback-stage {
-  background:
-    radial-gradient(circle at 78% 20%, rgba(255, 217, 99, 0.42), transparent 16%),
-    linear-gradient(180deg, #bfeeff 0%, #ecfaff 52%, #fff1d2 100%);
+  display: block;
 }
 
 .sun {
   position: absolute;
-  right: 82px;
-  top: 36px;
-  width: 58px;
-  height: 58px;
+  top: 58px;
+  left: 82px;
+  width: 56px;
+  height: 56px;
+  background: #ffd93d;
   border-radius: 50%;
-  background: #ffd35b;
-  box-shadow: 0 0 28px rgba(255, 180, 58, 0.52);
+  box-shadow: 0 0 30px rgba(255, 217, 61, 0.55);
 }
 
 .cloud {
   position: absolute;
-  color: white;
-  font-size: 42px;
-  filter: drop-shadow(0 7px 10px rgba(93, 126, 166, 0.16));
+  font-size: 48px;
+  opacity: 0.66;
+  animation: cloudFloat 8s ease-in-out infinite;
 }
 
 .cloud-one {
-  left: 70px;
-  top: 36px;
+  top: 84px;
+  left: 250px;
 }
 
 .cloud-two {
-  right: 158px;
-  top: 78px;
-  transform: scale(0.72);
+  top: 126px;
+  right: 210px;
+  animation-delay: 1.2s;
+}
+
+@keyframes cloudFloat {
+  50% {
+    transform: translateX(34px);
+  }
 }
 
 .mountain {
   position: absolute;
   bottom: 0;
-  width: 230px;
-  height: 146px;
-  background: #83c7a4;
-  clip-path: polygon(50% 0, 100% 100%, 0 100%);
+  width: 380px;
+  height: 175px;
+  clip-path: polygon(50% 0%, 100% 100%, 0 100%);
+  background: rgba(102, 205, 170, 0.28);
 }
 
 .mountain-one {
-  left: 60px;
+  left: 30px;
 }
 
 .mountain-two {
-  left: 220px;
-  background: #6fb191;
-  transform: scale(1.15);
+  right: 70px;
+  background: rgba(93, 78, 140, 0.13);
 }
 
-.scene-child {
+.willow {
   position: absolute;
-  left: 250px;
-  bottom: 30px;
-  font-size: 48px;
+  right: 145px;
+  bottom: 112px;
+  font-size: 68px;
+  animation: sway 4s ease-in-out infinite;
 }
 
-.fallback-text {
+@keyframes sway {
+  50% {
+    transform: rotate(4deg);
+  }
+}
+
+.bird {
+  position: absolute;
+  font-size: 30px;
+  animation: birdFly 7s linear infinite;
+}
+
+.bird-one {
+  top: 130px;
+  left: 200px;
+}
+
+.bird-two {
+  top: 170px;
+  left: 395px;
+  animation-delay: 1.2s;
+}
+
+@keyframes birdFly {
+  0% {
+    transform: translate(-80px, 20px);
+  }
+
+  50% {
+    transform: translate(130px, -20px);
+  }
+
+  100% {
+    transform: translate(-80px, 20px);
+  }
+}
+
+.scene-card {
   position: absolute;
   left: 50%;
-  bottom: 18px;
+  top: 52%;
+  transform: translate(-50%, -50%);
+  width: 350px;
+  height: 142px;
+  border-radius: 32px;
+  background: rgba(255, 255, 255, 0.52);
+  box-shadow: 0 16px 34px rgba(0, 0, 0, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+}
+
+.scene-child,
+.scene-bed {
+  font-size: 54px;
+}
+
+.scene-text {
+  width: 118px;
+  color: #5d4e8c;
+  font-size: 16px;
+  font-weight: 900;
+  line-height: 1.5;
+}
+
+.subtitle-box {
+  position: absolute;
+  left: 50%;
+  bottom: 24px;
   transform: translateX(-50%);
-  padding: 8px 16px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.88);
-  color: #5b508d;
-  font-size: 14px;
-  font-weight: 950;
-}
-
-.control-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  gap: 10px;
-  align-items: end;
-  margin-top: 4px;
-}
-
-.control-btn {
-  min-height: 42px;
-  border: 0;
-  border-radius: 999px;
-  font-size: 14px;
-  font-weight: 950;
-  line-height: 42px;
-}
-
-.primary {
-  background: linear-gradient(180deg, #ffac68, #ff7d32);
-  color: white;
-  box-shadow: 0 4px 0 #f16012;
-}
-
-.secondary {
-  background: white;
-  color: #6a5f97;
-  box-shadow: 0 4px 0 rgba(220, 211, 236, 0.9);
-}
-
-.finish {
-  background: linear-gradient(180deg, #8bdc9e, #43b86d);
-  color: white;
-  box-shadow: 0 4px 0 #319957;
-}
-
-.error-tip {
-  color: #c46a3b;
-  font-size: 12px;
-  font-weight: 850;
-  padding-left: 6px;
-  line-height: 18px;
-}
-
-.right-panel {
-  display: grid;
-  grid-template-rows: minmax(0, 1fr) 82px 30px;
-  gap: 8px;
-}
-
-.poem-card,
-.explain-card {
-  min-height: 0;
-  border-radius: 20px;
-  background: rgba(255, 255, 255, 0.88);
-  box-shadow: 0 10px 20px rgba(112, 79, 54, 0.11);
-}
-
-.poem-card {
-  position: relative;
-  padding: 12px 12px 10px;
-  display: grid;
-  grid-template-rows: 30px 22px minmax(0, 1fr);
+  width: 70%;
+  background: rgba(255, 255, 255, 0.9);
+  padding: 10px 24px 10px 62px;
+  border-radius: 24px;
   text-align: center;
-  overflow: hidden;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.05);
+  border: 2px solid #fff;
+  z-index: 30;
 }
 
 .voice-btn {
   position: absolute;
-  top: 9px;
-  right: 10px;
-  width: 30px;
-  height: 30px;
+  left: 18px;
+  top: 10px;
+  width: 34px;
+  height: 34px;
   padding: 0;
   border: 0;
   border-radius: 50%;
-  background: #fff2d9;
-  color: #6a5b86;
-  font-size: 16px;
-  line-height: 30px;
+  background: #fff2cc;
+  color: #5d4e8c;
+  font-size: 18px;
+  line-height: 34px;
   text-align: center;
-  box-shadow: 0 5px 12px rgba(255, 139, 71, 0.18);
-  z-index: 20;
+  box-shadow: 0 4px 0 rgba(255, 190, 75, 0.7);
+}
+
+.voice-btn.playing {
+  background: #e0f2fe;
+  color: #2563eb;
+  box-shadow: 0 4px 0 rgba(96, 165, 250, 0.55);
+}
+
+.voice-btn[disabled] {
+  opacity: 0.72;
+}
+
+.subtitle-text {
+  font-size: 24px;
+  font-weight: 900;
+  letter-spacing: 4px;
+  color: #5d4e8c;
+}
+
+.active-text {
+  color: #ff8e53;
+}
+
+.progress-track {
+  width: 100%;
+  height: 5px;
+  background: #eeeeee;
+  border-radius: 999px;
+  margin-top: 12px;
+  overflow: hidden;
+}
+
+.progress-bar {
+  height: 100%;
+  width: 0;
+  background: #ff8e53;
+  border-radius: 999px;
+  transition: width 0.12s linear;
+}
+
+.guide-mask {
+  position: absolute;
+  inset: 0;
+  background: rgba(93, 78, 140, 0.2);
+  backdrop-filter: blur(8px);
+  z-index: 100;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-.voice-btn.playing {
-  background: #ffe1b8;
-  color: #f1783f;
-}
-
-.voice-btn.loading {
-  opacity: 0.72;
-}
-
-.poem-title {
-  color: #4e4775;
-  font-size: 22px;
-  font-weight: 950;
-  letter-spacing: 4px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.poem-author {
-  color: #7a6ea1;
-  font-size: 13px;
-  font-weight: 850;
-  letter-spacing: 2px;
-}
-
-.poem-scroll {
-  min-height: 0;
-  height: 100%;
-  padding-right: 2px;
-}
-
-.poem-line {
-  min-height: 34px;
-  border-radius: 16px;
-  padding: 7px 8px;
-  margin-bottom: 7px;
-  color: #5d5485;
-  background: #fff8ee;
-  font-size: 15px;
-  font-weight: 900;
-  line-height: 1.35;
-  display: flex;
-  align-items: flex-start;
-  gap: 7px;
-  text-align: left;
-}
-
-.poem-line.active {
-  background: #fff0c7;
-  color: #f17428;
-  box-shadow: inset 0 0 0 2px rgba(255, 166, 82, 0.36);
-}
-
-.line-index {
-  width: 20px;
-  height: 20px;
-  flex-shrink: 0;
-  border-radius: 50%;
-  display: grid;
-  place-items: center;
-  background: rgba(255, 151, 77, 0.14);
-  font-size: 12px;
-  line-height: 20px;
-}
-
-.line-text {
-  min-width: 0;
-  flex: 1;
-  word-break: break-all;
-}
-
-.explain-card {
-  padding: 10px 12px;
-  display: grid;
-  grid-template-rows: 20px minmax(0, 1fr);
-}
-
-.explain-title {
-  color: #4e4775;
-  font-size: 14px;
-  font-weight: 950;
-}
-
-.explain-scroll {
-  height: 100%;
-  min-height: 0;
-}
-
-.explain-text {
-  color: #6f6598;
-  font-size: 12px;
-  font-weight: 850;
-  line-height: 1.45;
-  text-align: left;
-}
-
-.tag-row {
+.guide-card {
+  width: 650px;
+  min-height: 240px;
+  background: #ffffff;
+  border-radius: 40px;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.22);
   display: flex;
   align-items: center;
-  gap: 7px;
-  overflow: hidden;
+  gap: 32px;
+  padding: 30px;
 }
 
-.tag {
+.guide-avatar-wrap {
+  width: 128px;
+  height: 128px;
+  background: #ffd93d;
+  border-radius: 50%;
+  overflow: hidden;
   flex-shrink: 0;
-  padding: 7px 10px;
+}
+
+.guide-avatar {
+  width: 100%;
+  height: 100%;
+}
+
+.guide-content {
+  flex: 1;
+}
+
+.guide-title {
+  color: #5d4e8c;
+  font-size: 25px;
+  font-weight: 900;
+}
+
+.guide-text {
+  margin-top: 10px;
+  color: #666666;
+  font-size: 16px;
+  font-weight: 800;
+  line-height: 1.6;
+}
+
+.orange-text {
+  color: #ff8e53;
+  font-weight: 900;
+}
+
+.guide-buttons {
+  margin-top: 20px;
+  display: flex;
+  gap: 12px;
+}
+
+.guide-btn {
+  border: 0;
   border-radius: 999px;
-  background: #ecfbff;
-  color: #42a8c7;
-  font-size: 12px;
-  font-weight: 950;
+  padding: 9px 20px;
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.orange-btn {
+  background: linear-gradient(180deg, #ffac68, #ff7d32);
+  color: #fff;
+  box-shadow: 0 5px 0 #f16012;
+}
+
+.white-btn {
+  background: #fff;
+  color: #6a5f97;
+  box-shadow: 0 5px 0 rgba(220, 211, 236, 0.9);
 }
 </style>

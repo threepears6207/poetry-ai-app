@@ -81,5 +81,93 @@
       }
     ],
     "from_cache": false
+  },
+  "poem_003": {
+    "success": true,
+    "poem_title": "咏鹅",
+    "has_character": false,
+    "character_desc": "",
+    "recurring_elements": "无反复出现的建筑或家具元素。",
+    "total_lines": 4,
+    "frames": [
+      {
+        "index": 0,
+        "line": "鹅鹅鹅",
+        "scene": "近景。清澈的池塘边，三只白鹅并排站立在绿草地上，它们伸长脖子，朝向同一个方向，发出叫声。",
+        "shot_type": "近景",
+        "image_url": "/static/images/poems/poem_003/frame_0.jpg",
+        "duration_ms": 3000
+      },
+      {
+        "index": 1,
+        "line": "曲项向天歌",
+        "scene": "中景。其中一只白鹅弯曲着修长的脖子，仰头朝向天空，嘴巴张开，仿佛在歌唱。背景是蓝天和几朵白云。",
+        "shot_type": "中景",
+        "image_url": "/static/images/poems/poem_003/frame_1.jpg",
+        "duration_ms": 3000
+      },
+      {
+        "index": 2,
+        "line": "白毛浮绿水",
+        "scene": "远景。平静的绿色水面上，一只白鹅悠闲地漂浮着，洁白的羽毛与碧绿的池水形成鲜明对比。远处有岸边的柳树。",
+        "shot_type": "远景",
+        "image_url": "/static/images/poems/poem_003/frame_2.jpg",
+        "duration_ms": 3000
+      },
+      {
+        "index": 3,
+        "line": "红掌拨清波",
+        "scene": "主观视角。从水面下向上看，一双橙红色的鹅掌在水中有力地划动，拨开清澈的水波，荡开一圈圈涟漪。",
+        "shot_type": "主观视角",
+        "image_url": "/static/images/poems/poem_003/frame_3.jpg",
+        "duration_ms": 3000
+      }
+    ],
+    "errors": [],
+    "from_cache": false
+  },
+  "poem_004": {
+    "success": true,
+    "poem_title": "悯农",
+    "has_character": true,
+    "character_desc": "约30岁，男性，穿着深褐色粗布短衫和同色长裤，腰间系着灰色布带，黑色短发用布巾简单束起，皮肤黝黑，身材精瘦结实，手臂肌肉线条明显。",
+    "recurring_elements": "无反复出现的室内建筑或家具样式。",
+    "total_lines": 4,
+    "frames": [
+      {
+        "index": 0,
+        "line": "锄禾日当午",
+        "scene": "中景。烈日当空，农夫在广阔的田野中弯腰挥动锄头锄草，双手紧握木制长柄锄头，汗珠从额头滑落。背景是连绵的绿色禾苗和远处模糊的村庄。",
+        "shot_type": "中景",
+        "image_url": "/static/images/poems/poem_004/frame_0.jpg",
+        "duration_ms": 3000
+      },
+      {
+        "index": 1,
+        "line": "汗滴禾下土",
+        "scene": "近景。镜头聚焦在农夫的脸和锄头下的禾苗根部。一颗豆大的汗珠正从他下巴滴落，砸在禾苗根部的褐色泥土上，溅起微小的尘土。农夫眉头紧锁，表情专注。",
+        "shot_type": "近景",
+        "image_url": "/static/images/poems/poem_004/frame_1.jpg",
+        "duration_ms": 3000
+      },
+      {
+        "index": 2,
+        "line": "谁知盘中餐",
+        "scene": "主观视角。镜头切换，仿佛从农夫的视角，看到一双稚嫩的小手捧着一个粗糙的陶碗，碗里盛着白米饭。背景是简陋的农家室内，光线昏暗。",
+        "shot_type": "主观视角",
+        "image_url": "/static/images/poems/poem_004/frame_2.jpg",
+        "duration_ms": 3000
+      },
+      {
+        "index": 3,
+        "line": "粒粒皆辛苦",
+        "scene": "远景。画面回到田野，农夫的身影在夕阳的余晖中显得渺小而坚韧。他仍在劳作，远处是炊烟袅袅的村庄。整个画面色调温暖而深沉，强调劳动的漫长与艰辛。",
+        "shot_type": "远景",
+        "image_url": "/static/images/poems/poem_004/frame_3.jpg",
+        "duration_ms": 3000
+      }
+    ],
+    "errors": [],
+    "from_cache": false
   }
 }

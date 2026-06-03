@@ -169,5 +169,93 @@
     ],
     "errors": [],
     "from_cache": false
+  },
+  "poem_005": {
+    "success": true,
+    "poem_title": "登鹳雀楼",
+    "has_character": true,
+    "character_desc": "约35岁；男性；身着浅青色宽袖圆领长袍，系深蓝色腰带；头戴黑色幞头，发髻盘于幞头内；中等身材，体态匀称，文人气质",
+    "recurring_elements": "",
+    "total_lines": 4,
+    "frames": [
+      {
+        "index": 0,
+        "line": "白日依山尽",
+        "scene": "中景。文人站在鹳雀楼中层栏杆旁，双手扶栏，抬头望向远方。远处连绵的褐色山脉被即将落下的白色太阳映照，天空呈现橙红色渐变。",
+        "shot_type": "中景",
+        "image_url": "/static/images/poems/poem_005/frame_0.jpg",
+        "duration_ms": 3000
+      },
+      {
+        "index": 1,
+        "line": "黄河入海流",
+        "scene": "主观视角。以人物眼睛为镜头，画面中完全不出现主角身体。视线从楼台栏杆间穿过，望向远方。一条宽阔、泛着土黄色的河流（黄河）从画面右侧蜿蜒流向左侧地平线，远处水天相接。",
+        "shot_type": "主观视角",
+        "image_url": "/static/images/poems/poem_005/frame_1.jpg",
+        "duration_ms": 3000
+      },
+      {
+        "index": 2,
+        "line": "欲穷千里目",
+        "scene": "近景。文人身体微微前倾，双手仍扶栏杆，眉头微蹙，眼神专注地凝视着远方地平线，流露出想要看得更远的渴望。背景是模糊的远山和天空。",
+        "shot_type": "近景",
+        "image_url": "/static/images/poems/poem_005/frame_2.jpg",
+        "duration_ms": 3000
+      },
+      {
+        "index": 3,
+        "line": "更上一层楼",
+        "scene": "远景。文人已转身，正沿着鹳雀楼内部的木楼梯向上走去，右手扶梯，左手提袍。镜头从楼外稍远处拍摄，完整展现楼阁的多层结构和人物登楼的动作。",
+        "shot_type": "远景",
+        "image_url": "/static/images/poems/poem_005/frame_3.jpg",
+        "duration_ms": 3000
+      }
+    ],
+    "errors": [],
+    "from_cache": false
+  },
+  "poem_006": {
+    "success": true,
+    "poem_title": "望庐山瀑布",
+    "has_character": true,
+    "character_desc": "约35岁；男性；白色宽袖交领长衫系深蓝色腰带；黑色长发束成发髻以玉簪固定；中等身材，姿态挺拔飘逸",
+    "recurring_elements": "",
+    "total_lines": 4,
+    "frames": [
+      {
+        "index": 0,
+        "line": "日照香炉生紫烟",
+        "scene": "远景。清晨，金色阳光斜照在形似香炉的山峰上，山体岩石反射出淡淡的紫色光晕，山间升腾起袅袅的紫色云雾。诗人李白站在画面左下角的山坡上，双手背在身后，仰头望向香炉峰。",
+        "shot_type": "远景",
+        "image_url": "/static/images/poems/poem_006/frame_0.jpg",
+        "duration_ms": 3000
+      },
+      {
+        "index": 1,
+        "line": "遥看瀑布挂前川",
+        "scene": "中景。镜头拉近，聚焦于诗人与瀑布的关系。李白站在画面右侧的山崖边，右手抬起指向远方，左手自然垂于身侧。顺着他手指的方向，一条宽阔的白色瀑布如巨幅白练悬挂在对面青翠的山崖上。",
+        "shot_type": "中景",
+        "image_url": "/static/images/poems/poem_006/frame_1.jpg",
+        "duration_ms": 3000
+      },
+      {
+        "index": 2,
+        "line": "飞流直下三千尺",
+        "scene": "近景。镜头对准飞泻而下的瀑布中段。水流如银河倾泻，撞击在突出的岩石上，激起无数细密的水珠和白色水雾，在阳光下形成一道小小的彩虹。李白站在画面左侧的岩石上，双手叉腰，身体微微前倾，专注地观察着瀑布的磅礴气势。",
+        "shot_type": "近景",
+        "image_url": "/static/images/poems/poem_006/frame_2.jpg",
+        "duration_ms": 3000
+      },
+      {
+        "index": 3,
+        "line": "疑是银河落九天",
+        "scene": "主观视角。以李白眼睛为镜头，画面中不出现李白本人。视线从瀑布底部的深潭向上仰望，瀑布顶端仿佛与天空相接，水流在逆光中闪烁着耀眼的银白色光芒，如同天上的银河倾泻人间。人物头顶右上方飘着一个手绘风格的大问号“？”。",
+        "shot_type": "主观视角",
+        "image_url": "/static/images/poems/poem_006/frame_3.jpg",
+        "duration_ms": 3000
+      }
+    ],
+    "errors": [],
+    "from_cache": false
   }
 }

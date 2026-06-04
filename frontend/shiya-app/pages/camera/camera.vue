@@ -399,6 +399,10 @@ const chooseAlbumAndRecognize = async () => {
 }
 
 const goStudy = () => {
+  if (matchedPoem.value?.id) {
+    API.preloadGenerateImage(matchedPoem.value)
+  }
+
   uni.navigateTo({
     url: `/pages/study/study?poem_id=${matchedPoem.value.id}`,
     fail: () => {

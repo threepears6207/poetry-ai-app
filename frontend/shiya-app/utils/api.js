@@ -14,6 +14,14 @@ export const DEFAULT_USER_ID = 'test_user'
 
 
 // =====================================================
+// 1.1 AI 生成类接口的前端缓存
+// 说明：详情页预请求、播放页再次请求时，可复用同一个 Promise，避免重复触发生成。
+// =====================================================
+const imageGeneratePromiseCache = new Map()
+const poetAvatarPromiseCache = new Map()
+
+
+// =====================================================
 // 2. 本地兜底古诗数据
 // 后端没连上时，页面不会空白
 // =====================================================
@@ -80,19 +88,32 @@ export const normalizeAssetUrl = (url) => {
   const value = String(url).trim()
 
   if (
-    value.startsWith('http://') ||
-    value.startsWith('https://') ||
     value.startsWith('data:image') ||
     value.startsWith('blob:')
   ) {
     return value
   }
 
-  if (value.startsWith('/')) {
-    return `${BASE_URL}${value}`
+  if (
+    value.startsWith('http://') ||
+    value.startsWith('https://')
+  ) {
+    return encodeURI(value)
   }
 
-  return `${BASE_URL}/${value}`
+  if (value.startsWith('/')) {
+    return encodeURI(`${BASE_URL}${value}`)
+  }
+
+  return encodeURI(`${BASE_URL}/${value}`)
+}
+
+export const getPoetAvatarStaticUrl = (poetName = '') => {
+  const name = String(poetName || '').trim()
+
+  if (!name) return ''
+
+  return normalizeAssetUrl(`/static/images/poets/${name}.jpg`)
 }
 
 
@@ -134,6 +155,34 @@ export const request = (options) => {
   })
 }
 
+
+
+const buildPoemContent = (poem = {}) => {
+  if (Array.isArray(poem.content)) {
+    return poem.content
+  }
+
+  if (Array.isArray(poem.poem_content)) {
+    return poem.poem_content
+  }
+
+  return String(poem.content || poem.poem_content || '')
+    .split(/[，,。；;！!？?\n]/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+}
+
+const getPoemImageCacheKey = (poem = {}, content = []) => {
+  return String(
+    poem.id ||
+    poem.poem_id ||
+    `${poem.title || poem.poem_title || ''}-${poem.author || poem.poet_name || ''}-${content.join('|')}`
+  )
+}
+
+const getPoetAvatarCacheKey = (poetName = '', dynasty = '') => {
+  return `${dynasty || '未知朝代'}-${poetName || '古代诗人'}`
+}
 
 // =====================================================
 // 5. 后端接口 API
@@ -322,16 +371,19 @@ export const API = {
   // -----------------------------------------------------
   // AI 配图生成
   // POST /generate/image
+  // 首次生成可能需要 30 秒到 2 分钟，必须使用 120 秒以上超时。
+  // 这里设置为 300 秒，并加入前端 Promise 缓存，方便详情页提前预热、播放页复用。
   // -----------------------------------------------------
-  generateImage(poem) {
-    const content = Array.isArray(poem.content)
-      ? poem.content
-      : String(poem.content || '')
-          .split(/[，,。\n]/)
-          .map((line) => line.trim())
-          .filter(Boolean)
+  generateImage(poem = {}, options = {}) {
+    const content = buildPoemContent(poem)
+    const cacheKey = getPoemImageCacheKey(poem, content)
+    const forceRegenerate = Boolean(poem.force_regenerate || options.forceRegenerate)
 
-    return request({
+    if (!forceRegenerate && imageGeneratePromiseCache.has(cacheKey)) {
+      return imageGeneratePromiseCache.get(cacheKey)
+    }
+
+    const requestPromise = request({
       url: '/generate/image',
       method: 'POST',
       data: {
@@ -340,10 +392,64 @@ export const API = {
         poem_content: content,
         poet_name: poem.author || poem.poet_name || '',
         dynasty: poem.dynasty || '',
-        tags: Array.isArray(poem.tags) ? poem.tags : []
+        tags: Array.isArray(poem.tags) ? poem.tags : [],
+        ...(forceRegenerate ? { force_regenerate: true } : {})
       },
       timeout: 300000
+    }).catch((err) => {
+      imageGeneratePromiseCache.delete(cacheKey)
+      throw err
     })
+
+    if (!forceRegenerate) {
+      imageGeneratePromiseCache.set(cacheKey, requestPromise)
+    }
+
+    return requestPromise
+  },
+
+
+  // -----------------------------------------------------
+  // 预热 AI 配图生成
+  // 给诗词详情页使用：进入详情页时直接 API.preloadGenerateImage(poem) 即可。
+  // -----------------------------------------------------
+  preloadGenerateImage(poem = {}) {
+    return API.generateImage(poem).catch((err) => {
+      console.log('AI 配图预热失败：', err)
+      return null
+    })
+  },
+
+
+  // -----------------------------------------------------
+  // AI 诗人形象生成
+  // POST /generate/peot_avatar
+  // 注意：后端当前路径为 peot_avatar，前端按后端实际路径调用。
+  // -----------------------------------------------------
+  generatePoetAvatar(poet = {}) {
+    const poetName = poet.poet_name || poet.poetName || poet.author || poet.name || '古代诗人'
+    const dynasty = poet.dynasty || '唐'
+    const cacheKey = getPoetAvatarCacheKey(poetName, dynasty)
+
+    if (poetAvatarPromiseCache.has(cacheKey)) {
+      return poetAvatarPromiseCache.get(cacheKey)
+    }
+
+    const requestPromise = request({
+      url: '/generate/peot_avatar',
+      method: 'POST',
+      data: {
+        poet_name: poetName,
+        dynasty
+      },
+      timeout: 180000
+    }).catch((err) => {
+      poetAvatarPromiseCache.delete(cacheKey)
+      throw err
+    })
+
+    poetAvatarPromiseCache.set(cacheKey, requestPromise)
+    return requestPromise
   },
 
 

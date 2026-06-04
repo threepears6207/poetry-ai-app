@@ -1,6 +1,34 @@
 <template>
   <view class="page-root">
     <view class="video-app">
+      <view v-if="isImageLoading" class="loading-screen">
+        <view class="loading-cloud loading-cloud-one">☁️</view>
+        <view class="loading-cloud loading-cloud-two">☁️</view>
+        <view class="loading-moon">月</view>
+        <view class="loading-bamboo loading-bamboo-left">🎋</view>
+        <view class="loading-bamboo loading-bamboo-right">🎋</view>
+
+        <view class="loading-card">
+          <view class="loading-icon-wrap">
+            <view class="loading-scroll">📜</view>
+            <view class="loading-brush">🖌️</view>
+          </view>
+
+          <view class="loading-title">正在为《{{ poemData.title }}》作画</view>
+          <view class="loading-desc">{{ loadingMessage }}</view>
+          <view class="loading-line">{{ loadingPoemLine }}</view>
+
+          <view class="loading-progress-track">
+            <view class="loading-progress-bar" :style="{ width: loadingPercent + '%' }"></view>
+          </view>
+
+          <view class="loading-foot">
+            <text>诗芽小学堂</text>
+            <text>{{ loadingPercent }}%</text>
+          </view>
+        </view>
+      </view>
+
       <view class="topbar">
         <button class="back-btn" @tap="goBack">‹</button>
 
@@ -8,20 +36,28 @@
           正在播放：{{ poemData.title }}
         </view>
 
-        <button class="done-btn" @tap="finishStudy">
-          播完了 ✓
+        <button
+          class="done-btn"
+          :class="{ disabled: !canFinishStudy }"
+          :disabled="!canFinishStudy"
+          @tap="finishStudy"
+        >
+          {{ canFinishStudy ? '看完了 ✓' : '播放中…' }}
         </button>
       </view>
 
       <view class="video-stage">
         <image
-          v-if="currentFrameImage"
+          v-for="(frame, index) in aiFrames"
+          :key="frame.frame_key || `${index}-${frame.image_url}`"
           class="ai-frame-image"
-          :src="currentFrameImage"
+          :class="{ active: currentFrameIndex === index }"
+          :src="frame.image_url"
           mode="aspectFill"
+          @error="handleFrameImageError(index, $event)"
         ></image>
 
-        <template v-if="!currentFrameImage">
+        <template v-if="!hasFrameImages">
           <view class="sun"></view>
           <view class="cloud cloud-one">☁️</view>
           <view class="cloud cloud-two">☁️</view>
@@ -62,7 +98,7 @@
       <view v-if="showGuide" class="guide-mask">
         <view class="guide-card">
           <view class="guide-avatar-wrap">
-            <image class="guide-avatar" src="/static/孟浩然.png" mode="aspectFill"></image>
+            <image class="guide-avatar" :src="poetAvatarImage" mode="aspectFill" @error="handlePoetAvatarError"></image>
           </view>
 
           <view class="guide-content">
@@ -73,7 +109,7 @@
             </view>
 
             <view class="guide-buttons">
-              <button class="guide-btn white-btn" @tap="showGuide = false">再看一遍</button>
+              <button class="guide-btn white-btn" @tap="replayStudy">再看一遍</button>
               <button class="guide-btn orange-btn" @tap="goChat">和诗人聊聊天 💬</button>
             </view>
           </view>
@@ -85,8 +121,8 @@
 
 <script setup>
 import { computed, ref } from 'vue'
-import { onLoad, onUnload } from '@dcloudio/uni-app'
-import { API, getLocalPoemById, normalizeAssetUrl } from '@/utils/api.js'
+import { onLoad, onUnload, onHide } from '@dcloudio/uni-app'
+import { API, getLocalPoemById, normalizeAssetUrl, getPoetAvatarStaticUrl } from '@/utils/api.js'
 
 const showGuide = ref(false)
 const poemId = ref('poem_001')
@@ -96,12 +132,23 @@ const isPlayingAudio = ref(false)
 const aiFrames = ref([])
 const currentFrameIndex = ref(0)
 const progressPercent = ref(0)
+const playbackCompleted = ref(false)
+const isImageLoading = ref(true)
+const loadingPercent = ref(6)
+const loadingMessage = ref('正在铺开画卷，请稍等一下')
+const poetAvatarUrl = ref('')
 
 let audioContext = null
 let studyStartTime = Date.now()
 let studyRecorded = false
 let frameTimer = null
 let progressTimer = null
+let loadingTimer = null
+let audioRequestToken = 0
+let pageAlive = true
+
+// 分镜播放稍微加速一点：后端 3000ms 一张，前端按 75% 播放。
+const FRAME_PLAYBACK_SPEED = 0.75
 
 const sceneText = computed(() => {
   if (poemData.value.title === '春晓') return '春天的早晨，睡得香香的。'
@@ -119,6 +166,54 @@ const poemText = computed(() => {
   return String(poemData.value.content || '')
 })
 
+const poemLines = computed(() => {
+  if (Array.isArray(poemData.value.content)) {
+    return poemData.value.content
+  }
+
+  return String(poemData.value.content || '')
+    .split(/[，,。；;！!？?\n]/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+})
+
+const getPoemStaticFrameUrl = (index, options = {}) => {
+  const { useTitle = false, ext = 'jpg' } = options
+  const id = poemData.value.id || poemData.value.poem_id || poemId.value
+  const title = poemData.value.title || poemData.value.poem_title || ''
+  const folder = useTitle ? title : id
+
+  if (!folder && folder !== 0) return ''
+
+  return normalizeAssetUrl(`/static/images/poems/${folder}/frame_${index}.${ext}`)
+}
+
+const getFrameFallbackUrls = (index) => {
+  return [
+    getPoemStaticFrameUrl(index, { ext: 'jpg' }),
+    getPoemStaticFrameUrl(index, { ext: 'png' }),
+    getPoemStaticFrameUrl(index, { useTitle: true, ext: 'jpg' }),
+    getPoemStaticFrameUrl(index, { useTitle: true, ext: 'png' })
+  ].filter(Boolean)
+    .filter((url, urlIndex, arr) => arr.indexOf(url) === urlIndex)
+}
+
+const getPoetName = () => {
+  return poemData.value.author || poemData.value.poet_name || '古代诗人'
+}
+
+const getPoetDynasty = () => {
+  return poemData.value.dynasty || '唐'
+}
+
+const loadingPoemLine = computed(() => {
+  return poemLines.value[0] || poemText.value || '让诗句慢慢变成画面'
+})
+
+const poetAvatarImage = computed(() => {
+  return poetAvatarUrl.value || getPoetAvatarStaticUrl(getPoetName()) || '/static/孟浩然.png'
+})
+
 const currentFrame = computed(() => {
   return aiFrames.value[currentFrameIndex.value] || null
 })
@@ -127,12 +222,20 @@ const currentFrameImage = computed(() => {
   return currentFrame.value?.image_url || ''
 })
 
+const hasFrameImages = computed(() => {
+  return aiFrames.value.length > 0
+})
+
+const canFinishStudy = computed(() => {
+  return playbackCompleted.value && !isImageLoading.value
+})
+
 const subtitleFirst = computed(() => {
   if (currentFrame.value?.line) {
     return currentFrame.value.line
   }
 
-  return poemData.value.content?.[0] || ''
+  return poemLines.value[0] || ''
 })
 
 const subtitleSecond = computed(() => {
@@ -140,8 +243,100 @@ const subtitleSecond = computed(() => {
     return ''
   }
 
-  return poemData.value.content?.[1] || ''
+  return poemLines.value[1] || ''
 })
+
+const handlePoetAvatarError = () => {
+  if (poetAvatarUrl.value) {
+    poetAvatarUrl.value = ''
+    return
+  }
+
+  console.log('诗人头像加载失败，使用本地默认头像')
+}
+
+const clearLoadingTimer = () => {
+  if (loadingTimer) {
+    clearInterval(loadingTimer)
+    loadingTimer = null
+  }
+}
+
+const startImageLoadingProgress = () => {
+  clearLoadingTimer()
+  isImageLoading.value = true
+  loadingPercent.value = 6
+  loadingMessage.value = '正在铺开画卷，请稍等一下'
+
+  const startTime = Date.now()
+
+  loadingTimer = setInterval(() => {
+    const elapsed = Date.now() - startTime
+    const nextPercent = Math.min(92, 6 + Math.round((elapsed / 120000) * 86))
+    loadingPercent.value = Math.max(loadingPercent.value, nextPercent)
+
+    if (loadingPercent.value < 30) {
+      loadingMessage.value = '正在理解诗句里的景色和情绪'
+    } else if (loadingPercent.value < 62) {
+      loadingMessage.value = '正在画出连续的小分镜'
+    } else if (loadingPercent.value < 88) {
+      loadingMessage.value = '正在整理图片资源，缓存后下次会更快'
+    } else {
+      loadingMessage.value = '快完成啦，马上进入播放'
+    }
+  }, 700)
+}
+
+const finishImageLoading = (callback) => {
+  clearLoadingTimer()
+  loadingPercent.value = 100
+  loadingMessage.value = '画面准备好了，马上播放'
+
+  setTimeout(() => {
+    isImageLoading.value = false
+
+    if (typeof callback === 'function') {
+      callback()
+    }
+  }, 360)
+}
+
+const stopImageLoadingWithFallback = () => {
+  clearLoadingTimer()
+  loadingPercent.value = 100
+  loadingMessage.value = '配图暂不可用，先用默认动画继续观看'
+
+  setTimeout(() => {
+    isImageLoading.value = false
+  }, 520)
+}
+
+const handleFrameImageError = (index, err) => {
+  const frame = aiFrames.value[index]
+  const failedUrls = Array.isArray(frame?.failed_urls) ? frame.failed_urls : []
+  const currentUrl = frame?.image_url || ''
+  const fallbackUrls = Array.isArray(frame?.fallback_urls) ? frame.fallback_urls : []
+
+  const nextUrl = fallbackUrls.find((url) => {
+    return url && url !== currentUrl && !failedUrls.includes(url)
+  })
+
+  console.log('分镜图片加载失败：', {
+    index,
+    image_url: currentUrl,
+    next_url: nextUrl,
+    error: err
+  })
+
+  if (nextUrl) {
+    aiFrames.value.splice(index, 1, {
+      ...frame,
+      image_url: nextUrl,
+      frame_key: `${frame.index ?? index}-${nextUrl}`,
+      failed_urls: [...failedUrls, currentUrl].filter(Boolean)
+    })
+  }
+}
 
 const clearFrameTimers = () => {
   if (frameTimer) {
@@ -155,22 +350,42 @@ const clearFrameTimers = () => {
   }
 }
 
-const startFramePlayback = () => {
+const startFramePlayback = (options = {}) => {
+  const { autoRead = true } = options
+
   clearFrameTimers()
+  playbackCompleted.value = false
 
   if (!aiFrames.value.length) {
-    progressPercent.value = 0
+    progressPercent.value = 100
+    playbackCompleted.value = true
     return
   }
 
   currentFrameIndex.value = 0
   progressPercent.value = 0
 
+  if (autoRead) {
+    playPoemAudio({
+      restart: true,
+      silent: true
+    })
+  }
+
   const durations = aiFrames.value.map((item) => {
-    return Number(item.duration_ms || item.duration || 3000)
+    const duration = Number(item.duration_ms || item.duration || 3000)
+    const safeDuration = Number.isFinite(duration) && duration > 0 ? duration : 3000
+
+    return Math.max(650, Math.round(safeDuration * FRAME_PLAYBACK_SPEED))
   })
 
   const totalDuration = durations.reduce((sum, item) => sum + item, 0)
+
+  if (!totalDuration) {
+    progressPercent.value = 0
+    return
+  }
+
   const startTime = Date.now()
 
   progressTimer = setInterval(() => {
@@ -184,6 +399,7 @@ const startFramePlayback = () => {
     frameTimer = setTimeout(() => {
       if (index >= aiFrames.value.length - 1) {
         progressPercent.value = 100
+        playbackCompleted.value = true
         clearFrameTimers()
         return
       }
@@ -195,7 +411,97 @@ const startFramePlayback = () => {
   playFrame(0)
 }
 
+const normalizeFrameList = (rawFrames = []) => {
+  const frameMap = new Map()
+
+  rawFrames.forEach((item = {}, fallbackIndex) => {
+    const frameIndex = Number(item.index ?? fallbackIndex)
+    const safeIndex = Number.isFinite(frameIndex) ? frameIndex : fallbackIndex
+    const imageUrl = (
+      item.image_url ||
+      item.imageUrl ||
+      item.local_url ||
+      item.localUrl ||
+      item.local_path ||
+      item.localPath ||
+      item.image_path ||
+      item.imagePath ||
+      item.path ||
+      item.url ||
+      item.image ||
+      item.src ||
+      ''
+    )
+
+    const normalizedImageUrl = normalizeAssetUrl(imageUrl)
+    const duration = Number(item.duration_ms || item.duration || 3000)
+    const fallbackUrls = getFrameFallbackUrls(safeIndex)
+    const imageUrlForDisplay = normalizedImageUrl || fallbackUrls[0] || ''
+
+    frameMap.set(safeIndex, {
+      ...item,
+      index: safeIndex,
+      frame_key: `${safeIndex}-${imageUrlForDisplay}`,
+      line: item.line || poemLines.value[safeIndex] || '',
+      image_url: imageUrlForDisplay,
+      fallback_urls: normalizedImageUrl
+        ? [normalizedImageUrl, ...fallbackUrls].filter((url, urlIndex, arr) => arr.indexOf(url) === urlIndex)
+        : fallbackUrls,
+      duration_ms: Number.isFinite(duration) && duration > 0 ? Math.max(800, duration) : 3000
+    })
+  })
+
+  // 以诗句数量为准补齐缺失图片。
+  // 解决“春晓后端 static 已有 4 张，但接口/缓存只返回 2 张时前端只能播 2 张”的问题。
+  poemLines.value.forEach((line, index) => {
+    if (!frameMap.has(index)) {
+      const fallbackUrls = getFrameFallbackUrls(index)
+      const imageUrlForDisplay = fallbackUrls[0] || ''
+
+      frameMap.set(index, {
+        index,
+        frame_key: `${index}-${imageUrlForDisplay}`,
+        line,
+        image_url: imageUrlForDisplay,
+        fallback_urls: fallbackUrls,
+        duration_ms: 3000,
+        from_static_fallback: true
+      })
+    }
+  })
+
+  return Array.from(frameMap.values())
+    .filter((item) => item.image_url)
+    .sort((a, b) => a.index - b.index)
+}
+
+const loadPoetAvatar = async () => {
+  const poetName = getPoetName()
+  const dynasty = getPoetDynasty()
+
+  // 先直接尝试后端静态目录里的头像，比如 /static/images/poets/李白.jpg。
+  // 这样即使生成接口暂时不可用，已有图片也能显示。
+  poetAvatarUrl.value = getPoetAvatarStaticUrl(poetName)
+
+  try {
+    const res = await API.generatePoetAvatar({
+      poet_name: poetName,
+      dynasty
+    })
+
+    const avatarUrl = res?.avatar_url || res?.data?.avatar_url || ''
+
+    if (res?.success && avatarUrl) {
+      poetAvatarUrl.value = normalizeAssetUrl(avatarUrl)
+    }
+  } catch (err) {
+    console.log('诗人形象接口暂不可用，继续使用静态头像', err)
+  }
+}
+
 const loadAiFrames = async () => {
+  startImageLoadingProgress()
+
   try {
     const res = await API.generateImage(poemData.value)
 
@@ -204,32 +510,35 @@ const loadAiFrames = async () => {
     if (!res?.success || !Array.isArray(rawFrames) || !rawFrames.length) {
       console.log('AI 配图暂不可用，使用默认动画', res)
       progressPercent.value = 0
+      stopImageLoadingWithFallback()
       return
     }
 
-    aiFrames.value = rawFrames
-      .map((item, index) => {
-        const imageUrl = item.image_url || item.url || item.image || ''
+    if (res?.from_cache || res?.data?.from_cache) {
+      loadingMessage.value = '缓存命中，马上进入播放'
+    }
 
-        return {
-          ...item,
-          index: Number(item.index ?? index),
-          line: item.line || poemData.value.content?.[index] || '',
-          image_url: normalizeAssetUrl(imageUrl),
-          duration_ms: Number(item.duration_ms || item.duration || 3000)
-        }
+    aiFrames.value = normalizeFrameList(rawFrames)
+
+    if (!aiFrames.value.length) {
+      stopImageLoadingWithFallback()
+      return
+    }
+
+    finishImageLoading(() => {
+      startFramePlayback({
+        autoRead: true
       })
-      .filter((item) => item.image_url)
-      .sort((a, b) => a.index - b.index)
-
-    startFramePlayback()
+    })
   } catch (err) {
     console.log('AI 配图接口暂不可用，使用默认动画', err)
     progressPercent.value = 0
+    stopImageLoadingWithFallback()
   }
 }
 
 onLoad(async (options) => {
+  pageAlive = true
   studyStartTime = Date.now()
   studyRecorded = false
   poemId.value = options.poem_id || 'poem_001'
@@ -237,7 +546,13 @@ onLoad(async (options) => {
   aiFrames.value = []
   currentFrameIndex.value = 0
   progressPercent.value = 0
+  playbackCompleted.value = false
+  poetAvatarUrl.value = ''
+  isImageLoading.value = true
+  loadingPercent.value = 6
+  loadingMessage.value = '正在铺开画卷，请稍等一下'
   clearFrameTimers()
+  clearLoadingTimer()
 
   try {
     const detailRes = await API.getPoemDetail(poemId.value)
@@ -249,6 +564,7 @@ onLoad(async (options) => {
     console.log('古诗详情接口暂不可用，使用本地数据', err)
   }
 
+  loadPoetAvatar()
   loadAiFrames()
 })
 
@@ -262,7 +578,7 @@ const toast = (title) => {
 const recordStudyOnce = async () => {
   if (studyRecorded) return
 
-  const usedSeconds = Math.max(30, Math.round((Date.now() - studyStartTime) / 1000))
+  const usedSeconds = Math.max(1, Math.round((Date.now() - studyStartTime) / 1000))
 
   try {
     await API.addRecord(poemId.value, usedSeconds)
@@ -273,11 +589,23 @@ const recordStudyOnce = async () => {
 }
 
 const finishStudy = async () => {
+  if (!canFinishStudy.value) {
+    toast('先完整看完一遍哦')
+    return
+  }
+
+  stopAudio()
+  clearFrameTimers()
   await recordStudyOnce()
   showGuide.value = true
 }
 
-const stopAudio = () => {
+const stopAudio = (options = {}) => {
+  const { cancelPending = true } = options
+
+  if (cancelPending) {
+    audioRequestToken += 1
+  }
   if (audioContext) {
     try {
       audioContext.stop()
@@ -292,30 +620,40 @@ const stopAudio = () => {
   isPlayingAudio.value = false
 }
 
-const toggleReadPoem = async () => {
-  if (isPlayingAudio.value) {
-    stopAudio()
-    return
-  }
+const playPoemAudio = async (options = {}) => {
+  const { restart = false, silent = false } = options
 
   if (ttsLoading.value) return
+
+  if (isPlayingAudio.value) {
+    if (!restart) return
+    stopAudio()
+  }
 
   const text = poemText.value.trim()
 
   if (!text) {
-    toast('暂无可朗读的诗句')
+    if (!silent) toast('暂无可朗读的诗句')
     return
   }
 
+  const requestToken = audioRequestToken + 1
+  audioRequestToken = requestToken
   ttsLoading.value = true
 
   try {
     const res = await API.textToSpeech(text, 'child')
 
+    if (requestToken !== audioRequestToken || !pageAlive) {
+      return
+    }
+
     const audioUrl = res?.audio_url || res?.url || res?.data?.audio_url || res?.data?.url || ''
 
     if (res && res.success && audioUrl) {
-      stopAudio()
+      stopAudio({
+        cancelPending: false
+      })
 
       audioContext = uni.createInnerAudioContext()
       audioContext.src = normalizeAssetUrl(audioUrl)
@@ -328,28 +666,66 @@ const toggleReadPoem = async () => {
       audioContext.onError((err) => {
         console.log('朗读播放失败：', err)
         stopAudio()
-        toast('朗读播放失败')
+        if (!silent) toast('朗读播放失败')
       })
 
       isPlayingAudio.value = true
       audioContext.play()
-    } else {
+    } else if (!silent) {
       toast(res?.message || res?.error || '语音生成失败')
     }
   } catch (err) {
     console.log('语音朗读接口失败：', err)
-    toast('语音朗读暂不可用')
+    if (!silent && requestToken === audioRequestToken && pageAlive) {
+      toast('语音朗读暂不可用')
+    }
   } finally {
-    ttsLoading.value = false
+    if (requestToken === audioRequestToken) {
+      ttsLoading.value = false
+    }
   }
 }
 
-onUnload(() => {
+const toggleReadPoem = async () => {
+  if (isPlayingAudio.value) {
+    stopAudio()
+    return
+  }
+
+  await playPoemAudio({
+    restart: false,
+    silent: false
+  })
+}
+
+const replayStudy = () => {
+  showGuide.value = false
+  studyStartTime = Date.now()
+  studyRecorded = false
+  playbackCompleted.value = false
+  startFramePlayback({
+    autoRead: true
+  })
+}
+
+const cleanupStudyPlayback = () => {
+  pageAlive = false
   stopAudio()
   clearFrameTimers()
+  clearLoadingTimer()
+}
+
+onHide(() => {
+  cleanupStudyPlayback()
+})
+
+onUnload(() => {
+  cleanupStudyPlayback()
 })
 
 const goBack = () => {
+  cleanupStudyPlayback()
+
   uni.navigateBack({
     fail: () => {
       if (typeof window !== 'undefined') {
@@ -360,6 +736,8 @@ const goBack = () => {
 }
 
 const goChat = () => {
+  cleanupStudyPlayback()
+
   uni.navigateTo({
     url: `/pages/chat/chat?poem_id=${poemData.value.id}`,
     fail: () => {
@@ -460,6 +838,14 @@ button::after {
   box-shadow: 0 7px 16px rgba(102, 205, 170, 0.28);
 }
 
+.done-btn.disabled,
+.done-btn[disabled] {
+  opacity: 0.55;
+  background: #c8c0dc;
+  color: #ffffff;
+  box-shadow: none;
+}
+
 .video-stage {
   position: absolute;
   inset: 0;
@@ -468,9 +854,19 @@ button::after {
 }
 
 .ai-frame-image {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
   display: block;
+  opacity: 0;
+  transition: opacity 0.28s ease;
+  pointer-events: none;
+}
+
+.ai-frame-image.active {
+  opacity: 1;
+  z-index: 2;
 }
 
 .sun {
@@ -670,6 +1066,187 @@ button::after {
   transition: width 0.12s linear;
 }
 
+
+.loading-screen {
+  position: absolute;
+  inset: 0;
+  z-index: 200;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 16% 20%, rgba(255, 224, 87, 0.4), transparent 24%),
+    radial-gradient(circle at 85% 18%, rgba(102, 205, 170, 0.24), transparent 25%),
+    linear-gradient(180deg, #fffaf0 0%, #fff2db 45%, #e8f8ee 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.loading-cloud {
+  position: absolute;
+  font-size: 46px;
+  opacity: 0.72;
+  animation: loadingCloudFloat 7s ease-in-out infinite;
+}
+
+.loading-cloud-one {
+  left: 92px;
+  top: 70px;
+}
+
+.loading-cloud-two {
+  right: 94px;
+  top: 105px;
+  animation-delay: 1.1s;
+}
+
+@keyframes loadingCloudFloat {
+  50% {
+    transform: translateX(28px) translateY(-4px);
+  }
+}
+
+.loading-moon {
+  position: absolute;
+  right: 168px;
+  top: 40px;
+  width: 62px;
+  height: 62px;
+  border-radius: 50%;
+  background: #fff7bf;
+  box-shadow: 0 0 32px rgba(255, 214, 86, 0.42);
+  display: grid;
+  place-items: center;
+  color: #c89a34;
+  font-size: 20px;
+  font-weight: 950;
+}
+
+.loading-bamboo {
+  position: absolute;
+  bottom: 18px;
+  font-size: 64px;
+  opacity: 0.72;
+  animation: loadingSway 4s ease-in-out infinite;
+}
+
+.loading-bamboo-left {
+  left: 70px;
+}
+
+.loading-bamboo-right {
+  right: 70px;
+  animation-delay: 0.9s;
+}
+
+@keyframes loadingSway {
+  50% {
+    transform: rotate(4deg) translateY(-3px);
+  }
+}
+
+.loading-card {
+  position: relative;
+  z-index: 3;
+  width: 468px;
+  min-height: 230px;
+  border-radius: 34px;
+  padding: 24px 34px 22px;
+  background: rgba(255, 255, 255, 0.9);
+  border: 4px solid rgba(255, 224, 87, 0.78);
+  box-shadow: 0 24px 48px rgba(109, 82, 46, 0.16);
+  text-align: center;
+}
+
+.loading-icon-wrap {
+  position: relative;
+  width: 88px;
+  height: 60px;
+  margin: 0 auto 8px;
+}
+
+.loading-scroll {
+  position: absolute;
+  left: 9px;
+  top: 8px;
+  font-size: 42px;
+}
+
+.loading-brush {
+  position: absolute;
+  right: 6px;
+  top: 0;
+  font-size: 40px;
+  transform-origin: 30% 80%;
+  animation: brushPaint 1.35s ease-in-out infinite;
+}
+
+@keyframes brushPaint {
+  0%, 100% {
+    transform: rotate(-12deg) translateY(0);
+  }
+
+  50% {
+    transform: rotate(18deg) translateY(6px);
+  }
+}
+
+.loading-title {
+  color: #5d4e8c;
+  font-size: 24px;
+  font-weight: 950;
+  letter-spacing: 1px;
+}
+
+.loading-desc {
+  margin-top: 8px;
+  color: #7a719c;
+  font-size: 14px;
+  font-weight: 850;
+}
+
+.loading-line {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 34px;
+  margin-top: 12px;
+  padding: 6px 18px;
+  border-radius: 999px;
+  background: #fff7df;
+  color: #ff8e53;
+  font-size: 17px;
+  font-weight: 950;
+  letter-spacing: 3px;
+}
+
+.loading-progress-track {
+  width: 100%;
+  height: 12px;
+  margin-top: 18px;
+  border-radius: 999px;
+  background: #efeaf8;
+  overflow: hidden;
+  box-shadow: inset 0 2px 5px rgba(104, 85, 135, 0.1);
+}
+
+.loading-progress-bar {
+  height: 100%;
+  width: 0;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #66cdaa, #ffd93d, #ff8e53);
+  transition: width 0.5s ease;
+}
+
+.loading-foot {
+  margin-top: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: #8a80aa;
+  font-size: 13px;
+  font-weight: 900;
+}
+
 .guide-mask {
   position: absolute;
   inset: 0;
@@ -705,6 +1282,8 @@ button::after {
 .guide-avatar {
   width: 100%;
   height: 100%;
+  object-fit: cover;
+  object-position: center center;
 }
 
 .guide-content {

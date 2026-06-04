@@ -124,5 +124,103 @@
     "poem_id": "poem_001",
     "duration_seconds": 30,
     "created_at": "2026-06-01 14:07:32"
+  },
+  {
+    "id": 19,
+    "user_id": "test_user",
+    "poem_id": "poem_001",
+    "duration_seconds": 30,
+    "created_at": "2026-06-04 21:08:48"
+  },
+  {
+    "id": 20,
+    "user_id": "test_user",
+    "poem_id": "poem_001",
+    "duration_seconds": 30,
+    "created_at": "2026-06-04 21:17:08"
+  },
+  {
+    "id": 21,
+    "user_id": "test_user",
+    "poem_id": "poem_001",
+    "duration_seconds": 30,
+    "created_at": "2026-06-04 21:21:02"
+  },
+  {
+    "id": 22,
+    "user_id": "test_user",
+    "poem_id": "poem_005",
+    "duration_seconds": 30,
+    "created_at": "2026-06-04 21:21:39"
+  },
+  {
+    "id": 23,
+    "user_id": "test_user",
+    "poem_id": "poem_006",
+    "duration_seconds": 30,
+    "created_at": "2026-06-04 21:23:04"
+  },
+  {
+    "id": 24,
+    "user_id": "test_user",
+    "poem_id": "poem_004",
+    "duration_seconds": 30,
+    "created_at": "2026-06-04 21:25:45"
+  },
+  {
+    "id": 25,
+    "user_id": "test_user",
+    "poem_id": "poem_002",
+    "duration_seconds": 30,
+    "created_at": "2026-06-04 21:26:51"
+  },
+  {
+    "id": 26,
+    "user_id": "test_user",
+    "poem_id": "poem_001",
+    "duration_seconds": 17,
+    "created_at": "2026-06-04 21:36:24"
+  },
+  {
+    "id": 27,
+    "user_id": "test_user",
+    "poem_id": "poem_001",
+    "duration_seconds": 2,
+    "created_at": "2026-06-04 21:37:37"
+  },
+  {
+    "id": 28,
+    "user_id": "test_user",
+    "poem_id": "poem_002",
+    "duration_seconds": 9,
+    "created_at": "2026-06-04 21:38:05"
+  },
+  {
+    "id": 29,
+    "user_id": "test_user",
+    "poem_id": "poem_002",
+    "duration_seconds": 1,
+    "created_at": "2026-06-04 21:38:07"
+  },
+  {
+    "id": 30,
+    "user_id": "test_user",
+    "poem_id": "poem_001",
+    "duration_seconds": 17,
+    "created_at": "2026-06-04 21:40:34"
+  },
+  {
+    "id": 31,
+    "user_id": "test_user",
+    "poem_id": "poem_001",
+    "duration_seconds": 11,
+    "created_at": "2026-06-04 21:46:07"
+  },
+  {
+    "id": 32,
+    "user_id": "test_user",
+    "poem_id": "poem_002",
+    "duration_seconds": 11,
+    "created_at": "2026-06-04 21:46:28"
   }
 ]

@@ -222,6 +222,18 @@ const goStudy = (poemId) => {
   })
 }
 
+const preloadPoemImage = async (poemId) => {
+  try {
+    const detailRes = await API.getPoemDetail(poemId)
+
+    if (detailRes?.success && detailRes.data) {
+      API.preloadGenerateImage(detailRes.data)
+    }
+  } catch (err) {
+    console.log('预热配图失败，播放页会继续生成', err)
+  }
+}
+
 const selectPoem = (poem) => {
   if (!poem.id) {
     uni.showToast({
@@ -231,6 +243,7 @@ const selectPoem = (poem) => {
     return
   }
 
+  preloadPoemImage(poem.id)
   goStudy(poem.id)
 }
 </script>

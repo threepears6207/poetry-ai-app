@@ -146,16 +146,90 @@ const getPoemIcon = (poem) => {
   return '📖'
 }
 
-const displayRecords = computed(() => {
-  return summary.value.learned_poems.map((poem) => {
-    return {
-      key: poem.poem_id || poem.id,
-      icon: getPoemIcon(poem),
-      title: poem.title || '未知古诗',
-      desc: `最新学习时长：${formatDuration(poem.latest_duration_seconds)}`,
-      time: `总计：${formatDuration(poem.total_duration_seconds)}`
+const hasDurationField = (item = {}) => {
+  return (
+    item.total_duration_seconds !== undefined ||
+    item.latest_duration_seconds !== undefined ||
+    item.duration_seconds !== undefined ||
+    item.total_duration !== undefined ||
+    item.duration !== undefined
+  )
+}
+
+const getLatestDurationSeconds = (item = {}) => {
+  return Number(
+    item.latest_duration_seconds ??
+    item.duration_seconds ??
+    item.duration ??
+    0
+  )
+}
+
+const getTotalDurationSeconds = (item = {}) => {
+  return Number(
+    item.total_duration_seconds ??
+    item.total_duration ??
+    item.duration_seconds ??
+    item.duration ??
+    item.latest_duration_seconds ??
+    0
+  )
+}
+
+const getRecordPoemId = (item = {}) => {
+  return item.poem_id || item.id || item.poem?.id || item.matched_poem?.id || ''
+}
+
+const getRecordTitle = (item = {}, poemMap = {}) => {
+  const poemId = getRecordPoemId(item)
+  const poem = poemMap[poemId] || item.poem || item.matched_poem || {}
+
+  return item.title || item.poem_title || poem.title || '未知古诗'
+}
+
+const buildPoemMap = (poems = []) => {
+  return poems.reduce((map, poem) => {
+    const key = poem.poem_id || poem.id
+
+    if (key) {
+      map[key] = poem
     }
-  })
+
+    return map
+  }, {})
+}
+
+const shouldDisplayRecord = (item = {}) => {
+  // 有时后端旧数据没有 duration 字段，这种情况下不误删；
+  // 明确带有 duration 且为 0 秒的记录才隐藏。
+  if (!hasDurationField(item)) return true
+
+  return getTotalDurationSeconds(item) > 0 || getLatestDurationSeconds(item) > 0
+}
+
+const getSummaryPayload = (res = {}) => {
+  if (res.data && typeof res.data === 'object' && !Array.isArray(res.data)) {
+    return res.data
+  }
+
+  return res
+}
+
+const displayRecords = computed(() => {
+  return summary.value.learned_poems
+    .filter(shouldDisplayRecord)
+    .map((poem, index) => {
+      const latestDuration = getLatestDurationSeconds(poem)
+      const totalDuration = getTotalDurationSeconds(poem)
+
+      return {
+        key: poem.poem_id || poem.id || poem.title || index,
+        icon: getPoemIcon(poem),
+        title: poem.title || poem.poem_title || '未知古诗',
+        desc: `最新学习时长：${formatDuration(latestDuration || totalDuration)}`,
+        time: `总计：${formatDuration(totalDuration || latestDuration)}`
+      }
+    })
 })
 
 const loadRecordSummary = async () => {
@@ -165,12 +239,37 @@ const loadRecordSummary = async () => {
     const res = await API.getRecordSummary()
 
     if (res && res.success) {
+      const payload = getSummaryPayload(res)
+      const rawLearnedPoems = Array.isArray(payload.learned_poems)
+        ? payload.learned_poems
+        : Array.isArray(payload.poems)
+          ? payload.poems
+          : []
+
+      const rawRecentRecords = Array.isArray(payload.recent_records)
+        ? payload.recent_records
+        : []
+
+      const hasLearnedDurationInfo = rawLearnedPoems.some(hasDurationField)
+      const hasRecentDurationInfo = rawRecentRecords.some(hasDurationField)
+      const learnedPoems = rawLearnedPoems.filter(shouldDisplayRecord)
+      const recentRecords = rawRecentRecords.filter(shouldDisplayRecord)
+      const totalDurationSeconds = hasLearnedDurationInfo
+        ? learnedPoems.reduce((sum, poem) => sum + getTotalDurationSeconds(poem), 0)
+        : hasRecentDurationInfo
+          ? recentRecords.reduce((sum, record) => sum + getLatestDurationSeconds(record), 0)
+          : Number(payload.total_duration_seconds || payload.total_duration || 0)
+
       summary.value = {
-        learned_count: res.learned_count || 0,
-        record_count: res.record_count || 0,
-        total_duration_seconds: res.total_duration_seconds || 0,
-        learned_poems: res.learned_poems || [],
-        recent_records: res.recent_records || []
+        learned_count: hasLearnedDurationInfo
+          ? learnedPoems.length
+          : Number(payload.learned_count || payload.poem_count || learnedPoems.length || 0),
+        record_count: hasRecentDurationInfo
+          ? recentRecords.length
+          : Number(payload.record_count || recentRecords.length || learnedPoems.length || 0),
+        total_duration_seconds: Math.max(0, totalDurationSeconds),
+        learned_poems: learnedPoems,
+        recent_records: recentRecords
       }
     } else {
       uni.showToast({

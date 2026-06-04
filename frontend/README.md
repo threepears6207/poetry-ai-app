@@ -96,12 +96,13 @@ uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 | 搜索古诗 | GET /poems/search | 已接入 | 支持诗名、作者、内容、标签搜索 |
 | 古诗详情 | GET /poems/{poem_id} | 已接入 | 根据诗词 ID 获取详情 |
 | 添加学习记录 | POST /record | 已接入 | 学完后记录学习时长 |
-| 家长端学习统计 | GET /record/summary | 已接入 | 前端会过滤 0 秒记录，并合并同一首诗的多次学习记录 |
+| 家长端学习统计 | GET /record/summary | 已接入 | 前端会过滤 0 秒记录，展示每首诗最新学习时长和累计学习时长 |
 | 推荐古诗 | GET /recommend | 已接入 | 根据学习记录推荐 |
 | AI 诗人对话 | POST /chat | 已接入，依赖后端配置 | 需要后端配置 vivo API，否则会提示接口不可用 |
 | 拍照识诗 | POST /ocr | 已接入 | 手机端通过系统相机或相册上传图片，前端传 base64 给后端识别 |
-| AI 配图生成 | POST /generate/image | 已接入 | 学习页根据后端返回的 frames 自动播放分镜图片 |
-| 语音朗读 | POST /tts | 已接入 |  |
+| AI 配图生成 | POST /generate/image | 已接入 | 进入学习页前会预热生成；播放页显示 loading，生成完成后自动播放分镜图片 |
+| 语音朗读 | POST /tts | 已接入 | 学习页图片开始播放后自动朗读诗词，中途退出会停止语音 |
+| 诗人形象生成 | POST /generate/peot_avatar | 已接入 | 对话页、学习完成页优先使用后端诗人头像，失败时用本地默认头像 |
 
 ---
 
@@ -109,13 +110,15 @@ uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 1. 首页进入项目
 2. 古诗搜索
 3. 查看古诗详情
-4. 学习页播放 AI 分镜图片
+4. 学习页 loading 后自动播放 AI 分镜图片，并同步播放语音朗读
 5. 学完后记录学习时长
 6. 推荐页展示推荐古诗
 7. 家长端查看学习统计
 8. 拍照识诗：手机端调用系统相机
 9. 相册识诗：从相册选择图片上传识别
-10. AI 诗人对话：后端 vivo API 配置正确时可用
+10. AI 诗人对话：支持诗人头像展示，后端 vivo API 配置正确时可用
+11. 学习完成页：必须完整播放一遍后才能点击“看完了”
+
 
 
 
@@ -127,3 +130,5 @@ uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 5. 本地调试地址：`http://127.0.0.1:8000`。
 6. 打包安卓 APK 时，需要改成电脑局域网 IP。
 7. 页面样式异常请在 HBuilderX 重新运行，不要直接打开 index.html。
+8.  `/generate/image` 首次生成较慢，前端请求超时时间必须设置为 120 秒以上。
+9. 诗人头像静态资源路径为 `/static/images/poets/诗人名.jpg`，例如 `/static/images/poets/李白.jpg`。

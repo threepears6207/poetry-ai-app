@@ -255,8 +255,25 @@ const doSearch = async () => {
   searchResults.value = searchLocalPoems(kw)
 }
 
+const preloadPoemImage = async (poemId) => {
+  try {
+    const detailRes = await API.getPoemDetail(poemId)
+
+    if (detailRes?.success && detailRes.data) {
+      API.preloadGenerateImage(detailRes.data)
+    }
+  } catch (err) {
+    console.log('预热配图失败，播放页会继续生成', err)
+  }
+}
+
 const selectPoem = (poem) => {
   closeSearch()
+
+  if (poem?.id) {
+    preloadPoemImage(poem.id)
+  }
+
   goStudy(poem.id)
 }
 </script>

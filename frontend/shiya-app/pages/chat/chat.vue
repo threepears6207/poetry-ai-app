@@ -28,7 +28,7 @@
               <view class="left-poem-author">{{ poemData.dynasty }} · {{ poemData.author }}</view>
             </view>
 
-            <image class="poet-img-large" src="/static/孟浩然.png" mode="aspectFill"></image>
+            <image class="poet-img-large" :src="poetAvatarImage" mode="aspectFit" @error="handlePoetAvatarError"></image>
           </view>
 
           <view class="dialog-panel">
@@ -40,7 +40,7 @@
                 :class="msg.role"
               >
                 <view v-if="msg.role === 'poet'" class="mini-avatar">
-                  <image src="/static/孟浩然.png" mode="aspectFill"></image>
+                  <image :src="poetAvatarImage" mode="aspectFill" @error="handlePoetAvatarError"></image>
                 </view>
 
                 <view class="bubble">{{ msg.text }}</view>
@@ -48,7 +48,7 @@
 
               <view v-if="isReplying" class="bubble-row poet">
                 <view class="mini-avatar">
-                  <image src="/static/孟浩然.png" mode="aspectFill"></image>
+                  <image :src="poetAvatarImage" mode="aspectFill" @error="handlePoetAvatarError"></image>
                 </view>
 
                 <view class="bubble">正在想一想怎么回答你……</view>
@@ -91,9 +91,9 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
-import { API, getLocalPoemById } from '@/utils/api.js'
+import { API, getLocalPoemById, normalizeAssetUrl, getPoetAvatarStaticUrl } from '@/utils/api.js'
 
 const poemId = ref('poem_001')
 const poemData = ref(getLocalPoemById('poem_001'))
@@ -102,6 +102,11 @@ const userInput = ref('')
 const chatScrollTop = ref(0)
 const canNext = ref(false)
 const isReplying = ref(false)
+const poetAvatarUrl = ref('')
+
+const poetAvatarImage = computed(() => {
+  return poetAvatarUrl.value || getPoetAvatarStaticUrl(getPoetName()) || '/static/孟浩然.png'
+})
 
 const messages = ref([])
 
@@ -136,6 +141,7 @@ onLoad(async (options) => {
     console.log('古诗详情接口暂不可用，使用本地数据', err)
   }
 
+  loadPoetAvatar()
   await initPoetChat()
 })
 
@@ -149,6 +155,47 @@ const getPoemContentText = () => {
   return String(poemData.value.content || '')
 }
 
+const getPoetName = () => {
+  return poemData.value.author || poemData.value.poet_name || '古代诗人'
+}
+
+const getPoetDynasty = () => {
+  return poemData.value.dynasty || '唐'
+}
+
+const handlePoetAvatarError = () => {
+  if (poetAvatarUrl.value) {
+    poetAvatarUrl.value = ''
+    return
+  }
+
+  console.log('诗人头像加载失败，使用本地默认头像')
+}
+
+const loadPoetAvatar = async () => {
+  const poetName = getPoetName()
+  const dynasty = getPoetDynasty()
+
+  // 先尝试已有静态头像，比如 /static/images/poets/李白.jpg；
+  // 然后继续调用 /generate/peot_avatar，接口返回后再覆盖。
+  poetAvatarUrl.value = getPoetAvatarStaticUrl(poetName)
+
+  try {
+    const res = await API.generatePoetAvatar({
+      poet_name: poetName,
+      dynasty
+    })
+
+    const avatarUrl = res?.avatar_url || res?.data?.avatar_url || ''
+
+    if (res?.success && avatarUrl) {
+      poetAvatarUrl.value = normalizeAssetUrl(avatarUrl)
+    }
+  } catch (err) {
+    console.log('诗人形象接口暂不可用，继续使用静态头像', err)
+  }
+}
+
 const initPoetChat = async () => {
   isReplying.value = true
   messages.value = []
@@ -157,8 +204,8 @@ const initPoetChat = async () => {
   try {
     const res = await API.chatWithPoet({
       message: '__init__',
-      poet_name: poemData.value.author || '古代诗人',
-      dynasty: poemData.value.dynasty || '唐',
+      poet_name: getPoetName(),
+      dynasty: getPoetDynasty(),
       poem_title: poemData.value.title || '',
       poem_content: getPoemContentText(),
       history: []
@@ -281,8 +328,8 @@ const sendMessage = async () => {
   try {
     const res = await API.chatWithPoet({
       message: text,
-      poet_name: poemData.value.author || '古代诗人',
-      dynasty: poemData.value.dynasty || '唐',
+      poet_name: getPoetName(),
+      dynasty: getPoetDynasty(),
       poem_title: poemData.value.title || '',
       poem_content: getPoemContentText(),
       history: history.value
@@ -567,22 +614,23 @@ button::after {
 .poet-img-large {
   width: 225px;
   height: 270px;
-  object-fit: cover;
-  object-position: center top;
+  object-fit: contain;
+  object-position: center center;
   border-radius: 32px 32px 0 0;
   background: #fff8ea;
-  transform: translateX(24px);
+  transform: translateX(0);
   animation: poetFloat 2.8s ease-in-out infinite;
   transform-origin: center bottom;
+  padding: 4px 8px 0;
 }
 
 @keyframes poetFloat {
   0%, 100% {
-    transform: translateX(24px) translateY(0) scale(1);
+    transform: translateX(0) translateY(0) scale(1);
   }
 
   50% {
-    transform: translateX(24px) translateY(-4px) scale(1.015);
+    transform: translateX(0) translateY(-4px) scale(1.015);
   }
 }
 
@@ -628,6 +676,8 @@ button::after {
 .mini-avatar image {
   width: 100%;
   height: 100%;
+  object-fit: cover;
+  object-position: center center;
 }
 
 .bubble {

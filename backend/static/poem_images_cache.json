@@ -257,5 +257,41 @@
     ],
     "errors": [],
     "from_cache": false
+  },
+  "poem_007": {
+    "success": true,
+    "poem_title": "赠汪伦",
+    "has_character": true,
+    "character_desc": "约35岁；男性；身着白色宽袖交领长衫，系浅青色腰带；黑色长发以玉簪束于头顶；身材修长，气质潇洒",
+    "recurring_elements": "",
+    "total_lines": 4,
+    "frames": [
+      {
+        "index": 0,
+        "line": "李白乘舟将欲行",
+        "scene": "中景。李白站在一艘小木船的船头，双手自然垂于身侧，船身微微离岸。晨光洒在碧绿的潭水上泛起金色波纹，远处青山朦胧。",
+        "shot_type": "中景",
+        "image_url": "/static/images/poems/poem_007/frame_0.jpg",
+        "duration_ms": 3000
+      }
+    ],
+    "errors": [
+      {
+        "index": 1,
+        "line": "忽闻岸上踏歌声",
+        "error": "Rate limit exceeded for model Doubao-Seedream-4.5"
+      },
+      {
+        "index": 2,
+        "line": "桃花潭水深千尺",
+        "error": "Rate limit exceeded for model Doubao-Seedream-4.5"
+      },
+      {
+        "index": 3,
+        "line": "不及汪伦送我情",
+        "error": "Rate limit exceeded for model Doubao-Seedream-4.5"
+      }
+    ],
+    "from_cache": false
   }
 }

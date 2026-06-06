@@ -1,5 +1,6 @@
 import asyncio
-import time
+import hashlib
+import re
 from pathlib import Path
 from typing import Optional
 
@@ -24,6 +25,15 @@ class TTSRequest(BaseModel):
     voice: Optional[str] = "child"
 
 
+def normalize_text(text: str) -> str:
+    """
+    规范化文本，避免同一首诗因为空格、换行不同而重复生成多个音频。
+    """
+    value = str(text or "").strip()
+    value = re.sub(r"\s+", "", value)
+    return value
+
+
 def map_voice_to_edge_voice(voice: str) -> str:
     """
     将前端传入的 voice 映射为 edge-tts 支持的中文音色。
@@ -36,22 +46,38 @@ def map_voice_to_edge_voice(voice: str) -> str:
         "xiaoxiao": "zh-CN-XiaoxiaoNeural",
         "yunxi": "zh-CN-YunxiNeural",
         "xiaoyi": "zh-CN-XiaoyiNeural",
-        "yunjian": "zh-CN-YunjianNeural"
+        "yunjian": "zh-CN-YunjianNeural",
+
+        # 兼容前端直接传 edge-tts 音色名的情况
+        "zh-CN-XiaoxiaoNeural": "zh-CN-XiaoxiaoNeural",
+        "zh-CN-YunxiNeural": "zh-CN-YunxiNeural",
+        "zh-CN-XiaoyiNeural": "zh-CN-XiaoyiNeural",
+        "zh-CN-YunjianNeural": "zh-CN-YunjianNeural"
     }
 
     return voice_map.get(voice or "default", "zh-CN-XiaoxiaoNeural")
 
 
-def save_audio_file(audio_bytes: bytes) -> str:
+def build_audio_filename(text: str, voice: str) -> str:
     """
-    保存 mp3 音频文件，并返回前端可访问的相对路径。
+    根据朗读文本和音色生成固定文件名。
+
+    同样的 text + voice 会得到同一个文件名，
+    这样就可以判断是否已经生成过。
     """
-    filename = f"tts_{int(time.time() * 1000)}.mp3"
-    file_path = AUDIO_DIR / filename
+    normalized_text = normalize_text(text)
+    edge_voice = map_voice_to_edge_voice(voice)
 
-    with open(file_path, "wb") as f:
-        f.write(audio_bytes)
+    raw = f"{edge_voice}:{normalized_text}"
+    file_hash = hashlib.md5(raw.encode("utf-8")).hexdigest()
 
+    return f"tts_{file_hash}.mp3"
+
+
+def get_audio_url(filename: str) -> str:
+    """
+    返回前端可访问的音频相对路径。
+    """
     return f"/static/audio/{filename}"
 
 
@@ -85,6 +111,18 @@ def call_edge_tts(text: str, voice: str = "child") -> bytes:
     return asyncio.run(call_edge_tts_async(text, voice))
 
 
+def save_audio_file(audio_bytes: bytes, filename: str) -> str:
+    """
+    保存 mp3 音频文件，并返回前端可访问的相对路径。
+    """
+    file_path = AUDIO_DIR / filename
+
+    with open(file_path, "wb") as f:
+        f.write(audio_bytes)
+
+    return get_audio_url(filename)
+
+
 @router.post("/tts")
 def generate_tts(request: TTSRequest):
     """
@@ -95,23 +133,50 @@ def generate_tts(request: TTSRequest):
       "text": "床前明月光，疑是地上霜。",
       "voice": "child"
     }
+
+    缓存逻辑：
+    1. 同样的 text + voice 会生成同一个 mp3 文件名；
+    2. 如果文件已经存在，直接返回已有 audio_url；
+    3. 如果文件不存在，才调用 edge-tts 生成新音频。
     """
-    text = request.text.strip()
+    text = normalize_text(request.text)
+    voice = request.voice or "child"
 
     if not text:
         return {
             "success": False,
-            "message": "text 不能为空"
+            "message": "text 不能为空",
+            "provider": "edge-tts",
+            "cache_hit": False,
+            "audio_url": ""
+        }
+
+    filename = build_audio_filename(text, voice)
+    file_path = AUDIO_DIR / filename
+    audio_url = get_audio_url(filename)
+    edge_voice = map_voice_to_edge_voice(voice)
+
+    # 如果同样文本和同样音色已经生成过，直接复用
+    if file_path.exists() and file_path.stat().st_size > 0:
+        return {
+            "success": True,
+            "message": "语音已存在，直接复用",
+            "provider": "edge-tts",
+            "cache_hit": True,
+            "voice": edge_voice,
+            "audio_url": audio_url
         }
 
     try:
-        audio_bytes = call_edge_tts(text, request.voice)
-        audio_url = save_audio_file(audio_bytes)
+        audio_bytes = call_edge_tts(text, voice)
+        audio_url = save_audio_file(audio_bytes, filename)
 
         return {
             "success": True,
             "message": "语音生成成功",
             "provider": "edge-tts",
+            "cache_hit": False,
+            "voice": edge_voice,
             "audio_url": audio_url
         }
 
@@ -120,5 +185,8 @@ def generate_tts(request: TTSRequest):
             "success": False,
             "message": "TTS 语音生成失败",
             "provider": "edge-tts",
-            "error": str(e)
+            "cache_hit": False,
+            "voice": edge_voice,
+            "error": str(e),
+            "audio_url": ""
         }

@@ -1,0 +1,23 @@
+{
+  "李白": {
+    "success": true,
+    "from_cache": false,
+    "poet_name": "李白",
+    "dynasty": "唐",
+    "avatar_url": "/static/images/poets/李白.jpg"
+  },
+  "杜甫": {
+    "success": true,
+    "from_cache": false,
+    "poet_name": "杜甫",
+    "dynasty": "唐",
+    "avatar_url": "/static/images/poets/杜甫.jpg"
+  },
+  "孟浩然": {
+    "success": true,
+    "from_cache": false,
+    "poet_name": "孟浩然",
+    "dynasty": "唐",
+    "avatar_url": "/static/images/poets/孟浩然.jpg"
+  }
+}

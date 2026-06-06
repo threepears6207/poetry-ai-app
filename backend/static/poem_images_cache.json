@@ -263,50 +263,6 @@
     "errors": [],
     "from_cache": false
   },
-  "poem_007": {
-    "success": true,
-    "poem_title": "赠汪伦",
-    "has_character": true,
-    "character_desc": "①李白：40岁，男性，身穿白色宽袖圆领袍，腰系黑色腰带，头戴黑色幞头，身形挺拔；②汪伦：35岁，男性，身穿青色窄袖长衫，头戴方巾，身形中等，面容友善。",
-    "recurring_elements": "",
-    "total_lines": 4,
-    "frames": [
-      {
-        "index": 0,
-        "line": "李白乘舟将欲行",
-        "scene": "中景。李白站在小船上，船停靠在桃花潭边码头。他双手扶着船舷，身体微微前倾，准备解缆启航。表情平静。",
-        "shot_type": "中景",
-        "image_url": "/static/images/poems/poem_007/frame_0.jpg",
-        "duration_ms": 3000
-      },
-      {
-        "index": 1,
-        "line": "忽闻岸上踏歌声",
-        "scene": "中景。李白在船上，身体转向岸边，双手扶船舷，侧耳倾听，表情转为惊讶。岸边，汪伦正边踏着步子边挥手，张嘴歌唱。",
-        "shot_type": "中景",
-        "image_url": "/static/images/poems/poem_007/frame_1.jpg",
-        "duration_ms": 3000
-      },
-      {
-        "index": 2,
-        "line": "桃花潭水深千尺",
-        "scene": "主观视角（李白视角）。画面中不出现李白。视线从船上望向桃花潭水，潭水青绿深邃，水面倒映着岸边的桃花和远山，波纹微动。",
-        "shot_type": "主观视角",
-        "image_url": "/static/images/poems/poem_007/frame_2.jpg",
-        "duration_ms": 3000
-      },
-      {
-        "index": 3,
-        "line": "不及汪伦送我情",
-        "scene": "近景。李白在船上，双手交叠于胸前，眼神感动地望向岸边的汪伦。眼角有细小泪珠，嘴角微微上扬。汪伦在岸边背景中挥手。",
-        "shot_type": "近景",
-        "image_url": "/static/images/poems/poem_007/frame_3.jpg",
-        "duration_ms": 3000
-      }
-    ],
-    "errors": [],
-    "from_cache": false
-  },
   "poem_008": {
     "success": true,
     "poem_title": "早发白帝城",
@@ -344,6 +300,94 @@
         "error": "Rate limit exceeded for model Doubao-Seedream-4.5"
       }
     ],
+    "from_cache": false
+  },
+  "poem_007": {
+    "success": true,
+    "poem_title": "赠汪伦",
+    "has_character": true,
+    "character_desc": "① 年龄：约40岁（李白此时约中年）② 性别：男 ③ 服装：白色交领宽袖长袍，外罩淡青色半臂，腰系深色布带 ④ 发型：头戴黑色幞头，蓄有胡须 ⑤ 体型：中等身材，文人气质，略显清瘦。",
+    "recurring_elements": "",
+    "total_lines": 4,
+    "frames": [
+      {
+        "index": 0,
+        "line": "李白乘舟将欲行",
+        "scene": "中景。李白站在小船的船头，双手自然垂在身侧，船夫在船尾撑篙。小船微微晃动，准备离岸。岸边有几株桃树，远处是青山。色调明快。",
+        "shot_type": "中景",
+        "image_url": "/static/images/poems/poem_007/frame_0.jpg",
+        "duration_ms": 3000
+      },
+      {
+        "index": 1,
+        "line": "忽闻岸上踏歌声",
+        "scene": "远景。李白在船上，身体转向岸边，右手抬起作倾听状。岸上，汪伦（身着褐色长袍）正一边用脚有节奏地踏地，一边挥手唱歌。人物（李白）高度小于画面10%。",
+        "shot_type": "远景",
+        "image_url": "/static/images/poems/poem_007/frame_1.jpg",
+        "duration_ms": 3000
+      },
+      {
+        "index": 2,
+        "line": "桃花潭水深千尺",
+        "scene": "主观视角（李白）。画面从船上望向水面，青绿色的潭水深邃平静，倒映着天空和岸边的桃树。水面上方飘着一个巨大的白色感叹号“！”，表示李白内心的惊叹。",
+        "shot_type": "主观视角",
+        "image_url": "/static/images/poems/poem_007/frame_2.jpg",
+        "duration_ms": 3000
+      },
+      {
+        "index": 3,
+        "line": "不及汪伦送我情",
+        "scene": "近景。李白站在船头，双手交叠置于胸前，嘴角上扬，眼神明亮而感动。他的视线望向岸边的汪伦。画面色调温暖，有几片桃花花瓣飘过。",
+        "shot_type": "近景",
+        "image_url": "/static/images/poems/poem_007/frame_3.jpg",
+        "duration_ms": 3000
+      }
+    ],
+    "errors": [],
+    "from_cache": false
+  },
+  "poem_009": {
+    "success": true,
+    "poem_title": "古朗月行",
+    "has_character": true,
+    "character_desc": "① 年龄：5岁 ② 性别：男 ③ 服装：身穿唐代孩童常见的米白色交领窄袖短衫，下着深蓝色长裤 ④ 发型：头顶扎两个小总角 ⑤ 体型：身形娇小，圆脸，充满稚气",
+    "recurring_elements": "",
+    "total_lines": 4,
+    "frames": [
+      {
+        "index": 0,
+        "line": "小时不识月",
+        "scene": "夜晚庭院，5岁男童站在画面中央偏下，仰着小脸望向天空，双手自然垂在身体两侧。他眼神好奇，微微歪着头，头顶飘出一个大问号“？”。深蓝色夜空中挂着一轮明亮的圆月。",
+        "shot_type": "中景",
+        "image_url": "/static/images/poems/poem_009/frame_0.jpg",
+        "duration_ms": 3000
+      },
+      {
+        "index": 1,
+        "line": "呼作白玉盘",
+        "scene": "男童仍站在庭院中央仰头望月，双手比划着，仿佛在向虚空中的月亮说话。他头顶的问号变成了一个思维气泡，气泡里画着一个精致的、边缘光滑的白色玉盘。夜空中的月亮与气泡里的玉盘在视觉上产生呼应。",
+        "shot_type": "近景",
+        "image_url": "/static/images/poems/poem_009/frame_1.jpg",
+        "duration_ms": 3000
+      },
+      {
+        "index": 2,
+        "line": "又疑瑶台镜",
+        "scene": "男童保持仰头姿势，双手微微张开，表情更加专注和惊奇。他头顶的思维气泡内容变化，里面画着一面镶嵌着云纹和宝石的、发着微光的古镜。气泡周围有星星点点的光晕，暗示仙境的联想。",
+        "shot_type": "近景",
+        "image_url": "/static/images/poems/poem_009/frame_2.jpg",
+        "duration_ms": 3000
+      },
+      {
+        "index": 3,
+        "line": "飞在青云端",
+        "scene": "镜头拉远成远景。男童在画面右下角，变成一个很小的身影，依然仰望着天空。他的视线引导观众看向画面主体：那轮明月高悬在深蓝夜空，周围有淡淡的青色云朵缭绕，仿佛真的飞升到了云端之上。",
+        "shot_type": "远景",
+        "image_url": "/static/images/poems/poem_009/frame_3.jpg",
+        "duration_ms": 3000
+      }
+    ],
+    "errors": [],
     "from_cache": false
   }
 }

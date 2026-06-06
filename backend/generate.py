@@ -234,7 +234,7 @@ character_desc必须同时包含五项：
     }
 
     try:
-        response = requests.post(url, json=data, headers=headers, timeout=30)
+        response = requests.post(url, json=data, headers=headers, timeout=90)
         result = response.json()
         content = result["choices"][0]["message"]["content"].strip()
         content = re.sub(r"```json|```", "", content).strip()
@@ -244,10 +244,26 @@ character_desc必须同时包含五项：
 
     except Exception as e:
         print(f"整体规划失败，使用降级方案：{e}")
+        # 降级时仍从 POET_PROFILES 取诗人外貌描述，避免每帧随机生成
+        profile = POET_PROFILES.get(poet_name, {})
+        char_desc = profile.get("desc", "")
+        # 通过关键词判断诗中是否有人物（比完全空白好）
+        human_keywords = [
+            "举头", "低头", "锄禾", "独坐", "遥望", "乘舟", "送",
+            "我", "君", "汝", "余", "吾", "望", "行", "来", "去", "登", "看"
+        ]
+        has_char = bool(
+            profile or
+            any(w in " ".join(poem_content) for w in human_keywords)
+        )
+        print(f"降级方案 — 诗人描述：{'已从 POET_PROFILES 获取' if char_desc else '未找到，使用空描述'}")
         return {
-            "has_character": False,
-            "character_desc": "",
-            "scene_context": "",
+            "narrative_arc": "",
+            "line_analysis": [],
+            "has_character": has_char,
+            "character_desc": char_desc,
+            "secondary_characters": [],
+            "scene_context": "户外",
             "outdoor_elements": "",
             "recurring_elements": "",
             "frames": [

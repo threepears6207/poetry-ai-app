@@ -122,7 +122,9 @@
             </view>
 
             <view class="read-buttons">
-              <button class="read-btn play-btn" @tap="playReading">🔊 听范读</button>
+              <button class="read-btn play-btn" @tap="playReading">
+                {{ isReading ? '⏹ 停止范读' : '🔊 听范读' }}
+              </button>
 
               <button
                 class="read-btn record-btn"
@@ -205,7 +207,8 @@
 </template>
 
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, ref, onUnmounted } from 'vue'
+import { API, normalizeAssetUrl } from '@/utils/api.js'
 
 const reviewStep = ref('main')
 const currentReviewKey = ref('chunxiao')
@@ -218,7 +221,11 @@ const matchSuccess = ref(false)
 const activeReadLine = ref(0)
 const earnedStars = ref(0)
 const isRecording = ref(false)
+const isReading = ref(false)
 const readFeedback = ref('💡 先听范读，然后点击录音按钮开始跟读吧！')
+
+const audioContext = ref(null)
+const readLineTimer = ref(null)
 
 const reviewPoems = [
   {
@@ -281,7 +288,171 @@ const reviewTitle = computed(() => {
   return '古诗连连看'
 })
 
+const clearReadLineTimer = () => {
+  if (readLineTimer.value) {
+    clearInterval(readLineTimer.value)
+    readLineTimer.value = null
+  }
+}
+
+const stopReadingAudio = () => {
+  clearReadLineTimer()
+
+  if (audioContext.value) {
+    audioContext.value.stop()
+    audioContext.value.destroy()
+    audioContext.value = null
+  }
+
+  isReading.value = false
+  activeReadLine.value = -1
+}
+
+const buildReadingText = () => {
+  const poem = currentReviewPoem.value
+
+  const lineText = Array.isArray(poem.lines)
+    ? poem.lines.join('。')
+    : ''
+
+  return lineText
+}
+
+const startLineHighlight = () => {
+  clearReadLineTimer()
+
+  let index = 0
+  activeReadLine.value = index
+
+  readLineTimer.value = setInterval(() => {
+    index += 1
+
+    if (index >= currentReviewPoem.value.lines.length) {
+      clearReadLineTimer()
+      activeReadLine.value = -1
+      return
+    }
+
+    activeReadLine.value = index
+  }, 1600)
+}
+
+const playAudioByUrl = (url) => {
+  if (!url) {
+    uni.showToast({
+      title: '音频地址为空',
+      icon: 'none'
+    })
+    return
+  }
+
+  stopReadingAudio()
+
+  const innerAudio = uni.createInnerAudioContext()
+  audioContext.value = innerAudio
+
+  innerAudio.autoplay = false
+  innerAudio.src = normalizeAssetUrl(url)
+
+  innerAudio.onCanplay(() => {
+    setTimeout(() => {
+      innerAudio.play()
+    }, 500)
+  })
+
+  innerAudio.onPlay(() => {
+    isReading.value = true
+    readFeedback.value = '🔊 正在范读中，请认真听哦...'
+    startLineHighlight()
+  })
+
+  innerAudio.onEnded(() => {
+    clearReadLineTimer()
+    isReading.value = false
+    activeReadLine.value = -1
+    readFeedback.value = '✅ 范读结束，现在可以开始跟读啦！'
+  })
+
+  innerAudio.onStop(() => {
+    clearReadLineTimer()
+    isReading.value = false
+    activeReadLine.value = -1
+  })
+
+  innerAudio.onError((err) => {
+    console.log('范读播放失败：', err)
+
+    clearReadLineTimer()
+    isReading.value = false
+    activeReadLine.value = -1
+    readFeedback.value = '范读播放失败，请稍后再试'
+
+    uni.showToast({
+      title: '范读播放失败',
+      icon: 'none'
+    })
+  })
+}
+
+const playReading = async () => {
+  if (isReading.value) {
+    stopReadingAudio()
+    readFeedback.value = '已停止范读'
+    return
+  }
+
+  const text = buildReadingText()
+
+  if (!text.trim()) {
+    uni.showToast({
+      title: '暂无可朗读内容',
+      icon: 'none'
+    })
+    return
+  }
+
+  try {
+    readFeedback.value = '🔊 正在准备范读，请稍等...'
+
+    uni.showLoading({
+      title: '准备范读...'
+    })
+
+    const res = await API.textToSpeech(text, 'child')
+
+    uni.hideLoading()
+
+    console.log('巩固页范读 TTS 返回：', res)
+
+    if (!res || !res.success || !res.audio_url) {
+      readFeedback.value = '范读生成失败，请稍后再试'
+
+      uni.showToast({
+        title: '范读生成失败',
+        icon: 'none'
+      })
+
+      return
+    }
+
+    playAudioByUrl(res.audio_url)
+  } catch (err) {
+    uni.hideLoading()
+
+    console.log('调用范读 TTS 失败：', err)
+
+    readFeedback.value = '范读接口暂不可用，请稍后再试'
+
+    uni.showToast({
+      title: '范读接口不可用',
+      icon: 'none'
+    })
+  }
+}
+
 const backAction = () => {
+  stopReadingAudio()
+
   if (reviewStep.value === 'main') {
     uni.navigateBack({
       fail: () => {
@@ -296,6 +467,8 @@ const backAction = () => {
 }
 
 const startReview = (key) => {
+  stopReadingAudio()
+
   currentReviewKey.value = key
 
   activeReadLine.value = 0
@@ -311,28 +484,10 @@ const startReview = (key) => {
   reviewStep.value = 'read'
 }
 
-const playReading = () => {
-  readFeedback.value = '🔊 正在朗读中，请认真听哦...'
-
-  let index = 0
-  activeReadLine.value = index
-
-  const timer = setInterval(() => {
-    index += 1
-
-    if (index >= currentReviewPoem.value.lines.length) {
-      clearInterval(timer)
-      activeReadLine.value = -1
-      readFeedback.value = '✅ 范读结束，现在可以开始跟读啦！'
-      return
-    }
-
-    activeReadLine.value = index
-  }, 850)
-}
-
 const recordReading = () => {
   if (isRecording.value) return
+
+  stopReadingAudio()
 
   isRecording.value = true
   readFeedback.value = '🎙️ 正在聆听，请大声读出诗句！'
@@ -354,6 +509,8 @@ const toastNeedRecord = () => {
 }
 
 const goMatch = () => {
+  stopReadingAudio()
+
   selectedLeft.value = null
   matchedIds.value = []
   matchFeedback.value = '💡 请先完成第 1 句，再完成第 2、3、4 句'
@@ -415,6 +572,8 @@ const selectRight = (id) => {
 }
 
 const backToMain = () => {
+  stopReadingAudio()
+
   reviewStep.value = 'main'
 
   selectedLeft.value = null
@@ -427,6 +586,10 @@ const backToMain = () => {
   isRecording.value = false
   readFeedback.value = '💡 先听范读，然后点击录音按钮开始跟读吧！'
 }
+
+onUnmounted(() => {
+  stopReadingAudio()
+})
 </script>
 
 <style scoped>

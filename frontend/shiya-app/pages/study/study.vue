@@ -144,11 +144,15 @@ let studyRecorded = false
 let frameTimer = null
 let progressTimer = null
 let loadingTimer = null
+let framePlaybackToken = 0
 let audioRequestToken = 0
 let pageAlive = true
 
-// 分镜播放稍微加速一点：后端 3000ms 一张，前端按 75% 播放。
-const FRAME_PLAYBACK_SPEED = 0.75
+// 逐句 TTS 缓存：让画面、字幕跟着“正在朗读的句子”切换，而不是按固定秒数猜。
+const lineAudioUrlCache = new Map()
+
+// 语音不可用时才使用这个兜底速度播放分镜。
+const FRAME_PLAYBACK_SPEED = 1.15
 
 const sceneText = computed(() => {
   if (poemData.value.title === '春晓') return '春天的早晨，睡得香香的。'
@@ -339,6 +343,8 @@ const handleFrameImageError = (index, err) => {
 }
 
 const clearFrameTimers = () => {
+  framePlaybackToken += 1
+
   if (frameTimer) {
     clearTimeout(frameTimer)
     frameTimer = null
@@ -350,10 +356,120 @@ const clearFrameTimers = () => {
   }
 }
 
+const getNormalizedPoemLines = () => {
+  return poemLines.value
+    .map(line => String(line || '').trim())
+    .filter(Boolean)
+}
+
+const getLineAudioCacheKey = () => {
+  const poemKey = poemData.value.id || poemData.value.poem_id || poemId.value || poemData.value.title || 'poem'
+
+  return `${poemKey}:${getNormalizedPoemLines().join('|')}`
+}
+
+const getFrameArrayIndexByLine = (lineIndex) => {
+  if (!aiFrames.value.length) return 0
+
+  const lines = getNormalizedPoemLines()
+  const lineText = lines[lineIndex] || ''
+  const matchedIndex = aiFrames.value.findIndex((frame, frameArrayIndex) => {
+    return Number(frame.index) === lineIndex || frameArrayIndex === lineIndex || frame.line === lineText
+  })
+
+  if (matchedIndex >= 0) return matchedIndex
+
+  return Math.min(lineIndex, aiFrames.value.length - 1)
+}
+
+const setActiveLineFrame = (lineIndex) => {
+  if (!aiFrames.value.length) return
+
+  currentFrameIndex.value = getFrameArrayIndexByLine(lineIndex)
+}
+
+const loadLineAudioUrls = async () => {
+  const lines = getNormalizedPoemLines()
+  const cacheKey = getLineAudioCacheKey()
+
+  if (lineAudioUrlCache.has(cacheKey)) {
+    return lineAudioUrlCache.get(cacheKey)
+  }
+
+  const requestPromise = Promise.all(
+    lines.map(async (line) => {
+      const res = await API.textToSpeech(line, 'child')
+      const audioUrl = res?.audio_url || res?.url || res?.data?.audio_url || res?.data?.url || ''
+
+      if (!res || !res.success || !audioUrl) {
+        throw new Error(res?.message || res?.error || `语音生成失败：${line}`)
+      }
+
+      return normalizeAssetUrl(audioUrl)
+    })
+  ).catch((err) => {
+    lineAudioUrlCache.delete(cacheKey)
+    throw err
+  })
+
+  lineAudioUrlCache.set(cacheKey, requestPromise)
+
+  return requestPromise
+}
+
+const startTimedFramePlaybackFallback = (playbackToken) => {
+  if (playbackToken !== framePlaybackToken || !pageAlive) return
+
+  const durations = aiFrames.value.map((item) => {
+    const duration = Number(item.duration_ms || item.duration || 3000)
+    const safeDuration = Number.isFinite(duration) && duration > 0 ? duration : 3000
+
+    return Math.max(900, Math.round(safeDuration * FRAME_PLAYBACK_SPEED))
+  })
+
+  const totalDuration = durations.reduce((sum, item) => sum + item, 0)
+
+  if (!totalDuration) {
+    progressPercent.value = 0
+    return
+  }
+
+  const startTime = Date.now()
+
+  progressTimer = setInterval(() => {
+    if (playbackToken !== framePlaybackToken || !pageAlive) return
+
+    const used = Date.now() - startTime
+    progressPercent.value = Math.min(100, Math.round((used / totalDuration) * 100))
+  }, 120)
+
+  const playFrame = (index) => {
+    if (playbackToken !== framePlaybackToken || !pageAlive) return
+
+    currentFrameIndex.value = index
+
+    frameTimer = setTimeout(() => {
+      if (playbackToken !== framePlaybackToken || !pageAlive) return
+
+      if (index >= aiFrames.value.length - 1) {
+        progressPercent.value = 100
+        playbackCompleted.value = true
+        clearFrameTimers()
+        return
+      }
+
+      playFrame(index + 1)
+    }, durations[index])
+  }
+
+  playFrame(0)
+}
+
 const startFramePlayback = (options = {}) => {
   const { autoRead = true } = options
 
   clearFrameTimers()
+  const playbackToken = framePlaybackToken
   playbackCompleted.value = false
 
   if (!aiFrames.value.length) {
@@ -368,47 +484,21 @@ const startFramePlayback = (options = {}) => {
   if (autoRead) {
     playPoemAudio({
       restart: true,
-      silent: true
+      silent: true,
+      syncFrames: true
+    }).then((result) => {
+      if (playbackToken !== framePlaybackToken || !pageAlive) return
+
+      // 语音接口不可用时，才退回按图片 duration 播放，保证页面仍可演示。
+      if (result === 'failed') {
+        startTimedFramePlaybackFallback(playbackToken)
+      }
     })
-  }
 
-  const durations = aiFrames.value.map((item) => {
-    const duration = Number(item.duration_ms || item.duration || 3000)
-    const safeDuration = Number.isFinite(duration) && duration > 0 ? duration : 3000
-
-    return Math.max(650, Math.round(safeDuration * FRAME_PLAYBACK_SPEED))
-  })
-
-  const totalDuration = durations.reduce((sum, item) => sum + item, 0)
-
-  if (!totalDuration) {
-    progressPercent.value = 0
     return
   }
 
-  const startTime = Date.now()
-
-  progressTimer = setInterval(() => {
-    const used = Date.now() - startTime
-    progressPercent.value = Math.min(100, Math.round((used / totalDuration) * 100))
-  }, 120)
-
-  const playFrame = (index) => {
-    currentFrameIndex.value = index
-
-    frameTimer = setTimeout(() => {
-      if (index >= aiFrames.value.length - 1) {
-        progressPercent.value = 100
-        playbackCompleted.value = true
-        clearFrameTimers()
-        return
-      }
-
-      playFrame(index + 1)
-    }, durations[index])
-  }
-
-  playFrame(0)
+  startTimedFramePlaybackFallback(playbackToken)
 }
 
 const normalizeFrameList = (rawFrames = []) => {
@@ -564,8 +654,9 @@ onLoad(async (options) => {
     console.log('古诗详情接口暂不可用，使用本地数据', err)
   }
 
+  await loadAiFrames()
+  // 诗人形象在分镜图片生成完、即将进入图片播放时开始生成；聊天页可复用 api.js 里的 Promise 缓存。
   loadPoetAvatar()
-  loadAiFrames()
 })
 
 const toast = (title) => {
@@ -600,41 +691,217 @@ const finishStudy = async () => {
   showGuide.value = true
 }
 
+const destroyAudioContext = () => {
+  const currentAudio = audioContext
+  audioContext = null
+
+  if (!currentAudio) return
+
+  try {
+    currentAudio.stop()
+  } catch (err) {
+    console.log('停止朗读失败：', err)
+  }
+
+  try {
+    currentAudio.destroy()
+  } catch (err) {
+    console.log('销毁朗读失败：', err)
+  }
+}
+
 const stopAudio = (options = {}) => {
   const { cancelPending = true } = options
 
   if (cancelPending) {
     audioRequestToken += 1
   }
-  if (audioContext) {
-    try {
-      audioContext.stop()
-      audioContext.destroy()
-    } catch (err) {
-      console.log('停止朗读失败：', err)
-    }
 
-    audioContext = null
+  destroyAudioContext()
+
+  if (progressTimer) {
+    clearInterval(progressTimer)
+    progressTimer = null
   }
 
   isPlayingAudio.value = false
+  ttsLoading.value = false
+}
+
+const updateAudioProgress = (lineIndex, lineProgress = 0) => {
+  const totalLines = Math.max(getNormalizedPoemLines().length, 1)
+  const safeLineProgress = Math.min(1, Math.max(0, lineProgress))
+  const nextPercent = ((lineIndex + safeLineProgress) / totalLines) * 100
+
+  progressPercent.value = Math.min(99, Math.round(nextPercent))
+}
+
+const startLineAudioProgress = (lineIndex, innerAudio, token) => {
+  if (progressTimer) {
+    clearInterval(progressTimer)
+    progressTimer = null
+  }
+
+  const lines = getNormalizedPoemLines()
+  const lineText = lines[lineIndex] || ''
+  const fallbackDurationMs = Math.max(1100, lineText.length * 320)
+  const startTime = Date.now()
+
+  updateAudioProgress(lineIndex, 0)
+
+  progressTimer = setInterval(() => {
+    if (token !== audioRequestToken || !pageAlive) return
+
+    const durationMs = Number(innerAudio.duration || 0) > 0
+      ? Number(innerAudio.duration) * 1000
+      : fallbackDurationMs
+
+    const lineProgress = Math.min(1, (Date.now() - startTime) / durationMs)
+
+    updateAudioProgress(lineIndex, lineProgress)
+  }, 100)
+}
+
+const playSingleLineAudio = (url, lineIndex, token) => {
+  return new Promise((resolve, reject) => {
+    if (!url || token !== audioRequestToken || !pageAlive) {
+      resolve('cancelled')
+      return
+    }
+
+    destroyAudioContext()
+
+    const innerAudio = uni.createInnerAudioContext()
+    audioContext = innerAudio
+
+    let hasPlayCalled = false
+    let hasSettled = false
+
+    const settle = (result) => {
+      if (hasSettled) return
+      hasSettled = true
+
+      if (progressTimer) {
+        clearInterval(progressTimer)
+        progressTimer = null
+      }
+
+      if (audioContext === innerAudio) {
+        audioContext = null
+      }
+
+      try {
+        innerAudio.destroy()
+      } catch (err) {
+        console.log('销毁单句朗读失败：', err)
+      }
+
+      resolve(result)
+    }
+
+    const safePlay = () => {
+      if (hasPlayCalled || hasSettled) return
+      hasPlayCalled = true
+
+      if (token !== audioRequestToken || !pageAlive) {
+        settle('cancelled')
+        return
+      }
+
+      innerAudio.play()
+    }
+
+    innerAudio.autoplay = false
+    innerAudio.src = normalizeAssetUrl(url)
+
+    innerAudio.onCanplay(() => {
+      setTimeout(safePlay, 120)
+    })
+
+    // 有些端 onCanplay 偶发不触发，给一个兜底 play，避免一直卡住。
+    setTimeout(safePlay, 900)
+
+    innerAudio.onPlay(() => {
+      if (token !== audioRequestToken || !pageAlive) return
+
+      isPlayingAudio.value = true
+      setActiveLineFrame(lineIndex)
+      startLineAudioProgress(lineIndex, innerAudio, token)
+    })
+
+    innerAudio.onEnded(() => {
+      settle('ended')
+    })
+
+    innerAudio.onStop(() => {
+      if (token !== audioRequestToken || !pageAlive) {
+        settle('cancelled')
+        return
+      }
+
+      settle('stopped')
+    })
+
+    innerAudio.onError((err) => {
+      if (token !== audioRequestToken || !pageAlive) {
+        settle('cancelled')
+        return
+      }
+
+      reject(err)
+    })
+  })
+}
+
+const playLineAudioQueue = async (audioUrls, token) => {
+  const lines = getNormalizedPoemLines()
+
+  for (let index = 0; index < audioUrls.length; index += 1) {
+    if (token !== audioRequestToken || !pageAlive) {
+      return 'cancelled'
+    }
+
+    const result = await playSingleLineAudio(audioUrls[index], index, token)
+
+    if (token !== audioRequestToken || !pageAlive || result === 'cancelled') {
+      return 'cancelled'
+    }
+
+    if (result === 'stopped') {
+      return 'stopped'
+    }
+
+    // 当前句播完后，把进度推进到下一句起点；下一句真正开读时再切画面和字幕。
+    progressPercent.value = Math.min(99, Math.round(((index + 1) / Math.max(lines.length, 1)) * 100))
+  }
+
+  if (token !== audioRequestToken || !pageAlive) {
+    return 'cancelled'
+  }
+
+  destroyAudioContext()
+  isPlayingAudio.value = false
+  progressPercent.value = 100
+  playbackCompleted.value = true
+
+  return 'played'
 }
 
 const playPoemAudio = async (options = {}) => {
-  const { restart = false, silent = false } = options
+  const { restart = false, silent = false, syncFrames = true } = options
 
-  if (ttsLoading.value) return
+  if (ttsLoading.value && !restart) return 'loading'
 
-  if (isPlayingAudio.value) {
-    if (!restart) return
+  if (isPlayingAudio.value || ttsLoading.value) {
+    if (!restart) return 'playing'
     stopAudio()
   }
 
-  const text = poemText.value.trim()
+  const lines = getNormalizedPoemLines()
 
-  if (!text) {
+  if (!lines.length) {
     if (!silent) toast('暂无可朗读的诗句')
-    return
+    return 'failed'
   }
 
   const requestToken = audioRequestToken + 1
@@ -642,43 +909,32 @@ const playPoemAudio = async (options = {}) => {
   ttsLoading.value = true
 
   try {
-    const res = await API.textToSpeech(text, 'child')
+    const audioUrls = await loadLineAudioUrls()
 
     if (requestToken !== audioRequestToken || !pageAlive) {
-      return
+      return 'cancelled'
     }
 
-    const audioUrl = res?.audio_url || res?.url || res?.data?.audio_url || res?.data?.url || ''
+    ttsLoading.value = false
 
-    if (res && res.success && audioUrl) {
-      stopAudio({
-        cancelPending: false
-      })
-
-      audioContext = uni.createInnerAudioContext()
-      audioContext.src = normalizeAssetUrl(audioUrl)
-      audioContext.autoplay = true
-
-      audioContext.onEnded(() => {
-        stopAudio()
-      })
-
-      audioContext.onError((err) => {
-        console.log('朗读播放失败：', err)
-        stopAudio()
-        if (!silent) toast('朗读播放失败')
-      })
-
-      isPlayingAudio.value = true
-      audioContext.play()
-    } else if (!silent) {
-      toast(res?.message || res?.error || '语音生成失败')
+    if (syncFrames) {
+      setActiveLineFrame(0)
     }
+
+    return await playLineAudioQueue(audioUrls, requestToken)
   } catch (err) {
-    console.log('语音朗读接口失败：', err)
-    if (!silent && requestToken === audioRequestToken && pageAlive) {
-      toast('语音朗读暂不可用')
+    console.log('逐句语音朗读接口失败：', err)
+
+    if (requestToken === audioRequestToken && pageAlive) {
+      isPlayingAudio.value = false
+      ttsLoading.value = false
+
+      if (!silent) {
+        toast('语音朗读暂不可用')
+      }
     }
+
+    return 'failed'
   } finally {
     if (requestToken === audioRequestToken) {
       ttsLoading.value = false
@@ -687,14 +943,19 @@ const playPoemAudio = async (options = {}) => {
 }
 
 const toggleReadPoem = async () => {
-  if (isPlayingAudio.value) {
+  if (isPlayingAudio.value || ttsLoading.value) {
     stopAudio()
     return
   }
 
+  playbackCompleted.value = false
+  progressPercent.value = 0
+  currentFrameIndex.value = 0
+
   await playPoemAudio({
     restart: false,
-    silent: false
+    silent: false,
+    syncFrames: true
   })
 }
 
@@ -710,8 +971,8 @@ const replayStudy = () => {
 
 const cleanupStudyPlayback = () => {
   pageAlive = false
-  stopAudio()
   clearFrameTimers()
+  stopAudio()
   clearLoadingTimer()
 }
 

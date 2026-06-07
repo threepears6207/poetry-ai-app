@@ -226,6 +226,8 @@ const readFeedback = ref('💡 先听范读，然后点击录音按钮开始跟�
 
 const audioContext = ref(null)
 const readLineTimer = ref(null)
+const lineAudioUrlCache = new Map()
+let readingPlaybackToken = 0
 
 const reviewPoems = [
   {
@@ -295,103 +297,175 @@ const clearReadLineTimer = () => {
   }
 }
 
-const stopReadingAudio = () => {
-  clearReadLineTimer()
+const destroyCurrentAudio = () => {
+  const currentAudio = audioContext.value
+  audioContext.value = null
 
-  if (audioContext.value) {
-    audioContext.value.stop()
-    audioContext.value.destroy()
-    audioContext.value = null
+  if (!currentAudio) return
+
+  try {
+    currentAudio.stop()
+  } catch (err) {
+    console.log('停止范读音频失败：', err)
   }
+
+  try {
+    currentAudio.destroy()
+  } catch (err) {
+    console.log('销毁范读音频失败：', err)
+  }
+}
+
+const stopReadingAudio = () => {
+  readingPlaybackToken += 1
+  clearReadLineTimer()
+  destroyCurrentAudio()
 
   isReading.value = false
   activeReadLine.value = -1
 }
 
-const buildReadingText = () => {
+const getReadingLines = () => {
   const poem = currentReviewPoem.value
 
-  const lineText = Array.isArray(poem.lines)
-    ? poem.lines.join('。')
-    : ''
-
-  return lineText
+  return Array.isArray(poem.lines)
+    ? poem.lines.map(line => String(line || '').trim()).filter(Boolean)
+    : []
 }
 
-const startLineHighlight = () => {
-  clearReadLineTimer()
+const getLineAudioCacheKey = () => {
+  const poem = currentReviewPoem.value
+  const poemKey = poem.key || poem.title || 'review-poem'
 
-  let index = 0
-  activeReadLine.value = index
+  return `${poemKey}:${getReadingLines().join('|')}`
+}
 
-  readLineTimer.value = setInterval(() => {
-    index += 1
+const loadLineAudioUrls = async () => {
+  const lines = getReadingLines()
+  const cacheKey = getLineAudioCacheKey()
 
-    if (index >= currentReviewPoem.value.lines.length) {
-      clearReadLineTimer()
-      activeReadLine.value = -1
+  if (lineAudioUrlCache.has(cacheKey)) {
+    return lineAudioUrlCache.get(cacheKey)
+  }
+
+  const audioUrls = await Promise.all(
+    lines.map(async (line) => {
+      const res = await API.textToSpeech(line, 'child')
+
+      if (!res || !res.success || !res.audio_url) {
+        throw new Error(`范读生成失败：${line}`)
+      }
+
+      return normalizeAssetUrl(res.audio_url)
+    })
+  )
+
+  lineAudioUrlCache.set(cacheKey, audioUrls)
+
+  return audioUrls
+}
+
+const playSingleLineAudio = (url, lineIndex, token) => {
+  return new Promise((resolve, reject) => {
+    if (!url || token !== readingPlaybackToken) {
+      resolve('cancelled')
       return
     }
 
-    activeReadLine.value = index
-  }, 1600)
+    destroyCurrentAudio()
+
+    const innerAudio = uni.createInnerAudioContext()
+    audioContext.value = innerAudio
+
+    let hasPlayCalled = false
+    let hasSettled = false
+
+    const settle = (result) => {
+      if (hasSettled) return
+
+      hasSettled = true
+
+      if (audioContext.value === innerAudio) {
+        audioContext.value = null
+      }
+
+      try {
+        innerAudio.destroy()
+      } catch (err) {
+        console.log('销毁单句范读音频失败：', err)
+      }
+
+      resolve(result)
+    }
+
+    innerAudio.autoplay = false
+    innerAudio.src = normalizeAssetUrl(url)
+
+    innerAudio.onCanplay(() => {
+      if (hasPlayCalled) return
+
+      hasPlayCalled = true
+
+      setTimeout(() => {
+        if (token !== readingPlaybackToken) {
+          settle('cancelled')
+          return
+        }
+
+        innerAudio.play()
+      }, 120)
+    })
+
+    innerAudio.onPlay(() => {
+      if (token !== readingPlaybackToken) return
+
+      isReading.value = true
+      activeReadLine.value = lineIndex
+      readFeedback.value = `🔊 正在范读第 ${lineIndex + 1} 句：${getReadingLines()[lineIndex]}`
+    })
+
+    innerAudio.onEnded(() => {
+      settle('ended')
+    })
+
+    innerAudio.onStop(() => {
+      if (token !== readingPlaybackToken) return
+      settle('stopped')
+    })
+
+    innerAudio.onError((err) => {
+      if (token !== readingPlaybackToken) {
+        settle('cancelled')
+        return
+      }
+
+      reject(err)
+    })
+  })
 }
 
-const playAudioByUrl = (url) => {
-  if (!url) {
-    uni.showToast({
-      title: '音频地址为空',
-      icon: 'none'
-    })
-    return
+const playLineAudioQueue = async (audioUrls, token) => {
+  const lines = getReadingLines()
+
+  for (let index = 0; index < audioUrls.length; index += 1) {
+    if (token !== readingPlaybackToken) return
+
+    const result = await playSingleLineAudio(audioUrls[index], index, token)
+
+    if (result === 'cancelled' || result === 'stopped') return
+
+    if (token === readingPlaybackToken && index < lines.length - 1) {
+      activeReadLine.value = index + 1
+    }
   }
 
-  stopReadingAudio()
+  if (token !== readingPlaybackToken) return
 
-  const innerAudio = uni.createInnerAudioContext()
-  audioContext.value = innerAudio
-
-  innerAudio.autoplay = false
-  innerAudio.src = normalizeAssetUrl(url)
-
-  innerAudio.onCanplay(() => {
-    setTimeout(() => {
-      innerAudio.play()
-    }, 500)
-  })
-
-  innerAudio.onPlay(() => {
-    isReading.value = true
-    readFeedback.value = '🔊 正在范读中，请认真听哦...'
-    startLineHighlight()
-  })
-
-  innerAudio.onEnded(() => {
-    clearReadLineTimer()
-    isReading.value = false
-    activeReadLine.value = -1
-    readFeedback.value = '✅ 范读结束，现在可以开始跟读啦！'
-  })
-
-  innerAudio.onStop(() => {
-    clearReadLineTimer()
-    isReading.value = false
-    activeReadLine.value = -1
-  })
-
-  innerAudio.onError((err) => {
-    console.log('范读播放失败：', err)
-
-    clearReadLineTimer()
-    isReading.value = false
-    activeReadLine.value = -1
-    readFeedback.value = '范读播放失败，请稍后再试'
-
-    uni.showToast({
-      title: '范读播放失败',
-      icon: 'none'
-    })
-  })
+  clearReadLineTimer()
+  destroyCurrentAudio()
+  isReading.value = false
+  activeReadLine.value = -1
+  readFeedback.value = '✅ 范读结束，现在可以开始跟读啦！'
 }
 
 const playReading = async () => {
@@ -401,9 +475,9 @@ const playReading = async () => {
     return
   }
 
-  const text = buildReadingText()
+  const lines = getReadingLines()
 
-  if (!text.trim()) {
+  if (!lines.length) {
     uni.showToast({
       title: '暂无可朗读内容',
       icon: 'none'
@@ -411,36 +485,40 @@ const playReading = async () => {
     return
   }
 
+  readingPlaybackToken += 1
+  const token = readingPlaybackToken
+
+  clearReadLineTimer()
+  destroyCurrentAudio()
+  activeReadLine.value = -1
+
   try {
-    readFeedback.value = '🔊 正在准备范读，请稍等...'
+    readFeedback.value = '🔊 正在准备逐句范读，请稍等...'
 
     uni.showLoading({
       title: '准备范读...'
     })
 
-    const res = await API.textToSpeech(text, 'child')
+    const audioUrls = await loadLineAudioUrls()
 
     uni.hideLoading()
 
-    console.log('巩固页范读 TTS 返回：', res)
+    if (token !== readingPlaybackToken) return
 
-    if (!res || !res.success || !res.audio_url) {
-      readFeedback.value = '范读生成失败，请稍后再试'
+    console.log('巩固页逐句范读 TTS 返回：', audioUrls)
 
-      uni.showToast({
-        title: '范读生成失败',
-        icon: 'none'
-      })
-
-      return
-    }
-
-    playAudioByUrl(res.audio_url)
+    playLineAudioQueue(audioUrls, token)
   } catch (err) {
     uni.hideLoading()
 
-    console.log('调用范读 TTS 失败：', err)
+    if (token !== readingPlaybackToken) return
 
+    console.log('调用逐句范读 TTS 失败：', err)
+
+    clearReadLineTimer()
+    destroyCurrentAudio()
+    isReading.value = false
+    activeReadLine.value = -1
     readFeedback.value = '范读接口暂不可用，请稍后再试'
 
     uni.showToast({

@@ -48,7 +48,7 @@
                 <view>
                   <view class="manage-text">每日使用提醒</view>
                   <view class="manage-sub">
-                    {{ reminderEnabled ? '已开启：建议每天不超过 40 分钟' : '已关闭：暂不提醒' }}
+                    {{ reminderEnabled ? '已开启：建议每天不超过 20 分钟' : '已关闭：暂不提醒' }}
                   </view>
                 </view>
 
@@ -85,8 +85,10 @@
                   <view class="record-name">《{{ item.title }}》</view>
                   <view class="record-desc">{{ item.desc }}</view>
                 </view>
-
-                <view class="record-time">{{ item.time }}</view>
+				
+				<view class="record-time">
+				  {{ item.timeLabel }} : {{ item.timeValue }}
+				</view>
               </view>
             </scroll-view>
           </view>
@@ -129,6 +131,10 @@ const formatDuration = (seconds) => {
   const restMinutes = minutes % 60
 
   return restMinutes > 0 ? `${hours} 小时 ${restMinutes} 分` : `${hours} 小时`
+}
+
+const formatDurationCompact = (seconds) => {
+  return formatDuration(seconds).replace(/\s+/g, '')
 }
 
 const getPoemIcon = (poem) => {
@@ -227,7 +233,8 @@ const displayRecords = computed(() => {
         icon: getPoemIcon(poem),
         title: poem.title || poem.poem_title || '未知古诗',
         desc: `最新学习时长：${formatDuration(latestDuration || totalDuration)}`,
-        time: `总计：${formatDuration(totalDuration || latestDuration)}`
+        timeLabel: '总计',
+        timeValue: formatDurationCompact(totalDuration || latestDuration)
       }
     })
 })
@@ -618,7 +625,7 @@ button::after {
   border-radius: 24px;
   background: #fff8ee;
   display: grid;
-  grid-template-columns: 48px minmax(0, 1fr) 78px;
+  grid-template-columns: 48px minmax(0, 1fr) 112px;
   align-items: center;
   gap: 12px;
   padding: 10px 12px;
@@ -657,12 +664,28 @@ button::after {
 
 .record-time {
   justify-self: end;
-  padding: 7px 10px;
-  border-radius: 999px;
+  width: auto;
+  min-width: 100px;
+  height: 40px;
+  padding: 0 14px;
+  border-radius: 20px;
   background: #fff0dc;
   color: #ff914d;
-  font-size: 14px;
   font-weight: 950;
+  font-size: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+}
+
+.record-time-label {
+  font-size: 13px;
+}
+
+.record-time-value {
+  margin-top: 2px;
+  font-size: 15px;
 }
 
 .empty-state {

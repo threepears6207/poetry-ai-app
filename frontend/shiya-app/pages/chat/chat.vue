@@ -28,7 +28,7 @@
               <view class="left-poem-author">{{ poemData.dynasty }} · {{ poemData.author }}</view>
             </view>
 
-            <image class="poet-img-large" :src="poetAvatarImage" mode="aspectFit" @error="handlePoetAvatarError"></image>
+            <image class="poet-img-large" :src="poetAvatarImage" mode="aspectFill" @error="handlePoetAvatarError"></image>
           </view>
 
           <view class="dialog-panel">
@@ -40,7 +40,7 @@
                 :class="msg.role"
               >
                 <view v-if="msg.role === 'poet'" class="mini-avatar">
-                  <image :src="poetAvatarImage" mode="aspectFill" @error="handlePoetAvatarError"></image>
+                  <image class="poet-face-image" :src="poetAvatarImage" mode="aspectFill" @error="handlePoetAvatarError"></image>
                 </view>
 
                 <view class="bubble">{{ msg.text }}</view>
@@ -48,7 +48,7 @@
 
               <view v-if="isReplying" class="bubble-row poet">
                 <view class="mini-avatar">
-                  <image :src="poetAvatarImage" mode="aspectFill" @error="handlePoetAvatarError"></image>
+                  <image class="poet-face-image" :src="poetAvatarImage" mode="aspectFill" @error="handlePoetAvatarError"></image>
                 </view>
 
                 <view class="bubble">正在想一想怎么回答你……</view>
@@ -567,9 +567,11 @@ button::after {
   overflow: hidden;
   display: grid;
   place-items: end center;
-  padding: 14px 12px 0;
-}
+  padding: 6px 8px 0;
 
+  /* 加上这一行！*/
+  height: 100%;
+}
 .poet-name {
   position: absolute;
   left: 16px;
@@ -612,25 +614,27 @@ button::after {
 }
 
 .poet-img-large {
-  width: 225px;
-  height: 270px;
-  object-fit: contain;
-  object-position: center center;
-  border-radius: 32px 32px 0 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center bottom;
+  border-radius: 26px 26px 0 0;
   background: #fff8ea;
+  /* 这里先不要写 translateY，动画会覆盖 */
   transform: translateX(0);
   animation: poetFloat 2.8s ease-in-out infinite;
   transform-origin: center bottom;
-  padding: 4px 8px 0;
+  position: absolute;
+  bottom: 0;
+  left: 0;
 }
 
 @keyframes poetFloat {
   0%, 100% {
-    transform: translateX(0) translateY(0) scale(1);
+    transform: translateY(0) scale(1);
   }
-
   50% {
-    transform: translateX(0) translateY(-4px) scale(1.015);
+    transform: translateY(-4px) scale(1.015);
   }
 }
 
@@ -663,8 +667,8 @@ button::after {
 }
 
 .mini-avatar {
-  width: 32px;
-  height: 32px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   background: #fff0dc;
   display: grid;
@@ -677,7 +681,14 @@ button::after {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  object-position: center center;
+  object-position: center 18%;
+}
+
+.poet-face-image {
+  transform: scale(1.85);
+  transform-origin: center 22%;
+  /* 新增这一行，图片单独上移 */
+  transform: scale(1.85) translateY(5px);
 }
 
 .bubble {

@@ -6,6 +6,8 @@ from typing import Optional
 from fastapi import APIRouter
 from pydantic import BaseModel
 
+from consolidation import create_consolidation_if_missing
+
 router = APIRouter()
 
 DATA_DIR = Path(__file__).parent / "data"
@@ -90,7 +92,7 @@ def add_record(record: RecordIn):
     """
     添加学习记录
 
-    前端进入古诗详情页时调用：
+    前端进入古诗详情页，或者孩子点击“看完了”时调用：
     POST /record
 
     请求体示例：
@@ -99,6 +101,11 @@ def add_record(record: RecordIn):
       "user_id": "test_user",
       "duration_seconds": 30
     }
+
+    额外逻辑：
+    1. 正常保存学习记录；
+    2. 自动给这首诗创建巩固记录；
+    3. 如果这首诗已经有巩固记录，不覆盖已有巩固进度。
     """
     records = load_records()
 
@@ -113,10 +120,16 @@ def add_record(record: RecordIn):
     records.append(new_record)
     save_records(records)
 
+    consolidation_record = create_consolidation_if_missing(
+        poem_id=record.poem_id,
+        user_id=record.user_id
+    )
+
     return {
         "success": True,
         "message": "记录成功",
-        "data": new_record
+        "data": new_record,
+        "consolidation": consolidation_record
     }
 
 
@@ -188,7 +201,7 @@ def get_learning_summary(user_id: str = "test_user"):
                 "dynasty": poem.get("dynasty", ""),
                 "tags": poem.get("tags", []),
 
-                # 新增：家长端需要的两个核心指标
+                # 家长端需要的两个核心指标
                 "latest_duration_seconds": duration,
                 "total_duration_seconds": duration,
 

@@ -453,6 +453,59 @@ export const API = {
   },
 
 
+
+  // -----------------------------------------------------
+  // 巩固列表
+  // GET /consolidation/list?user_id=test_user
+  // -----------------------------------------------------
+  getConsolidationList(userId = DEFAULT_USER_ID) {
+    return request({
+      url: `/consolidation/list?user_id=${encodeURIComponent(userId)}`,
+      method: 'GET'
+    })
+  },
+
+
+  // -----------------------------------------------------
+  // 查询单首古诗巩固状态
+  // GET /consolidation/status/{poem_id}?user_id=test_user
+  // -----------------------------------------------------
+  getConsolidationStatus(poemId, userId = DEFAULT_USER_ID) {
+    return request({
+      url: `/consolidation/status/${encodeURIComponent(poemId)}?user_id=${encodeURIComponent(userId)}`,
+      method: 'GET'
+    })
+  },
+
+
+  // -----------------------------------------------------
+  // 提交巩固结果
+  // POST /consolidation/result
+  // 请求体：{ poem_id, user_id, passed }
+  // -----------------------------------------------------
+  submitConsolidationResult(poemIdOrData, passed = true, userId = DEFAULT_USER_ID) {
+    const data = typeof poemIdOrData === 'object' && poemIdOrData !== null
+      ? poemIdOrData
+      : {
+          poem_id: poemIdOrData,
+          user_id: userId,
+          passed
+        }
+
+    const hasPassed = Object.prototype.hasOwnProperty.call(data, 'passed')
+
+    return request({
+      url: '/consolidation/result',
+      method: 'POST',
+      data: {
+        poem_id: data.poem_id || data.poemId || data.id || '',
+        user_id: data.user_id || data.userId || userId || DEFAULT_USER_ID,
+        passed: hasPassed ? Boolean(data.passed) : true
+      }
+    })
+  },
+
+
   // -----------------------------------------------------
   // 语音朗读
   // POST /tts

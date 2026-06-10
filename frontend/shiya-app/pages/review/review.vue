@@ -21,33 +21,47 @@
             <view class="section-title">📚 选择要巩固的古诗</view>
 
             <view class="poem-list">
-              <view
-                v-for="poem in reviewPoems"
-                :key="poem.key"
-                class="review-poem-item"
-                @tap="startReview(poem.key)"
-              >
-                <view
-                  class="review-poem-icon"
-                  :class="poem.status === '已掌握' ? 'mastered-bg' : 'learning-bg'"
-                >
-                  {{ poem.icon }}
-                </view>
-
-                <view class="review-poem-info">
-                  <view class="review-poem-name">{{ poem.title }}</view>
-                  <view class="review-poem-author">{{ poem.author }}</view>
-                </view>
-
-                <view
-                  class="review-poem-badge"
-                  :class="poem.status === '已掌握' ? 'badge-mastered' : 'badge-learning'"
-                >
-                  {{ poem.status }}
-                </view>
-
-                <view class="review-poem-arrow">›</view>
+              <view v-if="isLoadingList" class="list-message">
+                正在加载巩固任务...
               </view>
+
+              <view v-else-if="!reviewPoems.length" class="list-message">
+                暂无需要巩固的古诗
+              </view>
+
+              <block v-else>
+                <view
+                  v-for="poem in reviewPoems"
+                  :key="poem.key"
+                  class="review-poem-item"
+                  @tap="startReview(poem.key)"
+                >
+                  <view
+                    class="review-poem-icon"
+                    :class="poem.status === '已掌握' ? 'mastered-bg' : 'learning-bg'"
+                  >
+                    {{ poem.icon }}
+                  </view>
+
+                  <view class="review-poem-info">
+                    <view class="review-poem-name">{{ poem.title }}</view>
+                    <view class="review-poem-author">{{ poem.author }}</view>
+                  </view>
+
+                  <view
+                    class="review-poem-badge"
+                    :class="poem.status === '已掌握' ? 'badge-mastered' : 'badge-learning'"
+                  >
+                    {{ poem.status }}
+                  </view>
+
+                  <view class="review-poem-arrow">›</view>
+                </view>
+              </block>
+            </view>
+
+            <view v-if="listError" class="list-warning">
+              {{ listError }}
             </view>
           </view>
 
@@ -63,17 +77,17 @@
 
             <view class="stats-row">
               <view class="stat-card">
-                <view class="stat-value">3</view>
+                <view class="stat-value">{{ currentStats.total }}</view>
                 <view class="stat-label">已学古诗</view>
               </view>
 
               <view class="stat-card">
-                <view class="stat-value">1</view>
+                <view class="stat-value">{{ currentStats.mastered }}</view>
                 <view class="stat-label">已掌握</view>
               </view>
 
               <view class="stat-card">
-                <view class="stat-value">2</view>
+                <view class="stat-value">{{ currentStats.learning }}</view>
                 <view class="stat-label">待巩固</view>
               </view>
             </view>
@@ -197,8 +211,10 @@
 
           <view v-if="matchedIds.length === currentPairs.length" class="complete-overlay">
             <view class="complete-emoji">🏆</view>
-            <view class="complete-text">巩固完成！跟读和连连看都完成啦！</view>
-            <button class="complete-btn" @tap="backToMain">返回巩固主页</button>
+            <view class="complete-text">{{ resultSubmitText }}</view>
+            <button class="complete-btn" :disabled="isSubmittingResult" @tap="backToMain">
+              {{ isSubmittingResult ? '正在保存...' : '返回巩固主页' }}
+            </button>
           </view>
         </view>
       </view>
@@ -207,11 +223,11 @@
 </template>
 
 <script setup>
-import { computed, ref, onUnmounted } from 'vue'
-import { API, normalizeAssetUrl } from '@/utils/api.js'
+import { computed, ref, onMounted, onUnmounted } from 'vue'
+import { API, LOCAL_POEMS, normalizeAssetUrl } from '@/utils/api.js'
 
 const reviewStep = ref('main')
-const currentReviewKey = ref('chunxiao')
+const currentReviewKey = ref('poem_001')
 
 const selectedLeft = ref(null)
 const matchedIds = ref([])
@@ -224,64 +240,233 @@ const isRecording = ref(false)
 const isReading = ref(false)
 const readFeedback = ref('💡 先听范读，然后点击录音按钮开始跟读吧！')
 
+const isLoadingList = ref(false)
+const listError = ref('')
+const isSubmittingResult = ref(false)
+const resultSubmitted = ref(false)
+
 const audioContext = ref(null)
 const readLineTimer = ref(null)
 const lineAudioUrlCache = new Map()
 let readingPlaybackToken = 0
 
-const reviewPoems = [
-  {
-    key: 'yonge',
-    title: '咏鹅',
-    author: '唐 · 骆宾王',
-    icon: '🦢',
-    status: '已掌握',
-    lines: ['鹅，鹅，鹅', '曲项向天歌', '白毛浮绿水', '红掌拨清波'],
-    pairs: [
-      { id: 1, left: '鹅，鹅', right: '鹅' },
-      { id: 2, left: '曲项', right: '向天歌' },
-      { id: 3, left: '白毛', right: '浮绿水' },
-      { id: 4, left: '红掌', right: '拨清波' }
-    ]
-  },
-  {
-    key: 'chunxiao',
-    title: '春晓',
-    author: '唐 · 孟浩然',
-    icon: '🌸',
-    status: '待巩固',
-    lines: ['春眠不觉晓', '处处闻啼鸟', '夜来风雨声', '花落知多少'],
-    pairs: [
-      { id: 1, left: '春眠', right: '不觉晓' },
-      { id: 2, left: '处处', right: '闻啼鸟' },
-      { id: 3, left: '夜来', right: '风雨声' },
-      { id: 4, left: '花落', right: '知多少' }
-    ]
-  },
-  {
-    key: 'jingyesi',
-    title: '静夜思',
-    author: '唐 · 李白',
-    icon: '🌙',
-    status: '待巩固',
-    lines: ['床前明月光', '疑是地上霜', '举头望明月', '低头思故乡'],
-    pairs: [
-      { id: 1, left: '床前', right: '明月光' },
-      { id: 2, left: '疑是', right: '地上霜' },
-      { id: 3, left: '举头', right: '望明月' },
-      { id: 4, left: '低头', right: '思故乡' }
-    ]
+const POEM_ICONS = ['🌸', '🌙', '🦢', '🌾', '🏯', '🌿', '🍃', '⭐']
+
+const extractArrayPayload = (payload) => {
+  const candidates = [
+    payload,
+    payload?.data,
+    payload?.items,
+    payload?.poems,
+    payload?.list,
+    payload?.results,
+    payload?.records,
+    payload?.data?.items,
+    payload?.data?.poems,
+    payload?.data?.list,
+    payload?.data?.results,
+    payload?.data?.records
+  ]
+
+  return candidates.find(item => Array.isArray(item)) || []
+}
+
+const extractObjectPayload = (payload) => {
+  return payload?.data?.poem ||
+    payload?.data?.item ||
+    payload?.poem ||
+    payload?.item ||
+    payload?.data ||
+    payload ||
+    {}
+}
+
+const splitPoemText = (text = '') => {
+  return String(text || '')
+    .split(/[，,。；;！!？?\n]/)
+    .map(line => line.trim())
+    .filter(Boolean)
+}
+
+const extractPoemLines = (poem = {}) => {
+  const source = poem.lines || poem.content || poem.poem_content || poem.poemContent
+
+  if (Array.isArray(source)) {
+    return source
+      .map(line => String(line || '').trim())
+      .filter(Boolean)
   }
-]
+
+  return splitPoemText(source)
+}
+
+const splitLineToPair = (line = '', index = 0) => {
+  const cleanLine = String(line || '')
+    .replace(/[，,。；;！!？?\s]/g, '')
+    .trim()
+
+  if (!cleanLine) {
+    return {
+      id: index + 1,
+      left: `第 ${index + 1} 句`,
+      right: ''
+    }
+  }
+
+  const splitIndex = cleanLine.length <= 3
+    ? Math.max(1, cleanLine.length - 1)
+    : Math.min(2, cleanLine.length - 1)
+
+  return {
+    id: index + 1,
+    left: cleanLine.slice(0, splitIndex),
+    right: cleanLine.slice(splitIndex)
+  }
+}
+
+const buildPairsFromLines = (lines = []) => {
+  return lines.map((line, index) => splitLineToPair(line, index))
+}
+
+const normalizePairs = (pairs = [], lines = []) => {
+  if (Array.isArray(pairs) && pairs.length) {
+    return pairs
+      .map((item, index) => ({
+        id: Number(item.id || index + 1),
+        left: String(item.left || item.start || item.front || '').trim(),
+        right: String(item.right || item.end || item.back || '').trim()
+      }))
+      .filter(item => item.left || item.right)
+  }
+
+  return buildPairsFromLines(lines)
+}
+
+const getLocalPoemByAnyId = (poemId = '') => {
+  return LOCAL_POEMS.find(item => item.id === poemId || item.poem_id === poemId) || null
+}
+
+const getAuthorText = (poem = {}) => {
+  const author = poem.author || poem.poet_name || poem.poetName || ''
+  const dynasty = poem.dynasty || ''
+
+  if (!author && !dynasty) return '未知作者'
+
+  if (String(author).includes('·')) return String(author)
+
+  return dynasty ? `${dynasty} · ${author || '未知作者'}` : String(author)
+}
+
+const normalizePassed = (payload, defaultValue = false) => {
+  const value = payload?.data?.status ?? payload?.data?.passed ?? payload?.status ?? payload?.passed ?? payload?.mastered ?? payload?.completed ?? payload?.is_passed ?? payload
+
+  if (typeof value === 'boolean') return value
+
+  if (typeof value === 'number') return value > 0
+
+  if (typeof value === 'string') {
+    const lowerValue = value.toLowerCase()
+
+    if (
+      value.includes('已掌握') ||
+      value.includes('已通过') ||
+      value.includes('完成') ||
+      lowerValue.includes('passed') ||
+      lowerValue.includes('mastered') ||
+      lowerValue.includes('completed') ||
+      lowerValue.includes('done')
+    ) {
+      return true
+    }
+
+    if (
+      value.includes('待') ||
+      value.includes('未') ||
+      lowerValue.includes('learning') ||
+      lowerValue.includes('pending') ||
+      lowerValue.includes('todo')
+    ) {
+      return false
+    }
+  }
+
+  return defaultValue
+}
+
+const normalizeReviewPoem = (rawItem = {}, index = 0) => {
+  const item = typeof rawItem === 'string'
+    ? { poem_id: rawItem }
+    : rawItem?.poem || rawItem?.poem_info || rawItem?.data || rawItem || {}
+
+  const poemId = String(
+    item.poem_id ||
+    item.poemId ||
+    item.id ||
+    item.key ||
+    `poem_${String(index + 1).padStart(3, '0')}`
+  )
+
+  const localPoem = getLocalPoemByAnyId(poemId) || {}
+  const poem = {
+    ...localPoem,
+    ...item
+  }
+
+  const lines = extractPoemLines(poem)
+  const pairs = normalizePairs(poem.pairs, lines)
+  const passed = normalizePassed(poem, false)
+
+  return {
+    key: poemId,
+    poem_id: poemId,
+    title: poem.title || poem.poem_title || poem.poemTitle || `古诗 ${index + 1}`,
+    author: getAuthorText(poem),
+    dynasty: poem.dynasty || localPoem.dynasty || '',
+    icon: poem.icon || POEM_ICONS[index % POEM_ICONS.length],
+    status: passed ? '已掌握' : '待巩固',
+    passed,
+    lines,
+    pairs
+  }
+}
+
+const buildFallbackReviewPoems = () => {
+  return LOCAL_POEMS.slice(0, 3).map((poem, index) => normalizeReviewPoem(poem, index))
+}
+
+const mergePoemStatus = (poem = {}, statusPayload = {}) => {
+  const passed = normalizePassed(statusPayload, poem.passed)
+
+  return {
+    ...poem,
+    passed,
+    status: passed ? '已掌握' : '待巩固'
+  }
+}
+
+const reviewPoems = ref(buildFallbackReviewPoems())
 
 const currentReviewPoem = computed(() => {
-  return reviewPoems.find(item => item.key === currentReviewKey.value) || reviewPoems[1]
+  return reviewPoems.value.find(item => item.key === currentReviewKey.value) ||
+    reviewPoems.value[0] ||
+    buildFallbackReviewPoems()[0]
 })
 
-const currentPairs = computed(() => currentReviewPoem.value.pairs)
+const currentPairs = computed(() => currentReviewPoem.value.pairs || [])
 
 const rightPairs = computed(() => {
   return [...currentPairs.value].reverse()
+})
+
+const currentStats = computed(() => {
+  const total = reviewPoems.value.length
+  const mastered = reviewPoems.value.filter(item => item.passed || item.status === '已掌握').length
+
+  return {
+    total,
+    mastered,
+    learning: Math.max(total - mastered, 0)
+  }
 })
 
 const reviewTitle = computed(() => {
@@ -289,6 +474,124 @@ const reviewTitle = computed(() => {
   if (reviewStep.value === 'read') return '古诗跟读'
   return '古诗连连看'
 })
+
+const resultSubmitText = computed(() => {
+  if (isSubmittingResult.value) return '正在保存巩固结果...'
+  if (resultSubmitted.value) return '巩固完成！结果已保存啦！'
+  return '巩固完成！跟读和连连看都完成啦！'
+})
+
+const updateReviewPoem = (key, updater) => {
+  reviewPoems.value = reviewPoems.value.map(item => {
+    if (item.key !== key) return item
+
+    return typeof updater === 'function'
+      ? updater(item)
+      : {
+          ...item,
+          ...updater
+        }
+  })
+}
+
+const refreshPoemStatus = async (poemKey) => {
+  const poem = reviewPoems.value.find(item => item.key === poemKey)
+
+  if (!poem || !poem.poem_id) return
+
+  try {
+    const res = await API.getConsolidationStatus(poem.poem_id)
+    updateReviewPoem(poem.key, item => mergePoemStatus(item, res))
+  } catch (err) {
+    console.log('查询巩固状态失败：', err)
+  }
+}
+
+const hydratePoemDetailsForList = async () => {
+  if (!reviewPoems.value.length) return
+
+  const hydratedPoems = await Promise.all(
+    reviewPoems.value.map(async (poem, index) => {
+      if ((poem.lines || []).length && (poem.pairs || []).length) {
+        return poem
+      }
+
+      if (!poem.poem_id) return poem
+
+      try {
+        const detailRes = await API.getPoemDetail(poem.poem_id)
+        const detail = extractObjectPayload(detailRes)
+        const hydrated = normalizeReviewPoem(
+          {
+            ...poem,
+            ...detail,
+            poem_id: poem.poem_id
+          },
+          index
+        )
+
+        return {
+          ...hydrated,
+          passed: poem.passed,
+          status: poem.status
+        }
+      } catch (err) {
+        console.log(`获取 ${poem.poem_id} 详情失败：`, err)
+        return poem
+      }
+    })
+  )
+
+  reviewPoems.value = hydratedPoems
+}
+
+const refreshStatusesForList = async () => {
+  if (!reviewPoems.value.length) return
+
+  const poemsWithStatus = await Promise.all(
+    reviewPoems.value.map(async (poem) => {
+      if (!poem.poem_id) return poem
+
+      try {
+        const res = await API.getConsolidationStatus(poem.poem_id)
+        return mergePoemStatus(poem, res)
+      } catch (err) {
+        console.log(`查询 ${poem.poem_id} 巩固状态失败：`, err)
+        return poem
+      }
+    })
+  )
+
+  reviewPoems.value = poemsWithStatus
+}
+
+const loadConsolidationList = async () => {
+  isLoadingList.value = true
+  listError.value = ''
+
+  try {
+    const res = await API.getConsolidationList()
+    const list = extractArrayPayload(res)
+
+    reviewPoems.value = list.map((item, index) => normalizeReviewPoem(item, index))
+
+    if (reviewPoems.value.length) {
+      currentReviewKey.value = reviewPoems.value[0].key
+    }
+
+    await hydratePoemDetailsForList()
+    await refreshStatusesForList()
+  } catch (err) {
+    console.log('加载巩固列表失败：', err)
+
+    const fallbackPoems = buildFallbackReviewPoems()
+    reviewPoems.value = fallbackPoems
+    currentReviewKey.value = fallbackPoems[0]?.key || 'poem_001'
+    listError.value = '巩固接口暂不可用，当前显示本地演示数据'
+  } finally {
+    isLoadingList.value = false
+  }
+}
 
 const clearReadLineTimer = () => {
   if (readLineTimer.value) {
@@ -544,11 +847,7 @@ const backAction = () => {
   }
 }
 
-const startReview = (key) => {
-  stopReadingAudio()
-
-  currentReviewKey.value = key
-
+const resetReviewState = () => {
   activeReadLine.value = 0
   earnedStars.value = 0
   isRecording.value = false
@@ -558,8 +857,18 @@ const startReview = (key) => {
   matchedIds.value = []
   matchFeedback.value = '💡 请按照古诗第 1、2、3、4 句的顺序完成配对'
   matchSuccess.value = false
+  isSubmittingResult.value = false
+  resultSubmitted.value = false
+}
+
+const startReview = (key) => {
+  stopReadingAudio()
+
+  currentReviewKey.value = key
+  resetReviewState()
 
   reviewStep.value = 'read'
+  refreshPoemStatus(key)
 }
 
 const recordReading = () => {
@@ -593,6 +902,8 @@ const goMatch = () => {
   matchedIds.value = []
   matchFeedback.value = '💡 请先完成第 1 句，再完成第 2、3、4 句'
   matchSuccess.value = false
+  isSubmittingResult.value = false
+  resultSubmitted.value = false
 
   reviewStep.value = 'match'
 }
@@ -614,6 +925,40 @@ const selectLeft = (id) => {
 
   const pair = currentPairs.value.find(item => item.id === id)
   matchFeedback.value = `✅ 已选择第 ${id} 句「${pair.left}」，请点击右边正确结尾`
+}
+
+const submitConsolidationPassed = async () => {
+  if (isSubmittingResult.value || resultSubmitted.value) return
+
+  const poem = currentReviewPoem.value
+
+  if (!poem || !poem.poem_id) return
+
+  isSubmittingResult.value = true
+  matchFeedback.value = '🎉 太棒了！正在保存巩固结果...'
+
+  try {
+    await API.submitConsolidationResult(poem.poem_id, true)
+
+    resultSubmitted.value = true
+    updateReviewPoem(poem.key, {
+      passed: true,
+      status: '已掌握'
+    })
+
+    matchFeedback.value = '🎉 太棒了！巩固结果已保存！'
+  } catch (err) {
+    console.log('提交巩固结果失败：', err)
+
+    matchFeedback.value = '🎉 练习已完成，但巩固结果保存失败，请稍后再试'
+
+    uni.showToast({
+      title: '结果保存失败',
+      icon: 'none'
+    })
+  } finally {
+    isSubmittingResult.value = false
+  }
 }
 
 const selectRight = (id) => {
@@ -639,6 +984,7 @@ const selectRight = (id) => {
 
     if (matchedIds.value.length === currentPairs.value.length) {
       matchFeedback.value = '🎉 太棒了！四句古诗都按顺序完成了！'
+      submitConsolidationPassed()
     } else {
       matchFeedback.value = `🎉 第 ${id} 句正确！接下来完成第 ${matchedIds.value.length + 1} 句`
     }
@@ -665,11 +1011,14 @@ const backToMain = () => {
   readFeedback.value = '💡 先听范读，然后点击录音按钮开始跟读吧！'
 }
 
+onMounted(() => {
+  loadConsolidationList()
+})
+
 onUnmounted(() => {
   stopReadingAudio()
 })
 </script>
-
 <style scoped>
 * {
   box-sizing: border-box;
@@ -1311,4 +1660,31 @@ button::after {
   color: #5b508d;
   text-align: center;
 }
+.list-message {
+  min-height: 96px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.78);
+  color: #9a90c0;
+  font-size: 14px;
+  font-weight: 900;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 6px 14px rgba(74, 55, 42, 0.08);
+}
+
+.list-warning {
+  padding: 7px 12px;
+  border-radius: 14px;
+  background: rgba(255, 244, 230, 0.9);
+  color: #ff914d;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1.4;
+}
+
+.complete-btn[disabled] {
+  opacity: 0.65;
+}
+
 </style>

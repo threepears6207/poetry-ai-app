@@ -6,12 +6,14 @@
 
 ## 环境要求
 
-- Python 3.10+
+- **Python 3.11**（必须使用 3.11，不要用 3.12/3.13，否则 FunASR 依赖无法安装）
 - pip
 - FastAPI
 - Uvicorn
 - requests
 - python-dotenv
+- edge-tts
+- funasr（语音识别，需单独安装，见下方说明）
 
 ---
 
@@ -19,7 +21,7 @@
 
 ```bash
 cd backend
-python -m venv venv
+py -3.11 -m venv venv          # 必须用 Python 3.11 创建虚拟环境
 .\venv\Scripts\activate        # Windows
 pip install -r requirements.txt
 uvicorn main:app --reload
@@ -32,6 +34,31 @@ uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
 启动后访问 `http://127.0.0.1:8000/docs` 查看接口文档（Swagger UI）。
+
+---
+
+## FunASR 安装说明
+
+FunASR 用于语音识别（跟读评分、诗人对话语音输入），体积较大，**首次安装需要较长时间**。
+
+```bash
+# 激活虚拟环境后执行
+pip install funasr modelscope torch torchaudio
+```
+
+安装完成后验证：
+
+```bash
+python -c "from funasr import AutoModel; print('OK')"
+```
+
+**模型文件说明：**
+
+- 首次调用 `/asr` 或 `/asr/score` 接口时，会自动下载 Paraformer-zh 模型（约 944MB）
+- 模型默认缓存路径：`C:\Users\你的用户名\.cache\modelscope\hub\`
+- 如需改到其他盘：启动前在终端执行 `$env:MODELSCOPE_CACHE = "D:\modelscope_cache"`
+- 模型只下载一次，后续启动直接读缓存，无需重新下载
+- ffmpeg 未安装时会显示提示，**不影响正常使用**，torchaudio 会接管音频读取
 
 ---
 
@@ -71,6 +98,7 @@ BAIDU_IMAGE_SECRET_KEY=你的百度图像识别 Secret Key
 | ocr.py | 拍照识诗接口 `POST /ocr`，支持文字图片调用百度 OCR 识别、风景图调用百度图像识别匹配古诗 |
 | record.py | 学习记录接口，包含记录写入、查询和学习统计 |
 | recommend.py | 推荐接口 `GET /recommend`，基于学习记录推荐未学习古诗 |
+| asr.py | 语音识别接口 `POST /asr` 和跟读评分接口 `POST /asr/score`，基于 FunASR Paraformer-zh 模型 |
 | test_api.py | 后端接口稳定性测试脚本，用于快速检查主要接口是否可用 |
 | test_chat.py | AI 对话接口测试脚本 |
 | data/poems.json | 本地古诗数据文件 |
@@ -89,7 +117,7 @@ BAIDU_IMAGE_SECRET_KEY=你的百度图像识别 Secret Key
 | 智能讲解与交互 | 已实现 | 已实现 AI 诗人对话接口，依赖蓝心 API Key |
 | 多模态内容生成 | 已实现 | 已实现 AI 配图接口，含分镜规划和本地缓存，已生成古诗秒回 |
 | 语音朗读 | 已实现 | `/tts` 使用 edge-tts 生成中文朗读音频，返回可播放音频 URL |
-| 趣味学习与巩固 | 暂未实现独立后端接口 | 前端可先做页面演示，后续可补充闯关、跟读、配对等记录接口 |
+| 趣味学习与巩固 | 已实现跟读评分 | `/asr/score` 接收录音+原诗文本，返回星级评分和是否通过 |
 | 学习记录与推荐 | 已实现 | 支持记录学习、查询记录、学习统计、推荐未学习古诗 |
 | 家长管理与共育 | 部分实现 | 已提供学习统计接口，前端家长端已可接入真实学习数据 |
 | 接口稳定性保障 | 已实现基础脚本 | `test_api.py` 可快速测试主要后端接口 |
@@ -112,6 +140,8 @@ BAIDU_IMAGE_SECRET_KEY=你的百度图像识别 Secret Key
 | `/ocr` | POST | 拍照识诗，支持文字图片 OCR 识别和风景图场景识别 | ✅ 已完成 |
 | `/generate/image` | POST | AI 配图生成，含本地缓存 | ✅ 已完成 |
 | `/tts` | POST | 语音朗读，使用 edge-tts 生成音频 | ✅ 已完成 |
+| `/asr` | POST | 语音识别，返回识别文字，供诗人对话语音输入使用 | ✅ 已完成 |
+| `/asr/score` | POST | 跟读评分，接收录音和原诗文本，返回星级、是否通过、鼓励文案 | ✅ 已完成 |
 
 ---
 
@@ -606,4 +636,95 @@ uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 - 完成 AI 配图接口 `/generate/image`，含两阶段分镜规划和本地缓存机制；
 - 完成语音朗读接口 `/tts`，使用 edge-tts 生成中文朗读音频；
 - 完成后端接口测试脚本 `test_api.py`；
-- 预生成《静夜思》配图并写入缓存，前端可直接使用。
+- 预生成《静夜思》配图并写入缓存，前端可直接使用；
+- 接入 FunASR Paraformer-zh 模型，完成语音识别接口 `/asr`；
+- 完成跟读评分接口 `/asr/score`，支持录音识别 + 相似度评分 + 星级反馈。
+
+---
+
+## 10. 语音识别接口说明
+
+`POST /asr`
+
+接收前端录音的 base64 编码，返回识别出的文字，用于诗人对话语音输入。
+
+请求体示例：
+
+```json
+{
+  "audio_base64": "音频文件的base64字符串",
+  "audio_format": "mp3"
+}
+```
+
+参数说明：
+
+| 参数 | 类型 | 必填 | 说明 |
+|---|---|---|---|
+| audio_base64 | string | 是 | 录音文件的 base64 编码 |
+| audio_format | string | 否 | 音频格式，默认 `mp3`，支持 wav/mp3/m4a |
+
+返回示例：
+
+```json
+{
+  "success": true,
+  "text": "鹅鹅鹅曲项向天歌"
+}
+```
+
+---
+
+## 11. 跟读评分接口说明
+
+`POST /asr/score`
+
+接收孩子跟读录音和原诗文本，识别后对比计算相似度，返回星级评分和是否通过。
+
+请求体示例：
+
+```json
+{
+  "audio_base64": "音频文件的base64字符串",
+  "poem_content": "鹅鹅鹅曲项向天歌白毛浮绿水红掌拨清波",
+  "audio_format": "mp3"
+}
+```
+
+参数说明：
+
+| 参数 | 类型 | 必填 | 说明 |
+|---|---|---|---|
+| audio_base64 | string | 是 | 录音文件的 base64 编码 |
+| poem_content | string | 是 | 完整诗文，去掉标点直接拼接，例如 `"鹅鹅鹅曲项向天歌白毛浮绿水红掌拨清波"` |
+| audio_format | string | 否 | 音频格式，默认 `mp3` |
+
+返回示例：
+
+```json
+{
+  "success": true,
+  "score": 92,
+  "stars": 3,
+  "passed": true,
+  "message": "太棒了！读得非常准确！🌟",
+  "recognized": "鹅 鹅 鹅 曲 项 向 天 歌 白 毛 浮 绿 水 红 掌 拨 清 波"
+}
+```
+
+评分说明：
+
+| 分数 | 星级 | passed | 说明 |
+|---|---|---|---|
+| 90-100 | ⭐⭐⭐ | true | 太棒了 |
+| 70-89 | ⭐⭐ | true | 读得很好 |
+| 50-69 | ⭐ | false | 继续加油 |
+| 0-49 | 0 | false | 再试一次 |
+
+前端接入注意事项：
+
+- 录音格式建议 `mp3`，在 UniApp RecorderManager 中设置 `format: 'mp3'`；
+- 录完音后用 `uni.getFileSystemManager().readFile()` 以 `encoding: 'base64'` 读取；
+- `poem_content` 传完整诗文（多句拼在一起），标点可以保留，后端会自动去除；
+- `passed: true` 时前端再调 `POST /consolidation/result`，传 `passed: true` 更新巩固进度；
+- `recognized` 字段是调试用，可以在开发阶段打印出来确认识别效果，上线后可忽略。

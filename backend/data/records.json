@@ -327,5 +327,75 @@
     "poem_id": "poem_002",
     "duration_seconds": 19,
     "created_at": "2026-06-10 17:14:10"
+  },
+  {
+    "id": 48,
+    "user_id": "test_user",
+    "poem_id": "poem_004",
+    "duration_seconds": 16,
+    "created_at": "2026-06-12 18:24:52"
+  },
+  {
+    "id": 49,
+    "user_id": "test_user",
+    "poem_id": "poem_001",
+    "duration_seconds": 18,
+    "created_at": "2026-06-12 18:50:42"
+  },
+  {
+    "id": 50,
+    "user_id": "test_user",
+    "poem_id": "poem_002",
+    "duration_seconds": 12,
+    "created_at": "2026-06-12 18:51:58"
+  },
+  {
+    "id": 51,
+    "user_id": "test_user",
+    "poem_id": "poem_003",
+    "duration_seconds": 17,
+    "created_at": "2026-06-12 18:53:43"
+  },
+  {
+    "id": 52,
+    "user_id": "test_user",
+    "poem_id": "poem_001",
+    "duration_seconds": 30,
+    "created_at": "2026-06-12 19:00:34"
+  },
+  {
+    "id": 53,
+    "user_id": "test_user",
+    "poem_id": "poem_001",
+    "duration_seconds": 12,
+    "created_at": "2026-06-12 19:02:27"
+  },
+  {
+    "id": 54,
+    "user_id": "test_user",
+    "poem_id": "poem_005",
+    "duration_seconds": 18,
+    "created_at": "2026-06-12 19:03:41"
+  },
+  {
+    "id": 55,
+    "user_id": "test_user",
+    "poem_id": "poem_001",
+    "duration_seconds": 28,
+    "created_at": "2026-06-12 19:10:55"
+  },
+  {
+    "id": 56,
+    "user_id": "test_user",
+    "poem_id": "poem_001",
+    "duration_seconds": 13,
+    "created_at": "2026-06-12 19:17:33"
+  },
+  {
+    "id": 57,
+    "user_id": "test_user",
+    "poem_id": "poem_001",
+    "duration_seconds": 28,
+    "created_at": "2026-06-12 19:49:28"
   }
 ]

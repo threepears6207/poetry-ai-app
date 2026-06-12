@@ -83,7 +83,7 @@ const BASE_URL = 'http://192.168.1.23:8000'
 ```bash
 uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 ```
-
+mine:http://192.168.43.235:8000
 电脑和手机需要连接同一个 Wi-Fi。
 
 ---

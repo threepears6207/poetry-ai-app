@@ -97,34 +97,33 @@
               </view>
 
               <view class="review-count">
-                <text>3首待巩固</text>
+                <text>{{ reviewLearningCount }}首待巩固</text>
               </view>
             </view>
 
             <view class="review-list">
-              <view class="review-poem-card pending-card">
+              <view
+                v-for="poem in homeReviewPreview"
+                :key="poem.key"
+                class="review-poem-card"
+                :class="poem.passed ? 'done-card' : 'pending-card'"
+              >
                 <view class="review-poem-icon-wrap">
-                  <text class="review-poem-icon">🦢</text>
+                  <text class="review-poem-icon">{{ poem.icon }}</text>
                 </view>
 
                 <view class="review-poem-info">
-                  <text class="review-poem-name">咏鹅</text>
-                  <text class="review-poem-status pending-text">待巩固</text>
+                  <text class="review-poem-name">{{ poem.title }}</text>
+                  <text
+                    class="review-poem-status"
+                    :class="poem.passed ? 'done-text' : 'pending-text'"
+                  >
+                    {{ poem.passed ? '已巩固' : '待巩固' }}
+                  </text>
                 </view>
               </view>
 
-              <view class="review-poem-card done-card">
-                <view class="review-poem-icon-wrap">
-                  <text class="review-poem-icon">🌙</text>
-                </view>
-
-                <view class="review-poem-info">
-                  <text class="review-poem-name">静夜思</text>
-                  <text class="review-poem-status done-text">已巩固</text>
-                </view>
-              </view>
-
-              <view class="more-card">
+              <view v-if="homeReviewPoems.length > 2" class="more-card">
                 <text>···</text>
               </view>
             </view>
@@ -192,8 +191,8 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
-import { API, searchLocalPoems } from '@/utils/api.js'
+import { computed, onMounted, ref } from 'vue'
+import { API, LOCAL_POEMS, searchLocalPoems } from '@/utils/api.js'
 
 const selectedAge = ref('4 岁')
 const showAgeList = ref(false)
@@ -202,6 +201,118 @@ const ageList = ['3 岁', '4 岁', '5 岁', '6 岁', '7 岁']
 const showSearchPanel = ref(false)
 const keyword = ref('')
 const searchResults = ref(searchLocalPoems(''))
+
+const POEM_ICONS = ['🌸', '🌙', '🦢', '🌾', '🏯', '🌿', '🍃', '⭐']
+const homeReviewPoems = ref([])
+
+const extractArrayPayload = (payload) => {
+  const candidates = [
+    payload,
+    payload?.data,
+    payload?.items,
+    payload?.poems,
+    payload?.list,
+    payload?.results,
+    payload?.records,
+    payload?.data?.items,
+    payload?.data?.poems,
+    payload?.data?.list,
+    payload?.data?.results,
+    payload?.data?.records
+  ]
+
+  return candidates.find(item => Array.isArray(item)) || []
+}
+
+const normalizePassed = (payload, defaultValue = false) => {
+  const value = payload?.data?.status ?? payload?.data?.passed ?? payload?.status ?? payload?.passed ?? payload?.mastered ?? payload?.completed ?? payload?.is_passed ?? payload
+
+  if (typeof value === 'boolean') return value
+  if (typeof value === 'number') return value > 0
+
+  if (typeof value === 'string') {
+    const lowerValue = value.toLowerCase()
+
+    if (
+      value.includes('已掌握') ||
+      value.includes('已通过') ||
+      value.includes('已巩固') ||
+      value.includes('完成') ||
+      lowerValue.includes('passed') ||
+      lowerValue.includes('mastered') ||
+      lowerValue.includes('completed') ||
+      lowerValue.includes('done')
+    ) {
+      return true
+    }
+  }
+
+  return defaultValue
+}
+
+const getLocalPoemByAnyId = (poemId = '') => {
+  return LOCAL_POEMS.find(item => item.id === poemId || item.poem_id === poemId) || null
+}
+
+const normalizeHomeReviewPoem = (rawItem = {}, index = 0) => {
+  const item = typeof rawItem === 'string'
+    ? { poem_id: rawItem }
+    : rawItem?.poem || rawItem?.poem_info || rawItem?.data || rawItem || {}
+
+  const poemId = String(
+    item.poem_id ||
+    item.poemId ||
+    item.id ||
+    item.key ||
+    `poem_${String(index + 1).padStart(3, '0')}`
+  )
+
+  const localPoem = getLocalPoemByAnyId(poemId) || {}
+  const poem = {
+    ...localPoem,
+    ...item
+  }
+
+  const passed = normalizePassed(poem, false)
+
+  return {
+    key: poemId,
+    poem_id: poemId,
+    title: poem.title || poem.poem_title || poem.poemTitle || `古诗 ${index + 1}`,
+    icon: poem.icon || POEM_ICONS[index % POEM_ICONS.length],
+    passed
+  }
+}
+
+const buildFallbackHomeReviewPoems = () => {
+  return LOCAL_POEMS.slice(0, 3).map((poem, index) => normalizeHomeReviewPoem(poem, index))
+}
+
+const homeReviewPreview = computed(() => homeReviewPoems.value.slice(0, 2))
+
+const reviewLearningCount = computed(() => {
+  return homeReviewPoems.value.filter(item => !item.passed).length
+})
+
+const loadHomeReviewPoems = async () => {
+  homeReviewPoems.value = buildFallbackHomeReviewPoems()
+
+  try {
+    const res = await API.getConsolidationList()
+    const list = extractArrayPayload(res)
+
+    if (list.length) {
+      homeReviewPoems.value = list.map((item, index) => normalizeHomeReviewPoem(item, index))
+    }
+  } catch (err) {
+    console.log('首页巩固列表接口暂不可用，使用本地数据', err)
+  }
+}
+
+onMounted(() => {
+  loadHomeReviewPoems()
+})
+
 
 const chooseAge = (age) => {
   selectedAge.value = age

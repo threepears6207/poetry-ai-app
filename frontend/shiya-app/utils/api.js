@@ -4,11 +4,11 @@
 // 1. 后端基础地址
 // =====================================================
 // 电脑浏览器本机联调：使用 127.0.0.1
-const BASE_URL = 'http://127.0.0.1:8000'
+//const BASE_URL = 'http://127.0.0.1:8000'
 
 // 手机真机联调时，不要用 127.0.0.1。
 // 要改成你电脑的局域网 IP，例如：
-// const BASE_URL = 'http://192.168.1.23:8000'
+const BASE_URL = 'http://192.168.43.235:8000'
 
 export const DEFAULT_USER_ID = 'test_user'
 
@@ -504,6 +504,47 @@ export const API = {
       }
     })
   },
+
+
+  // -----------------------------------------------------
+  // 语音识别
+  // POST /asr
+  // 用于“和诗人聊天”的语音输入
+  // -----------------------------------------------------
+  speechToText(audioBase64, audioFormat = 'mp3') {
+    const pureBase64 = String(audioBase64 || '').replace(/^data:audio\/\w+;base64,/, '')
+
+    return request({
+      url: '/asr',
+      method: 'POST',
+      data: {
+        audio_base64: pureBase64,
+        audio_format: audioFormat || 'mp3'
+      },
+      timeout: 120000
+    })
+  },
+
+
+  // -----------------------------------------------------
+  // 跟读评分
+  // POST /asr/score
+  // -----------------------------------------------------
+  scoreReading(audioBase64, poemContent = '', audioFormat = 'mp3') {
+    const pureBase64 = String(audioBase64 || '').replace(/^data:audio\/\w+;base64,/, '')
+
+    return request({
+      url: '/asr/score',
+      method: 'POST',
+      data: {
+        audio_base64: pureBase64,
+        poem_content: String(poemContent || '').replace(/[，,。；;！!？?\s]/g, ''),
+        audio_format: audioFormat || 'mp3'
+      },
+      timeout: 120000
+    })
+  },
+
 
 
   // -----------------------------------------------------

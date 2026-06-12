@@ -71,7 +71,7 @@
             </scroll-view>
 
             <view class="input-bar">
-              <button class="mic-btn" @tap="toast('语音输入后面接麦克风')">🎙️</button>
+              <button class="mic-btn" :class="{ recording: isVoiceRecording }" @tap="toggleVoiceInput">{{ isVoiceRecording ? '🔴' : '🎙️' }}</button>
 
               <input
                 class="text-input"
@@ -103,6 +103,16 @@ const chatScrollTop = ref(0)
 const canNext = ref(false)
 const isReplying = ref(false)
 const poetAvatarUrl = ref('')
+
+const isVoiceRecording = ref(false)
+const isRecognizingVoice = ref(false)
+const chatRecorderManager = ref(null)
+const chatRecordStopTimer = ref(null)
+const chatBrowserMediaRecorder = ref(null)
+const chatBrowserAudioChunks = ref([])
+const chatBrowserAudioStream = ref(null)
+
+const MAX_CHAT_RECORD_DURATION_MS = 30000
 
 const poetAvatarImage = computed(() => {
   return poetAvatarUrl.value || getPoetAvatarStaticUrl(getPoetName()) || '/static/孟浩然.png'
@@ -311,6 +321,427 @@ const fakeReply = (text) => {
 
   return `小朋友，这个问题问得很好。我们正在学习《${poemData.value.title}》，你可以把诗里的画面想出来，这样就更容易明白它了。`
 }
+
+
+const clearChatRecordStopTimer = () => {
+  if (chatRecordStopTimer.value) {
+    clearTimeout(chatRecordStopTimer.value)
+    chatRecordStopTimer.value = null
+  }
+}
+
+const canUseUniRecorderManager = () => {
+  return typeof uni.getRecorderManager === 'function'
+}
+
+const requestChatRecordPermission = () => {
+  return new Promise((resolve) => {
+    if (!canUseUniRecorderManager()) {
+      resolve(true)
+      return
+    }
+
+    if (typeof uni.authorize !== 'function') {
+      resolve(true)
+      return
+    }
+
+    uni.authorize({
+      scope: 'scope.record',
+      success: () => resolve(true),
+      fail: () => {
+        uni.showModal({
+          title: '需要麦克风权限',
+          content: '请允许使用麦克风，才能把你说的话发给诗人哦。',
+          confirmText: '去设置',
+          cancelText: '取消',
+          success: (modalRes) => {
+            if (modalRes.confirm && typeof uni.openSetting === 'function') {
+              uni.openSetting({
+                success: (settingRes) => {
+                  resolve(Boolean(settingRes.authSetting?.['scope.record']))
+                },
+                fail: () => resolve(false)
+              })
+              return
+            }
+
+            resolve(false)
+          },
+          fail: () => resolve(false)
+        })
+      }
+    })
+  })
+}
+
+const blobToBase64 = (blob) => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+
+    reader.onload = () => {
+      const result = String(reader.result || '')
+      resolve(result.includes(',') ? result.split(',')[1] : result)
+    }
+
+    reader.onerror = reject
+    reader.readAsDataURL(blob)
+  })
+}
+
+const stripAudioBase64Prefix = (value = '') => {
+  return String(value || '').replace(/^data:audio\/\w+;base64,/, '').replace(/^data:.*?;base64,/, '')
+}
+
+const readAudioByFetch = (filePath) => {
+  if (typeof fetch !== 'function') {
+    return Promise.reject(new Error('当前环境不支持 fetch 读取录音文件'))
+  }
+
+  return fetch(filePath)
+    .then((res) => {
+      if (!res.ok) {
+        throw new Error(`fetch 读取录音失败：${res.status}`)
+      }
+
+      return res.blob()
+    })
+    .then(blobToBase64)
+}
+
+const readAudioByPlusIo = (filePath) => {
+  return new Promise((resolve, reject) => {
+    if (typeof plus === 'undefined' || !plus.io) {
+      reject(new Error('plus.io 不可用'))
+      return
+    }
+
+    const tryPaths = [
+      filePath,
+      String(filePath || '').replace(/^file:\/\//, ''),
+      typeof plus.io.convertLocalFileSystemURL === 'function'
+        ? plus.io.convertLocalFileSystemURL(filePath)
+        : ''
+    ].filter(Boolean)
+
+    const tryRead = (index = 0) => {
+      const currentPath = tryPaths[index]
+
+      if (!currentPath) {
+        reject(new Error('plus.io 读取录音文件失败'))
+        return
+      }
+
+      plus.io.resolveLocalFileSystemURL(
+        currentPath,
+        (entry) => {
+          entry.file(
+            (file) => {
+              const reader = new plus.io.FileReader()
+
+              reader.onloadend = (event) => {
+                const result = event?.target?.result || reader.result || ''
+                const base64 = stripAudioBase64Prefix(result)
+
+                if (!base64) {
+                  reject(new Error('plus.io 录音 base64 转换失败'))
+                  return
+                }
+
+                resolve(base64)
+              }
+
+              reader.onerror = () => tryRead(index + 1)
+              reader.readAsDataURL(file)
+            },
+            () => tryRead(index + 1)
+          )
+        },
+        () => tryRead(index + 1)
+      )
+    }
+
+    tryRead()
+  })
+}
+
+const fileToBase64 = async (filePath) => {
+  if (!filePath) {
+    throw new Error('录音文件为空')
+  }
+
+  if (typeof uni.getFileSystemManager === 'function') {
+    try {
+      const res = await new Promise((resolve, reject) => {
+        uni.getFileSystemManager().readFile({
+          filePath,
+          encoding: 'base64',
+          success: resolve,
+          fail: reject
+        })
+      })
+
+      if (res?.data) return res.data
+    } catch (err) {
+      console.log('uni 文件系统读取录音失败，尝试 plus.io / fetch：', err)
+    }
+  }
+
+  try {
+    return await readAudioByPlusIo(filePath)
+  } catch (err) {
+    console.log('plus.io 读取录音失败，尝试 fetch：', err)
+  }
+
+  return readAudioByFetch(filePath)
+}
+
+const getBrowserAudioMimeType = () => {
+  if (typeof MediaRecorder === 'undefined') return ''
+
+  const candidates = [
+    'audio/webm;codecs=opus',
+    'audio/webm',
+    'audio/mp4',
+    'audio/wav'
+  ]
+
+  return candidates.find(type => MediaRecorder.isTypeSupported(type)) || ''
+}
+
+const getAudioFormatFromMimeType = (mimeType = '') => {
+  if (mimeType.includes('mp4')) return 'mp4'
+  if (mimeType.includes('wav')) return 'wav'
+  if (mimeType.includes('mpeg') || mimeType.includes('mp3')) return 'mp3'
+  return 'webm'
+}
+
+const stopChatBrowserAudioStream = () => {
+  if (!chatBrowserAudioStream.value) return
+
+  chatBrowserAudioStream.value.getTracks().forEach((track) => {
+    try {
+      track.stop()
+    } catch (err) {
+      console.log('停止聊天录音麦克风轨道失败：', err)
+    }
+  })
+
+  chatBrowserAudioStream.value = null
+}
+
+const submitVoiceToChat = async (audioBase64, audioFormat = 'mp3') => {
+  isRecognizingVoice.value = true
+
+  try {
+    uni.showLoading({
+      title: '正在识别...'
+    })
+
+    const res = await API.speechToText(audioBase64, audioFormat)
+    const text = String(res?.text || res?.data?.text || res?.recognized || '').trim()
+
+    if (!res?.success || !text) {
+      throw new Error(res?.message || '没有识别到内容')
+    }
+
+    userInput.value = text
+    await sendMessage()
+  } catch (err) {
+    console.log('聊天语音识别失败：', err)
+    toast('语音识别失败，请重试')
+  } finally {
+    uni.hideLoading()
+    isRecognizingVoice.value = false
+  }
+}
+
+const startChatBrowserRecording = async () => {
+  if (
+    typeof navigator === 'undefined' ||
+    !navigator.mediaDevices ||
+    !navigator.mediaDevices.getUserMedia ||
+    typeof MediaRecorder === 'undefined'
+  ) {
+    throw new Error('当前电脑浏览器不支持录音，请用 Chrome/Edge，或在手机真机/小程序/App 中测试')
+  }
+
+  const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+  const mimeType = getBrowserAudioMimeType()
+  const recorder = mimeType
+    ? new MediaRecorder(stream, { mimeType })
+    : new MediaRecorder(stream)
+
+  chatBrowserAudioStream.value = stream
+  chatBrowserMediaRecorder.value = recorder
+  chatBrowserAudioChunks.value = []
+
+  recorder.ondataavailable = (event) => {
+    if (event.data && event.data.size > 0) {
+      chatBrowserAudioChunks.value.push(event.data)
+    }
+  }
+
+  recorder.onstart = () => {
+    isVoiceRecording.value = true
+    toast('正在录音，再点一次发送给诗人')
+  }
+
+  recorder.onerror = (event) => {
+    clearChatRecordStopTimer()
+    isVoiceRecording.value = false
+    stopChatBrowserAudioStream()
+    console.log('聊天浏览器录音失败：', event)
+    toast('录音失败，请重试')
+  }
+
+  recorder.onstop = async () => {
+    clearChatRecordStopTimer()
+    isVoiceRecording.value = false
+
+    try {
+      const audioBlob = new Blob(chatBrowserAudioChunks.value, {
+        type: recorder.mimeType || mimeType || 'audio/webm'
+      })
+
+      if (!audioBlob.size) {
+        throw new Error('没有录到声音')
+      }
+
+      const audioBase64 = await blobToBase64(audioBlob)
+      const audioFormat = getAudioFormatFromMimeType(audioBlob.type)
+      await submitVoiceToChat(audioBase64, audioFormat)
+    } catch (err) {
+      console.log('提交聊天浏览器录音失败：', err)
+      toast('语音识别失败，请重试')
+    } finally {
+      chatBrowserMediaRecorder.value = null
+      chatBrowserAudioChunks.value = []
+      stopChatBrowserAudioStream()
+    }
+  }
+
+  recorder.start()
+
+  chatRecordStopTimer.value = setTimeout(() => {
+    if (chatBrowserMediaRecorder.value && chatBrowserMediaRecorder.value.state !== 'inactive') {
+      chatBrowserMediaRecorder.value.stop()
+    }
+  }, MAX_CHAT_RECORD_DURATION_MS)
+}
+
+const initChatRecorderManager = () => {
+  if (chatRecorderManager.value) return chatRecorderManager.value
+
+  if (!canUseUniRecorderManager()) {
+    throw new Error('当前环境不支持 uni.getRecorderManager')
+  }
+
+  const recorder = uni.getRecorderManager()
+  chatRecorderManager.value = recorder
+
+  recorder.onStart(() => {
+    isVoiceRecording.value = true
+    toast('正在录音，再点一次发送给诗人')
+  })
+
+  recorder.onStop(async (res) => {
+    clearChatRecordStopTimer()
+    isVoiceRecording.value = false
+
+    try {
+      if (!res.tempFilePath) {
+        throw new Error('没有拿到录音文件')
+      }
+
+      const audioBase64 = await fileToBase64(res.tempFilePath)
+      await submitVoiceToChat(audioBase64, 'mp3')
+    } catch (err) {
+      console.log('提交聊天录音失败：', err)
+      toast('语音识别失败，请重试')
+    }
+  })
+
+  recorder.onError((err) => {
+    clearChatRecordStopTimer()
+    isVoiceRecording.value = false
+    console.log('聊天录音失败：', err)
+    toast('录音失败，请重试')
+  })
+
+  return recorder
+}
+
+const stopVoiceInput = () => {
+  clearChatRecordStopTimer()
+
+  if (chatBrowserMediaRecorder.value) {
+    try {
+      if (chatBrowserMediaRecorder.value.state !== 'inactive') {
+        chatBrowserMediaRecorder.value.stop()
+      }
+    } catch (err) {
+      console.log('停止浏览器聊天录音失败：', err)
+      stopChatBrowserAudioStream()
+    }
+
+    return
+  }
+
+  try {
+    const recorder = initChatRecorderManager()
+    recorder.stop()
+  } catch (err) {
+    console.log('停止聊天录音失败：', err)
+  }
+}
+
+const toggleVoiceInput = async () => {
+  if (isRecognizingVoice.value || isReplying.value) return
+
+  if (isVoiceRecording.value) {
+    stopVoiceInput()
+    return
+  }
+
+  const hasPermission = await requestChatRecordPermission()
+
+  if (!hasPermission) {
+    toast('未获得麦克风权限')
+    return
+  }
+
+  try {
+    if (!canUseUniRecorderManager()) {
+      await startChatBrowserRecording()
+      return
+    }
+
+    const recorder = initChatRecorderManager()
+
+    recorder.start({
+      duration: MAX_CHAT_RECORD_DURATION_MS,
+      sampleRate: 16000,
+      numberOfChannels: 1,
+      encodeBitRate: 96000,
+      format: 'mp3'
+    })
+
+    isVoiceRecording.value = true
+
+    chatRecordStopTimer.value = setTimeout(() => {
+      if (isVoiceRecording.value) {
+        stopVoiceInput()
+      }
+    }, MAX_CHAT_RECORD_DURATION_MS)
+  } catch (err) {
+    clearChatRecordStopTimer()
+    isVoiceRecording.value = false
+    console.log('启动聊天录音失败：', err)
+    toast('录音未启动')
+  }
+}
+
 
 const sendMessage = async () => {
   const text = userInput.value.trim()
@@ -764,6 +1195,12 @@ button::after {
   background: #eafff9;
   color: #2cbf9d;
   box-shadow: 0 5px 0 #b9eee0;
+}
+
+.mic-btn.recording {
+  background: #ffe8e8;
+  color: #ff4d4f;
+  box-shadow: 0 5px 0 #ffc1c1;
 }
 
 .send-btn {

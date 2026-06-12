@@ -20,7 +20,7 @@
           <view class="left-panel">
             <view class="section-title">📚 选择要巩固的古诗</view>
 
-            <view class="poem-list">
+            <scroll-view class="poem-list" scroll-y>
               <view v-if="isLoadingList" class="list-message">
                 正在加载巩固任务...
               </view>
@@ -58,7 +58,7 @@
                   <view class="review-poem-arrow">›</view>
                 </view>
               </block>
-            </view>
+            </scroll-view>
 
             <view v-if="listError" class="list-warning">
               {{ listError }}
@@ -111,7 +111,7 @@
                 v-for="(line, index) in currentReviewPoem.lines"
                 :key="line"
                 class="read-line"
-                :class="{ active: activeReadLine === index }"
+                :class="{ active: activeReadLine === index, completed: completedReadLines.includes(index) }"
               >
                 {{ line }}
               </view>
@@ -125,7 +125,7 @@
               </view>
 
               <view v-else class="score-empty">
-                点击跟读获得评分
+                完成当前句跟读获得评分
               </view>
 
               <view class="stars">
@@ -145,7 +145,7 @@
                 :class="{ recording: isRecording }"
                 @tap="recordReading"
               >
-                {{ isRecording ? '🔴 正在聆听' : '🎙️ 跟读录音' }}
+                {{ isScoring ? '⏳ 正在评分' : isRecording ? '🔴 正在聆听' : '🎙️ 跟读录音' }}
               </button>
             </view>
 
@@ -156,10 +156,10 @@
             <view class="complete-btn-row">
               <button
                 class="complete-btn"
-                :class="{ disabled: earnedStars === 0 }"
-                @tap="earnedStars > 0 ? goMatch() : toastNeedRecord()"
+                :class="{ disabled: !allReadLinesPassed }"
+                @tap="allReadLinesPassed ? goMatch() : toastNeedRecord()"
               >
-                下一步：连连看
+                {{ allReadLinesPassed ? '下一步：连连看' : '请先逐句完成跟读' }}
               </button>
             </view>
           </view>
@@ -238,7 +238,9 @@ const activeReadLine = ref(0)
 const earnedStars = ref(0)
 const isRecording = ref(false)
 const isReading = ref(false)
-const readFeedback = ref('💡 先听范读，然后点击录音按钮开始跟读吧！')
+const isScoring = ref(false)
+const readFeedback = ref('💡 小朋友要一句一句听范读，再一句一句录音跟读哦！')
+const completedReadLines = ref([])
 
 const isLoadingList = ref(false)
 const listError = ref('')
@@ -247,8 +249,15 @@ const resultSubmitted = ref(false)
 
 const audioContext = ref(null)
 const readLineTimer = ref(null)
+const recorderManager = ref(null)
+const recordStopTimer = ref(null)
+const browserMediaRecorder = ref(null)
+const browserAudioChunks = ref([])
+const browserAudioStream = ref(null)
 const lineAudioUrlCache = new Map()
 let readingPlaybackToken = 0
+
+const MAX_RECORD_DURATION_MS = 30000
 
 const POEM_ICONS = ['🌸', '🌙', '🦢', '🌾', '🏯', '🌿', '🍃', '⭐']
 
@@ -454,6 +463,12 @@ const currentReviewPoem = computed(() => {
 
 const currentPairs = computed(() => currentReviewPoem.value.pairs || [])
 
+const allReadLinesPassed = computed(() => {
+  const lines = getReadingLines()
+
+  return lines.length > 0 && completedReadLines.value.length >= lines.length
+})
+
 const rightPairs = computed(() => {
   return [...currentPairs.value].reverse()
 })
@@ -619,13 +634,18 @@ const destroyCurrentAudio = () => {
   }
 }
 
-const stopReadingAudio = () => {
+const stopReadingAudio = (keepCurrentLine = true) => {
+  const currentLineIndex = getCurrentLineIndex()
+
   readingPlaybackToken += 1
   clearReadLineTimer()
   destroyCurrentAudio()
 
   isReading.value = false
-  activeReadLine.value = -1
+
+  if (keepCurrentLine) {
+    activeReadLine.value = currentLineIndex
+  }
 }
 
 const getReadingLines = () => {
@@ -636,36 +656,48 @@ const getReadingLines = () => {
     : []
 }
 
-const getLineAudioCacheKey = () => {
+const getLineAudioCacheKey = (lineIndex = activeReadLine.value) => {
   const poem = currentReviewPoem.value
   const poemKey = poem.key || poem.title || 'review-poem'
 
-  return `${poemKey}:${getReadingLines().join('|')}`
+  return `${poemKey}:${lineIndex}:${getReadingLines()[lineIndex] || ''}`
 }
 
-const loadLineAudioUrls = async () => {
+const getCurrentLineIndex = () => {
   const lines = getReadingLines()
-  const cacheKey = getLineAudioCacheKey()
+  const index = Number(activeReadLine.value)
+
+  if (!lines.length) return 0
+  if (index < 0) return 0
+
+  return Math.min(index, lines.length - 1)
+}
+
+const getCurrentReadingLine = () => {
+  const lines = getReadingLines()
+
+  return lines[getCurrentLineIndex()] || ''
+}
+
+const loadCurrentLineAudioUrl = async () => {
+  const lineIndex = getCurrentLineIndex()
+  const line = getCurrentReadingLine()
+  const cacheKey = getLineAudioCacheKey(lineIndex)
 
   if (lineAudioUrlCache.has(cacheKey)) {
     return lineAudioUrlCache.get(cacheKey)
   }
 
-  const audioUrls = await Promise.all(
-    lines.map(async (line) => {
-      const res = await API.textToSpeech(line, 'child')
+  const res = await API.textToSpeech(line, 'child')
 
-      if (!res || !res.success || !res.audio_url) {
-        throw new Error(`范读生成失败：${line}`)
-      }
+  if (!res || !res.success || !res.audio_url) {
+    throw new Error(`范读生成失败：${line}`)
+  }
 
-      return normalizeAssetUrl(res.audio_url)
-    })
-  )
+  const audioUrl = normalizeAssetUrl(res.audio_url)
+  lineAudioUrlCache.set(cacheKey, audioUrl)
 
-  lineAudioUrlCache.set(cacheKey, audioUrls)
-
-  return audioUrls
+  return audioUrl
 }
 
 const playSingleLineAudio = (url, lineIndex, token) => {
@@ -732,8 +764,7 @@ const playSingleLineAudio = (url, lineIndex, token) => {
     })
 
     innerAudio.onStop(() => {
-      if (token !== readingPlaybackToken) return
-      settle('stopped')
+      settle(token !== readingPlaybackToken ? 'cancelled' : 'stopped')
     })
 
     innerAudio.onError((err) => {
@@ -767,20 +798,22 @@ const playLineAudioQueue = async (audioUrls, token) => {
   clearReadLineTimer()
   destroyCurrentAudio()
   isReading.value = false
-  activeReadLine.value = -1
+  activeReadLine.value = getCurrentLineIndex()
   readFeedback.value = '✅ 范读结束，现在可以开始跟读啦！'
 }
 
 const playReading = async () => {
   if (isReading.value) {
+    const lineIndex = getCurrentLineIndex()
     stopReadingAudio()
+    activeReadLine.value = lineIndex
     readFeedback.value = '已停止范读'
     return
   }
 
-  const lines = getReadingLines()
+  const line = getCurrentReadingLine()
 
-  if (!lines.length) {
+  if (!line) {
     uni.showToast({
       title: '暂无可朗读内容',
       icon: 'none'
@@ -788,40 +821,47 @@ const playReading = async () => {
     return
   }
 
+  const lineIndex = getCurrentLineIndex()
   readingPlaybackToken += 1
   const token = readingPlaybackToken
 
   clearReadLineTimer()
   destroyCurrentAudio()
-  activeReadLine.value = -1
+  activeReadLine.value = lineIndex
 
   try {
-    readFeedback.value = '🔊 正在准备逐句范读，请稍等...'
+    readFeedback.value = `🔊 正在准备第 ${lineIndex + 1} 句范读，请稍等...`
 
     uni.showLoading({
       title: '准备范读...'
     })
 
-    const audioUrls = await loadLineAudioUrls()
+    const audioUrl = await loadCurrentLineAudioUrl()
 
     uni.hideLoading()
 
     if (token !== readingPlaybackToken) return
 
-    console.log('巩固页逐句范读 TTS 返回：', audioUrls)
+    console.log('巩固页当前句范读 TTS 返回：', audioUrl)
 
-    playLineAudioQueue(audioUrls, token)
+    const result = await playSingleLineAudio(audioUrl, lineIndex, token)
+
+    if (token !== readingPlaybackToken || result === 'cancelled') return
+
+    isReading.value = false
+    activeReadLine.value = lineIndex
+    readFeedback.value = `✅ 第 ${lineIndex + 1} 句范读结束，请录音跟读这一句：${line}`
   } catch (err) {
     uni.hideLoading()
 
     if (token !== readingPlaybackToken) return
 
-    console.log('调用逐句范读 TTS 失败：', err)
+    console.log('调用当前句范读 TTS 失败：', err)
 
     clearReadLineTimer()
     destroyCurrentAudio()
     isReading.value = false
-    activeReadLine.value = -1
+    activeReadLine.value = lineIndex
     readFeedback.value = '范读接口暂不可用，请稍后再试'
 
     uni.showToast({
@@ -850,8 +890,10 @@ const backAction = () => {
 const resetReviewState = () => {
   activeReadLine.value = 0
   earnedStars.value = 0
+  completedReadLines.value = []
   isRecording.value = false
-  readFeedback.value = '💡 先听范读，然后点击录音按钮开始跟读吧！'
+  isScoring.value = false
+  readFeedback.value = '💡 小朋友要一句一句听范读，再一句一句录音跟读哦！'
 
   selectedLeft.value = null
   matchedIds.value = []
@@ -871,26 +913,525 @@ const startReview = (key) => {
   refreshPoemStatus(key)
 }
 
-const recordReading = () => {
-  if (isRecording.value) return
+const clearRecordStopTimer = () => {
+  if (recordStopTimer.value) {
+    clearTimeout(recordStopTimer.value)
+    recordStopTimer.value = null
+  }
+}
 
-  stopReadingAudio()
+const blobToBase64 = (blob) => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
 
-  isRecording.value = true
-  readFeedback.value = '🎙️ 正在聆听，请大声读出诗句！'
-  activeReadLine.value = 0
+    reader.onloadend = () => {
+      const result = String(reader.result || '')
+      resolve(result.includes(',') ? result.split(',').pop() : result)
+    }
 
-  setTimeout(() => {
+    reader.onerror = reject
+    reader.readAsDataURL(blob)
+  })
+}
+
+const stripAudioBase64Prefix = (value = '') => {
+  return String(value || '').replace(/^data:audio\/\w+;base64,/, '').replace(/^data:.*?;base64,/, '')
+}
+
+const readAudioByFetch = (filePath) => {
+  if (typeof fetch !== 'function') {
+    return Promise.reject(new Error('当前环境不支持 fetch 读取录音文件'))
+  }
+
+  return fetch(filePath)
+    .then((res) => {
+      if (!res.ok) {
+        throw new Error(`fetch 读取录音失败：${res.status}`)
+      }
+
+      return res.blob()
+    })
+    .then(blobToBase64)
+}
+
+const readAudioByPlusIo = (filePath) => {
+  return new Promise((resolve, reject) => {
+    if (typeof plus === 'undefined' || !plus.io) {
+      reject(new Error('plus.io 不可用'))
+      return
+    }
+
+    const tryPaths = [
+      filePath,
+      String(filePath || '').replace(/^file:\/\//, ''),
+      typeof plus.io.convertLocalFileSystemURL === 'function'
+        ? plus.io.convertLocalFileSystemURL(filePath)
+        : ''
+    ].filter(Boolean)
+
+    const tryRead = (index = 0) => {
+      const currentPath = tryPaths[index]
+
+      if (!currentPath) {
+        reject(new Error('plus.io 读取录音文件失败'))
+        return
+      }
+
+      plus.io.resolveLocalFileSystemURL(
+        currentPath,
+        (entry) => {
+          entry.file(
+            (file) => {
+              const reader = new plus.io.FileReader()
+
+              reader.onloadend = (event) => {
+                const result = event?.target?.result || reader.result || ''
+                const base64 = stripAudioBase64Prefix(result)
+
+                if (!base64) {
+                  reject(new Error('plus.io 录音 base64 转换失败'))
+                  return
+                }
+
+                resolve(base64)
+              }
+
+              reader.onerror = () => tryRead(index + 1)
+              reader.readAsDataURL(file)
+            },
+            () => tryRead(index + 1)
+          )
+        },
+        () => tryRead(index + 1)
+      )
+    }
+
+    tryRead()
+  })
+}
+
+const fileToBase64 = async (filePath) => {
+  if (!filePath) {
+    throw new Error('录音文件为空')
+  }
+
+  if (typeof uni.getFileSystemManager === 'function') {
+    try {
+      const res = await new Promise((resolve, reject) => {
+        uni.getFileSystemManager().readFile({
+          filePath,
+          encoding: 'base64',
+          success: resolve,
+          fail: reject
+        })
+      })
+
+      if (res?.data) return res.data
+    } catch (err) {
+      console.log('uni 文件系统读取录音失败，尝试 plus.io / fetch：', err)
+    }
+  }
+
+  try {
+    return await readAudioByPlusIo(filePath)
+  } catch (err) {
+    console.log('plus.io 读取录音失败，尝试 fetch：', err)
+  }
+
+  return readAudioByFetch(filePath)
+}
+
+const moveToNextReadLine = () => {
+  const lines = getReadingLines()
+  const nextIndex = getCurrentLineIndex() + 1
+
+  if (nextIndex < lines.length) {
+    activeReadLine.value = nextIndex
+    earnedStars.value = 0
+    readFeedback.value = `✅ 第 ${nextIndex} 句通过啦！请先听第 ${nextIndex + 1} 句范读，再录音跟读。`
+    return
+  }
+
+  readFeedback.value = '🎉 全部诗句都跟读通过啦！可以进入连连看啦！'
+}
+
+const submitCurrentLineScore = async (tempFilePath) => {
+  const lineIndex = getCurrentLineIndex()
+  const line = getReadingLines()[lineIndex] || ''
+
+  if (!tempFilePath || !line) {
+    throw new Error('录音文件或诗句为空')
+  }
+
+  isScoring.value = true
+  readFeedback.value = `⏳ 正在给第 ${lineIndex + 1} 句评分...`
+
+  const audioBase64 = await fileToBase64(tempFilePath)
+  const res = await API.scoreReading(audioBase64, line, 'mp3')
+  const stars = Number(res?.stars || 0)
+  const score = Number(res?.score || stars * 20 || 0)
+  const passed = Boolean(res?.passed)
+
+  earnedStars.value = stars
+
+  if (passed) {
+    if (!completedReadLines.value.includes(lineIndex)) {
+      completedReadLines.value = [...completedReadLines.value, lineIndex].sort((a, b) => a - b)
+    }
+
+    moveToNextReadLine()
+    return
+  }
+
+  activeReadLine.value = lineIndex
+  readFeedback.value = res?.message || `😅 第 ${lineIndex + 1} 句得了 ${score} 分，再听一遍范读后重新录音吧！`
+}
+
+const requestRecordPermission = () => {
+  return new Promise((resolve) => {
+    if (!canUseUniRecorderManager()) {
+      resolve(true)
+      return
+    }
+
+    if (typeof uni.authorize !== 'function') {
+      resolve(true)
+      return
+    }
+
+    uni.authorize({
+      scope: 'scope.record',
+      success: () => resolve(true),
+      fail: () => {
+        uni.showModal({
+          title: '需要麦克风权限',
+          content: '请允许使用麦克风，才能一句一句录音跟读哦。',
+          confirmText: '去设置',
+          cancelText: '取消',
+          success: (modalRes) => {
+            if (modalRes.confirm && typeof uni.openSetting === 'function') {
+              uni.openSetting({
+                success: (settingRes) => {
+                  resolve(Boolean(settingRes.authSetting?.['scope.record']))
+                },
+                fail: () => resolve(false)
+              })
+              return
+            }
+
+            resolve(false)
+          },
+          fail: () => resolve(false)
+        })
+      }
+    })
+  })
+}
+
+const stopBrowserAudioStream = () => {
+  if (!browserAudioStream.value) return
+
+  browserAudioStream.value.getTracks().forEach((track) => {
+    try {
+      track.stop()
+    } catch (err) {
+      console.log('停止浏览器麦克风轨道失败：', err)
+    }
+  })
+
+  browserAudioStream.value = null
+}
+
+const getBrowserAudioMimeType = () => {
+  if (typeof MediaRecorder === 'undefined') return ''
+
+  const candidates = [
+    'audio/webm;codecs=opus',
+    'audio/webm',
+    'audio/mp4',
+    'audio/wav'
+  ]
+
+  return candidates.find(type => MediaRecorder.isTypeSupported(type)) || ''
+}
+
+const getAudioFormatFromMimeType = (mimeType = '') => {
+  if (mimeType.includes('mp4')) return 'mp4'
+  if (mimeType.includes('wav')) return 'wav'
+  if (mimeType.includes('mpeg') || mimeType.includes('mp3')) return 'mp3'
+  return 'webm'
+}
+
+const startBrowserRecording = async (lineIndex, line) => {
+  if (
+    typeof navigator === 'undefined' ||
+    !navigator.mediaDevices ||
+    !navigator.mediaDevices.getUserMedia ||
+    typeof MediaRecorder === 'undefined'
+  ) {
+    throw new Error('当前电脑浏览器不支持录音，请用 Chrome/Edge，或在手机真机/小程序/App 中测试')
+  }
+
+  const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+  const mimeType = getBrowserAudioMimeType()
+  const recorder = mimeType
+    ? new MediaRecorder(stream, { mimeType })
+    : new MediaRecorder(stream)
+
+  browserAudioStream.value = stream
+  browserMediaRecorder.value = recorder
+  browserAudioChunks.value = []
+
+  recorder.ondataavailable = (event) => {
+    if (event.data && event.data.size > 0) {
+      browserAudioChunks.value.push(event.data)
+    }
+  }
+
+  recorder.onstart = () => {
+    isRecording.value = true
+    activeReadLine.value = lineIndex
+    readFeedback.value = `🎙️ 正在录第 ${lineIndex + 1} 句，请大声读：${line}`
+    console.log('浏览器录音已开始')
+  }
+
+  recorder.onerror = (event) => {
+    clearRecordStopTimer()
     isRecording.value = false
-    activeReadLine.value = -1
-    earnedStars.value = 4
-    readFeedback.value = '🌟 跟读完成！你获得了 80 分，可以进入连连看啦！'
-  }, 1800)
+    isScoring.value = false
+    stopBrowserAudioStream()
+    console.log('浏览器录音失败：', event)
+    readFeedback.value = '录音失败，请重新试一次'
+    uni.showToast({
+      title: '录音失败',
+      icon: 'none'
+    })
+  }
+
+  recorder.onstop = async () => {
+    clearRecordStopTimer()
+    isRecording.value = false
+
+    try {
+      const audioBlob = new Blob(browserAudioChunks.value, {
+        type: recorder.mimeType || mimeType || 'audio/webm'
+      })
+
+      if (!audioBlob.size) {
+        throw new Error('没有录到声音')
+      }
+
+      isScoring.value = true
+      readFeedback.value = `⏳ 正在给第 ${lineIndex + 1} 句评分...`
+
+      const audioBase64 = await blobToBase64(audioBlob)
+      const audioFormat = getAudioFormatFromMimeType(audioBlob.type)
+      const res = await API.scoreReading(audioBase64, line, audioFormat)
+      const stars = Number(res?.stars || 0)
+      const score = Number(res?.score || stars * 20 || 0)
+      const passed = Boolean(res?.passed)
+
+      earnedStars.value = stars
+
+      if (passed) {
+        if (!completedReadLines.value.includes(lineIndex)) {
+          completedReadLines.value = [...completedReadLines.value, lineIndex].sort((a, b) => a - b)
+        }
+
+        moveToNextReadLine()
+      } else {
+        activeReadLine.value = lineIndex
+        readFeedback.value = res?.message || `😅 第 ${lineIndex + 1} 句得了 ${score} 分，再听一遍范读后重新录音吧！`
+      }
+    } catch (err) {
+      console.log('浏览器当前句跟读评分失败：', err)
+      activeReadLine.value = lineIndex
+      readFeedback.value = err?.data?.message || err?.message || '评分接口暂不可用，请检查 /asr/score 是否可用'
+      uni.showToast({
+        title: '评分失败，请重试',
+        icon: 'none'
+      })
+    } finally {
+      isScoring.value = false
+      browserMediaRecorder.value = null
+      browserAudioChunks.value = []
+      stopBrowserAudioStream()
+    }
+  }
+
+  recorder.start()
+  isRecording.value = true
+
+  recordStopTimer.value = setTimeout(() => {
+    if (isRecording.value && browserMediaRecorder.value) {
+      try {
+        browserMediaRecorder.value.stop()
+      } catch (err) {
+        console.log('自动停止浏览器录音失败：', err)
+      }
+    }
+  }, MAX_RECORD_DURATION_MS)
+}
+
+const canUseUniRecorderManager = () => {
+  return typeof uni.getRecorderManager === 'function'
+}
+
+const initRecorderManager = () => {
+  if (recorderManager.value) return recorderManager.value
+
+  if (!canUseUniRecorderManager()) {
+    throw new Error('当前环境不支持 uni.getRecorderManager')
+  }
+
+  const recorder = uni.getRecorderManager()
+  recorderManager.value = recorder
+
+  recorder.onStart(() => {
+    isRecording.value = true
+    console.log('录音已开始')
+  })
+
+  recorder.onStop(async (res) => {
+    clearRecordStopTimer()
+    isRecording.value = false
+
+    try {
+      if (!res.tempFilePath) {
+        throw new Error('没有拿到录音文件')
+      }
+
+      await submitCurrentLineScore(res.tempFilePath)
+    } catch (err) {
+      console.log('当前句跟读评分失败：', err)
+      readFeedback.value = err?.data?.message || err?.message || '评分接口暂不可用，请检查 /asr/score 是否可用'
+      uni.showToast({
+        title: '评分失败，请重试',
+        icon: 'none'
+      })
+    } finally {
+      isScoring.value = false
+    }
+  })
+
+  recorder.onError((err) => {
+    clearRecordStopTimer()
+    isRecording.value = false
+    isScoring.value = false
+    console.log('录音失败：', err)
+    readFeedback.value = '录音失败，请重新试一次'
+    uni.showToast({
+      title: '录音失败',
+      icon: 'none'
+    })
+  })
+
+  return recorder
+}
+
+const stopCurrentRecording = () => {
+  clearRecordStopTimer()
+
+  if (browserMediaRecorder.value) {
+    try {
+      if (browserMediaRecorder.value.state !== 'inactive') {
+        browserMediaRecorder.value.stop()
+      }
+    } catch (err) {
+      console.log('停止浏览器录音失败：', err)
+      stopBrowserAudioStream()
+    }
+
+    return
+  }
+
+  try {
+    const recorder = initRecorderManager()
+    recorder.stop()
+  } catch (err) {
+    console.log('停止录音失败：', err)
+  }
+}
+
+const recordReading = async () => {
+  if (isScoring.value) return
+
+  if (isRecording.value) {
+    stopCurrentRecording()
+    return
+  }
+
+  const lineIndex = getCurrentLineIndex()
+  const line = getReadingLines()[lineIndex] || ''
+
+  if (!line) {
+    uni.showToast({
+      title: '暂无可跟读内容',
+      icon: 'none'
+    })
+    return
+  }
+
+  stopReadingAudio(true)
+
+  const hasPermission = await requestRecordPermission()
+
+  if (!hasPermission) {
+    activeReadLine.value = lineIndex
+    readFeedback.value = '请先打开麦克风权限，再录音跟读这一句哦。'
+    uni.showToast({
+      title: '未获得录音权限',
+      icon: 'none'
+    })
+    return
+  }
+
+  earnedStars.value = 0
+  activeReadLine.value = lineIndex
+  readFeedback.value = `🎙️ 正在请求麦克风权限，请允许后朗读第 ${lineIndex + 1} 句`
+
+  try {
+    if (!canUseUniRecorderManager()) {
+      await startBrowserRecording(lineIndex, line)
+      return
+    }
+
+    const recorder = initRecorderManager()
+
+    recorder.start({
+      duration: MAX_RECORD_DURATION_MS,
+      sampleRate: 16000,
+      numberOfChannels: 1,
+      encodeBitRate: 96000,
+      format: 'mp3'
+    })
+
+    // 部分端不会立即触发 onStart，先把按钮状态切到录音中；失败会走 onError 或 catch 恢复。
+    isRecording.value = true
+    readFeedback.value = `🎙️ 正在录第 ${lineIndex + 1} 句，请大声读：${line}`
+
+    recordStopTimer.value = setTimeout(() => {
+      if (isRecording.value) {
+        stopCurrentRecording()
+      }
+    }, MAX_RECORD_DURATION_MS)
+  } catch (err) {
+    clearRecordStopTimer()
+    isRecording.value = false
+    isScoring.value = false
+    activeReadLine.value = lineIndex
+    console.log('启动录音失败：', err)
+    readFeedback.value = err?.message || '录音没有启动，请检查麦克风权限后重试'
+    uni.showToast({
+      title: '录音未启动',
+      icon: 'none'
+    })
+  }
 }
 
 const toastNeedRecord = () => {
   uni.showToast({
-    title: '请先完成跟读录音',
+    title: '请先逐句完成跟读',
     icon: 'none'
   })
 }
@@ -1007,8 +1548,10 @@ const backToMain = () => {
 
   activeReadLine.value = 0
   earnedStars.value = 0
+  completedReadLines.value = []
   isRecording.value = false
-  readFeedback.value = '💡 先听范读，然后点击录音按钮开始跟读吧！'
+  isScoring.value = false
+  readFeedback.value = '💡 小朋友要一句一句听范读，再一句一句录音跟读哦！'
 }
 
 onMounted(() => {
@@ -1017,6 +1560,12 @@ onMounted(() => {
 
 onUnmounted(() => {
   stopReadingAudio()
+  clearRecordStopTimer()
+  if (isRecording.value) {
+    stopCurrentRecording()
+  }
+
+  stopBrowserAudioStream()
 })
 </script>
 <style scoped>
@@ -1136,6 +1685,7 @@ button::after {
   flex-direction: column;
   gap: 10px;
   min-width: 0;
+  min-height: 0;
 }
 
 .section-title {
@@ -1145,6 +1695,14 @@ button::after {
 }
 
 .poem-list {
+  flex: 1;
+  min-height: 0;
+  max-height: 244px;
+  overflow: hidden;
+}
+
+.poem-list :deep(.uni-scroll-view-content),
+.poem-list ::v-deep .uni-scroll-view-content {
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -1380,6 +1938,11 @@ button::after {
   letter-spacing: 2px;
   padding: 6px 10px;
   border-radius: 12px;
+}
+
+.read-line.completed {
+  border-color: rgba(82, 196, 26, 0.35);
+  background: rgba(230, 255, 247, 0.94);
 }
 
 .read-line.active {

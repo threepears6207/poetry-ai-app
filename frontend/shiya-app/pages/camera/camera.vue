@@ -185,13 +185,26 @@ const toast = (title) => {
 
 
 
+const isBlobLike = (value) => {
+  return typeof Blob !== 'undefined' && value instanceof Blob
+}
+
+const stripImageBase64Prefix = (value = '') => {
+  return String(value || '').replace(/^data:image\/\w+;base64,/, '')
+}
+
 const readBlobAsBase64 = (blob) => {
   return new Promise((resolve, reject) => {
+    if (typeof FileReader === 'undefined') {
+      reject(new Error('当前平台不支持 FileReader 读取图片'))
+      return
+    }
+
     const reader = new FileReader()
 
     reader.onload = () => {
       const result = reader.result || ''
-      const base64 = String(result).split(',')[1] || ''
+      const base64 = stripImageBase64Prefix(result)
 
       if (!base64) {
         reject(new Error('图片 base64 转换失败'))
@@ -209,61 +222,134 @@ const readBlobAsBase64 = (blob) => {
   })
 }
 
-const pathToBase64 = (filePath) => {
+const readFileByPlusIo = (filePath) => {
   return new Promise((resolve, reject) => {
-    if (!filePath) {
-      reject(new Error('没有获取到图片路径'))
+    if (typeof plus === 'undefined' || !plus.io) {
+      reject(new Error('plus.io 不可用'))
       return
     }
 
-    const path = String(filePath)
+    plus.io.resolveLocalFileSystemURL(
+      filePath,
+      (entry) => {
+        entry.file(
+          (file) => {
+            const reader = new plus.io.FileReader()
 
-    if (path.startsWith('data:image')) {
-      resolve(path.split(',')[1] || '')
-      return
-    }
+            reader.onloadend = (event) => {
+              const result = event?.target?.result || ''
+              const base64 = stripImageBase64Prefix(result)
 
-    // 小程序 / 部分 App 环境
-    if (typeof uni.getFileSystemManager === 'function') {
-      try {
-        const fs = uni.getFileSystemManager()
+              if (!base64) {
+                reject(new Error('plus.io 图片 base64 转换失败'))
+                return
+              }
 
-        fs.readFile({
-          filePath: path,
-          encoding: 'base64',
-          success: (res) => resolve(res.data),
-          fail: (err) => {
-            console.log('getFileSystemManager 读取失败，尝试 H5 fetch：', err)
-
-            if (typeof fetch === 'function' && typeof FileReader !== 'undefined') {
-              fetch(path)
-                .then((res) => res.blob())
-                .then((blob) => readBlobAsBase64(blob))
-                .then(resolve)
-                .catch(reject)
-            } else {
-              reject(err)
+              resolve(base64)
             }
-          }
-        })
-        return
-      } catch (err) {
-        console.log('getFileSystemManager 不可用：', err)
-      }
-    }
 
-    // H5 环境
-    if (typeof fetch === 'function' && typeof FileReader !== 'undefined') {
-      fetch(path)
-        .then((res) => res.blob())
-        .then((blob) => readBlobAsBase64(blob))
-        .then(resolve)
-        .catch(reject)
+            reader.onerror = reject
+            reader.readAsDataURL(file)
+          },
+          reject
+        )
+      },
+      reject
+    )
+  })
+}
+
+const readFileByUniFs = (filePath) => {
+  return new Promise((resolve, reject) => {
+    if (typeof uni.getFileSystemManager !== 'function') {
+      reject(new Error('uni.getFileSystemManager 不可用'))
       return
     }
 
-    reject(new Error('当前平台暂不支持读取图片，请尝试相册上传或真机运行'))
+    const fs = uni.getFileSystemManager()
+
+    fs.readFile({
+      filePath,
+      encoding: 'base64',
+      success: (res) => {
+        const base64 = stripImageBase64Prefix(res.data)
+
+        if (!base64) {
+          reject(new Error('图片 base64 为空'))
+          return
+        }
+
+        resolve(base64)
+      },
+      fail: reject
+    })
   })
+}
+
+const readFileByH5Fetch = (filePath) => {
+  return new Promise((resolve, reject) => {
+    if (typeof fetch !== 'function' || typeof FileReader === 'undefined') {
+      reject(new Error('H5 图片读取能力不可用'))
+      return
+    }
+
+    fetch(filePath)
+      .then((res) => {
+        if (!res.ok) {
+          throw new Error(`图片读取失败：${res.status}`)
+        }
+
+        return res.blob()
+      })
+      .then((blob) => readBlobAsBase64(blob))
+      .then(resolve)
+      .catch(reject)
+  })
+}
+
+const normalizeLocalFilePath = (filePath) => {
+  const path = String(filePath || '')
+
+  // App 真机常见路径是 file:///storage/...，plus.io 可以直接读。
+  // 部分 uni 文件系统读取不接受 file://，失败后会自动降级到 plus.io。
+  return path
+}
+
+const pathToBase64 = async (filePath) => {
+  if (!filePath) {
+    throw new Error('没有获取到图片路径')
+  }
+
+  const path = normalizeLocalFilePath(filePath)
+
+  if (path.startsWith('data:image')) {
+    return stripImageBase64Prefix(path)
+  }
+
+  const errors = []
+
+  try {
+    return await readFileByUniFs(path)
+  } catch (err) {
+    errors.push(`uniFs: ${err?.errMsg || err?.message || err}`)
+    console.log('getFileSystemManager 读取失败，尝试 plus.io：', err)
+  }
+
+  try {
+    return await readFileByPlusIo(path)
+  } catch (err) {
+    errors.push(`plusIo: ${err?.message || err}`)
+    console.log('plus.io 读取失败，尝试 H5 fetch：', err)
+  }
+
+  try {
+    return await readFileByH5Fetch(path)
+  } catch (err) {
+    errors.push(`h5Fetch: ${err?.message || err}`)
+    console.log('H5 fetch 读取失败：', err)
+  }
+
+  throw new Error(`当前平台暂不支持读取图片：${errors.join('；')}`)
 }
 
 const fileToBase64 = async (chooseRes) => {
@@ -272,11 +358,12 @@ const fileToBase64 = async (chooseRes) => {
   const tempFile = chooseRes.tempFiles && chooseRes.tempFiles[0]
   const tempPath = chooseRes.tempImagePath || (chooseRes.tempFilePaths && chooseRes.tempFilePaths[0])
 
-  if (tempFile instanceof Blob) {
+  // H5 可能返回 File/Blob；App 端没有 Blob，所以必须先判断 typeof Blob。
+  if (isBlobLike(tempFile)) {
     return await readBlobAsBase64(tempFile)
   }
 
-  if (tempFile && tempFile.file instanceof Blob) {
+  if (tempFile && isBlobLike(tempFile.file)) {
     return await readBlobAsBase64(tempFile.file)
   }
 
@@ -770,9 +857,15 @@ button::after {
   line-height: 1;
 }
 
-.result-page {
-  grid-template-columns: 1fr;
+.camera-page {
+  position: absolute;
+  inset: 0;
+  /* 原来 padding:7px 16px 14px; */
+  padding: 2px 16px 14px; /* 顶部padding大幅减小，整个识别卡片向上靠紧标题 */
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 48px 92px;
   grid-template-rows: 58px minmax(0, 1fr);
+  gap: 8px 12px;
 }
 
 .result-card {
@@ -785,7 +878,8 @@ button::after {
     radial-gradient(circle at 98% 88%, rgba(217, 160, 222, 0.28), transparent 18%),
     linear-gradient(180deg, rgba(255, 255, 255, 0.86), rgba(255, 246, 248, 0.92));
   box-shadow: 0 12px 22px rgba(74, 55, 42, 0.13);
-  padding: 16px 20px;
+  /* 原 padding:16px 20px; */
+  padding: 8px 20px 16px; /* 顶部内边距缩小，内部全部元素上移 */
   display: grid;
   grid-template-columns: minmax(370px, 46%) minmax(0, 1fr);
   gap: 18px;
@@ -863,7 +957,7 @@ button::after {
 .result-meta {
   position: absolute;
   left: 465px;
-  top: 96px;
+  top: 40px;
   z-index: 2;
 }
 
@@ -908,7 +1002,7 @@ button::after {
   box-shadow: 0 9px 20px rgba(112, 79, 54, 0.12);
   padding: 16px 18px;
   color: #6a5f97;
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 950;
   line-height: 1.58;
 }

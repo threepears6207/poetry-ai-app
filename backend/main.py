@@ -30,7 +30,8 @@ from generate import router as generate_router
 from tts import router as tts_router
 from ocr import router as ocr_router
 from consolidation import router as consolidation_router
-
+from asr import router as asr_router
+app.include_router(asr_router)
 app.include_router(chat_router)
 app.include_router(poems_router)
 app.include_router(record_router)

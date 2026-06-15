@@ -198,6 +198,14 @@ const selectedAge = ref('4 岁')
 const showAgeList = ref(false)
 const ageList = ['3 岁', '4 岁', '5 岁', '6 岁', '7 岁']
 
+const CHILD_AGE_TEXT_KEY = 'shiYaChildAgeText'
+const CHILD_AGE_KEY = 'shiYaChildAge'
+
+const getAgeNumber = (ageText) => {
+  const match = String(ageText || '').match(/\d+/)
+  return match ? Number(match[0]) : 4
+}
+
 const showSearchPanel = ref(false)
 const keyword = ref('')
 const searchResults = ref(searchLocalPoems(''))
@@ -310,6 +318,15 @@ const loadHomeReviewPoems = async () => {
 }
 
 onMounted(() => {
+  const savedAge = uni.getStorageSync(CHILD_AGE_TEXT_KEY)
+
+  if (savedAge && ageList.includes(savedAge)) {
+    selectedAge.value = savedAge
+  }
+
+  uni.setStorageSync(CHILD_AGE_TEXT_KEY, selectedAge.value)
+  uni.setStorageSync(CHILD_AGE_KEY, getAgeNumber(selectedAge.value))
+
   loadHomeReviewPoems()
 })
 
@@ -317,6 +334,9 @@ onMounted(() => {
 const chooseAge = (age) => {
   selectedAge.value = age
   showAgeList.value = false
+
+  uni.setStorageSync(CHILD_AGE_TEXT_KEY, age)
+  uni.setStorageSync(CHILD_AGE_KEY, getAgeNumber(age))
 
   uni.showToast({
     title: `已选择${age}`,

@@ -4,11 +4,11 @@
 // 1. 后端基础地址
 // =====================================================
 // 电脑浏览器本机联调：使用 127.0.0.1
-//const BASE_URL = 'http://127.0.0.1:8000'
+const BASE_URL = 'http://127.0.0.1:8000'
 
 // 手机真机联调时，不要用 127.0.0.1。
 // 要改成你电脑的局域网 IP，例如：
-const BASE_URL = 'http://192.168.43.235:8000'
+//const BASE_URL = 'http://192.168.43.235:8000'
 
 export const DEFAULT_USER_ID = 'test_user'
 
@@ -307,7 +307,10 @@ export const API = {
   // AI 诗人对话
   // POST /chat
   // -----------------------------------------------------
-  chatWithPoet(data) {
+  chatWithPoet(data = {}) {
+    const ageMatch = String(data.age || '').match(/\d+/)
+    const age = ageMatch ? Number(ageMatch[0]) : 4
+
     return request({
       url: '/chat',
       method: 'POST',
@@ -317,7 +320,8 @@ export const API = {
         dynasty: data.dynasty || '唐',
         poem_title: data.poem_title || '',
         poem_content: data.poem_content || '',
-        history: Array.isArray(data.history) ? data.history : []
+        history: Array.isArray(data.history) ? data.history : [],
+        age
       },
       timeout: 60000
     })

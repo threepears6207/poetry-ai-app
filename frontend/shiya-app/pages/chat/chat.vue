@@ -71,9 +71,32 @@
             </scroll-view>
 
             <view class="input-bar">
-              <button class="mic-btn" :class="{ recording: isVoiceRecording }" @tap="toggleVoiceInput">{{ isVoiceRecording ? '🔴' : '🎙️' }}</button>
+              <button
+                class="mode-btn"
+                :class="{ recording: isVoiceRecording }"
+                @tap="switchInputMode"
+              >
+                {{ inputMode === 'voice' ? '⌨️' : '🎙️' }}
+              </button>
+
+              <button
+                v-if="inputMode === 'voice'"
+                class="voice-hold-btn"
+                :class="{ recording: isVoiceRecording, recognizing: isRecognizingVoice }"
+                @touchstart.stop.prevent="handleVoiceTouchStart"
+                @touchend.stop.prevent="handleVoicePressEnd"
+                @touchcancel.stop.prevent="handleVoicePressEnd"
+                @mousedown.stop.prevent="handleVoiceMouseStart"
+                @mouseup.stop.prevent="handleVoicePressEnd"
+                @mouseleave.stop.prevent="handleVoicePressEnd"
+                @longpress.stop.prevent="handleVoiceLongPress"
+              >
+                <text class="voice-hold-icon">{{ isVoiceRecording ? '🔴' : '🎙️' }}</text>
+                <text>{{ isRecognizingVoice ? '正在识别...' : isVoiceRecording ? '松开发送' : '按住 说话' }}</text>
+              </button>
 
               <input
+                v-else
                 class="text-input"
                 v-model="userInput"
                 placeholder="问问诗人这首诗里的问题"
@@ -81,7 +104,7 @@
                 @confirm="sendMessage"
               />
 
-              <button class="send-btn" @tap="sendMessage">➤</button>
+              <button v-if="inputMode === 'text'" class="send-btn" @tap="sendMessage">➤</button>
             </view>
           </view>
         </view>
@@ -97,8 +120,15 @@ import { API, getLocalPoemById, normalizeAssetUrl, getPoetAvatarStaticUrl } from
 
 const poemId = ref('poem_001')
 const poemData = ref(getLocalPoemById('poem_001'))
+const childAge = ref(4)
+
+const normalizeAge = (value) => {
+  const match = String(value || '').match(/\d+/)
+  return match ? Number(match[0]) : 4
+}
 
 const userInput = ref('')
+const inputMode = ref('voice')
 const chatScrollTop = ref(0)
 const canNext = ref(false)
 const isReplying = ref(false)
@@ -106,6 +136,8 @@ const poetAvatarUrl = ref('')
 
 const isVoiceRecording = ref(false)
 const isRecognizingVoice = ref(false)
+const isVoicePressing = ref(false)
+const lastVoiceTouchTime = ref(0)
 const chatRecorderManager = ref(null)
 const chatRecordStopTimer = ref(null)
 const chatBrowserMediaRecorder = ref(null)
@@ -137,6 +169,12 @@ const suggestions = ref([
 
 onLoad(async (options) => {
   poemId.value = options.poem_id || 'poem_001'
+  childAge.value = normalizeAge(
+    options.age ||
+    uni.getStorageSync('shiYaChildAge') ||
+    uni.getStorageSync('shiYaChildAgeText') ||
+    4
+  )
   poemData.value = getLocalPoemById(poemId.value)
 
   // 优先从后端获取古诗详情
@@ -218,7 +256,8 @@ const initPoetChat = async () => {
       dynasty: getPoetDynasty(),
       poem_title: poemData.value.title || '',
       poem_content: getPoemContentText(),
-      history: []
+      history: [],
+      age: childAge.value
     })
 
     if (res && res.success && res.reply) {
@@ -584,7 +623,7 @@ const startChatBrowserRecording = async () => {
 
   recorder.onstart = () => {
     isVoiceRecording.value = true
-    toast('正在录音，再点一次发送给诗人')
+    toast('正在录音，松开发送')
   }
 
   recorder.onerror = (event) => {
@@ -642,7 +681,7 @@ const initChatRecorderManager = () => {
 
   recorder.onStart(() => {
     isVoiceRecording.value = true
-    toast('正在录音，再点一次发送给诗人')
+    toast('正在录音，松开发送')
   })
 
   recorder.onStop(async (res) => {
@@ -696,13 +735,17 @@ const stopVoiceInput = () => {
   }
 }
 
-const toggleVoiceInput = async () => {
-  if (isRecognizingVoice.value || isReplying.value) return
-
+const switchInputMode = () => {
   if (isVoiceRecording.value) {
+    isVoicePressing.value = false
     stopVoiceInput()
-    return
   }
+
+  inputMode.value = inputMode.value === 'voice' ? 'text' : 'voice'
+}
+
+const startVoiceInput = async () => {
+  if (isRecognizingVoice.value || isReplying.value || isVoiceRecording.value) return
 
   const hasPermission = await requestChatRecordPermission()
 
@@ -731,16 +774,51 @@ const toggleVoiceInput = async () => {
 
     chatRecordStopTimer.value = setTimeout(() => {
       if (isVoiceRecording.value) {
+        isVoicePressing.value = false
         stopVoiceInput()
       }
     }, MAX_CHAT_RECORD_DURATION_MS)
   } catch (err) {
     clearChatRecordStopTimer()
     isVoiceRecording.value = false
+    isVoicePressing.value = false
     console.log('启动聊天录音失败：', err)
     toast('录音未启动')
   }
 }
+
+const handleVoicePressStart = async () => {
+  if (inputMode.value !== 'voice' || isVoicePressing.value || isVoiceRecording.value) return
+
+  isVoicePressing.value = true
+  await startVoiceInput()
+
+  if (!isVoicePressing.value && isVoiceRecording.value) {
+    stopVoiceInput()
+  }
+}
+
+const handleVoiceTouchStart = async () => {
+  lastVoiceTouchTime.value = Date.now()
+  await handleVoicePressStart()
+}
+
+const handleVoiceMouseStart = async () => {
+  if (Date.now() - lastVoiceTouchTime.value < 700) return
+  await handleVoicePressStart()
+}
+
+const handleVoicePressEnd = () => {
+  if (!isVoicePressing.value && !isVoiceRecording.value) return
+
+  isVoicePressing.value = false
+
+  if (isVoiceRecording.value) {
+    stopVoiceInput()
+  }
+}
+
+const handleVoiceLongPress = () => {}
 
 
 const sendMessage = async () => {
@@ -763,7 +841,8 @@ const sendMessage = async () => {
       dynasty: getPoetDynasty(),
       poem_title: poemData.value.title || '',
       poem_content: getPoemContentText(),
-      history: history.value
+      history: history.value,
+      age: childAge.value
     })
 
     if (res && res.success && res.reply) {
@@ -1180,7 +1259,7 @@ button::after {
   padding: 4px 2px 0;
 }
 
-.mic-btn,
+.mode-btn,
 .send-btn {
   width: 44px;
   height: 44px;
@@ -1189,18 +1268,59 @@ button::after {
   font-size: 20px;
   flex-shrink: 0;
   font-weight: 900;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  line-height: 1;
 }
 
-.mic-btn {
+.mode-btn {
   background: #eafff9;
   color: #2cbf9d;
   box-shadow: 0 5px 0 #b9eee0;
 }
 
-.mic-btn.recording {
+.mode-btn.recording {
   background: #ffe8e8;
   color: #ff4d4f;
   box-shadow: 0 5px 0 #ffc1c1;
+}
+
+.voice-hold-btn {
+  flex: 1;
+  min-width: 0;
+  height: 44px;
+  border: 0;
+  border-radius: 22px;
+  background: #f7f4ff;
+  color: #5b508d;
+  font-size: 15px;
+  font-weight: 950;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 14px;
+  box-shadow: inset 0 -2px 0 rgba(91, 80, 141, 0.08);
+  line-height: 1;
+  user-select: none;
+}
+
+.voice-hold-btn.recording {
+  background: #ffe8e8;
+  color: #ff4d4f;
+  box-shadow: inset 0 -2px 0 rgba(255, 77, 79, 0.12);
+}
+
+.voice-hold-btn.recognizing {
+  background: #fff7e9;
+  color: #ff914d;
+}
+
+.voice-hold-icon {
+  font-size: 18px;
+  line-height: 1;
 }
 
 .send-btn {

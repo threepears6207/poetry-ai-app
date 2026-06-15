@@ -58,6 +58,8 @@ https://threepears6207.github.io/poetry-ai-app/
 const BASE_URL = 'http://127.0.0.1:8000'
 ```
 
+uvicorn main:app --reload
+
 **联调顺序**
 1. VSCode 启动后端 FastAPI
 2. 浏览器访问 `http://127.0.0.1:8000/ping`

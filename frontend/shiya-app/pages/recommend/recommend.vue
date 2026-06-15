@@ -1,6 +1,6 @@
 <template>
   <view class="page-root">
-    <view class="recommend-app">
+    <view class="recommend-app" :style="appScaleStyle">
       <view class="page">
         <view class="topbar">
           <view class="back" @tap.stop="goHome">‹</view>
@@ -93,9 +93,46 @@
 </template>
 
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import { API, LOCAL_POEMS } from '@/utils/api.js'
+
+const DESIGN_WIDTH = 844
+const DESIGN_HEIGHT = 390
+const appScale = ref(1)
+
+const appScaleStyle = computed(() => `transform: scale(${appScale.value});`)
+
+const updateAppScale = () => {
+  try {
+    const systemInfo = uni.getSystemInfoSync()
+    const width = Number(systemInfo.windowWidth || systemInfo.screenWidth || DESIGN_WIDTH)
+    const height = Number(systemInfo.windowHeight || systemInfo.screenHeight || DESIGN_HEIGHT)
+    const nextScale = Math.min(width / DESIGN_WIDTH, height / DESIGN_HEIGHT)
+
+    appScale.value = nextScale > 0 ? Number(nextScale.toFixed(4)) : 1
+  } catch (err) {
+    appScale.value = 1
+  }
+}
+
+const handleAppResize = () => {
+  updateAppScale()
+}
+
+onMounted(() => {
+  updateAppScale()
+
+  if (typeof uni.onWindowResize === 'function') {
+    uni.onWindowResize(handleAppResize)
+  }
+})
+
+onUnmounted(() => {
+  if (typeof uni.offWindowResize === 'function') {
+    uni.offWindowResize(handleAppResize)
+  }
+})
 
 const currentPoemId = ref('poem_001')
 const activeFilter = ref('all')
@@ -273,8 +310,10 @@ button::after {
   position: relative;
   width: 844px;
   height: 390px;
-  max-width: 100vw;
-  max-height: 100vh;
+  max-width: none;
+  max-height: none;
+  transform-origin: center center;
+  will-change: transform;
   overflow: hidden;
   border-radius: 0;
   background:

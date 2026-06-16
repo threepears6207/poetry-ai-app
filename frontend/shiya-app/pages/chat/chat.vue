@@ -610,10 +610,6 @@ const submitVoiceToChat = async (audioBase64, audioFormat = 'mp3') => {
   isRecognizingVoice.value = true
 
   try {
-    uni.showLoading({
-      title: '正在识别...'
-    })
-
     const res = await API.speechToText(audioBase64, audioFormat)
     const text = String(res?.text || res?.data?.text || res?.recognized || '').trim()
 
@@ -622,12 +618,13 @@ const submitVoiceToChat = async (audioBase64, audioFormat = 'mp3') => {
     }
 
     userInput.value = text
+    // 新增这一行：识别出文字立刻取消“正在识别”状态
+    isRecognizingVoice.value = false
     await sendMessage()
   } catch (err) {
     console.log('聊天语音识别失败：', err)
     toast('语音识别失败，请重试')
   } finally {
-    uni.hideLoading()
     isRecognizingVoice.value = false
   }
 }

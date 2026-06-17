@@ -561,25 +561,75 @@ POETS_DIR.mkdir(parents=True, exist_ok=True)
 POETS_CACHE_FILE = STATIC_DIR / "poets_cache.json"
 
 POET_PROFILES = {
+    # ── 每个诗人三个字段 ──────────────────────────────────────────────────
+    # desc        : 外貌（年龄/性别/服装颜色/发型/体型），约60字
+    # personality : 神态气质，必须亲切温和、嘴角上扬，约40字
+    # signature   : 标志性物品/动作，让人一眼认出是此诗人，约30字
+    # ─────────────────────────────────────────────────────────────────────
     "李白": {
-        "desc": "约45岁，男性，身着白色宽袖道袍系青色腰带，腰间挂酒葫芦，黑色长发半披散用白色布带随意束起，面容英俊棱角分明，中等偏高身材体格健壮",
-        "personality": "豪迈不羁、浪漫飘逸，眼神飞扬自信带着几分醉意，嘴角上扬，姿态潇洒，气质如谪仙临世",
+        "desc": "约35岁，男性，身着白色宽袖道袍系青色腰带，黑色长发半披散用白色布带束于脑后，面容英俊眉眼飞扬，中等偏高身材",
+        "personality": "自信飘逸、豪迈爱笑，嘴角上扬带着潇洒笑意，眼神明亮充满冒险精神，昂首向上仿佛随时要吟诗",
+        "signature": "腰间挂一个写有【酒】字的小酒葫芦，右手举起指向天空，神气十足",
     },
     "杜甫": {
-        "desc": "约52岁，男性，身着深灰色粗布交领长衫系深棕色布腰带，黑发夹杂白丝以木簪束于头顶，面容清瘦沧桑，中等身材略显佝偻",
-        "personality": "忧国忧民、沉郁顿挫，双眉紧锁，眼神深沉悲悯，神情凝重，气质厚重如大地",
+        "desc": "约55岁，男性，身着深灰色粗布交领长衫系深棕色布腰带，黑发夹白丝以木簪束于头顶，面容清瘦但眼神慈祥温暖，中等身材",
+        "personality": "慈祥关怀、温柔亲切，眉头轻轻蹙起但眼神充满慈爱，嘴角带着温和微笑，像关心天下孩子的慈祥爷爷",
+        "signature": "右手握一支大毛笔，左手捧着展开的诗卷，认真记录百姓故事",
     },
     "苏轼": {
-        "desc": "约45岁，男性，身着深蓝色宽袖长衫系棕色腰带，头戴东坡巾，黑色短须，面容圆润丰满，体型略微丰腴，手持折扇",
-        "personality": "旷达乐观、幽默豁达，嘴角常带温和笑意，眼神睿智而温暖，举止从容洒脱",
+        "desc": "约45岁，男性，身着深蓝色宽袖长衫系棕色腰带，头戴黑色东坡巾，面容圆润丰满留黑色短须，体型略丰腴",
+        "personality": "乐观豁达、爱说笑话，满脸大笑眼睛弯成月牙，像一个爱吃美食爱说笑话的快乐大叔",
+        "signature": "右手持折扇半展开，左手叉腰，神情愉快仿佛刚想到了一句妙词",
     },
     "白居易": {
-        "desc": "约58岁，男性，身着素白交领长衫系棕色布腰带，头发灰白以木簪简单束起，面容慈祥圆润，中等身材略显发福，手持书卷",
-        "personality": "平易近人、温厚慈祥，眼神亲切温和，面带慈父般微笑，气质朴实无华",
+        "desc": "约60岁，男性，身着素白交领长衫系棕色布腰带，头发灰白以木簪束起，面容圆润慈祥，体型微胖",
+        "personality": "亲切平易、慈祥温暖，眼神柔和，嘴角带着爷爷般的温暖笑容，像爱给孩子讲故事的老爷爷",
+        "signature": "双手捧着一卷展开的竹简书卷，侧头微笑，像在朗读自己写的诗",
     },
     "王维": {
         "desc": "约40岁，男性，身着淡青色素雅交领长衫系米色腰带，黑色长发以竹簪整齐束于头顶，面容清秀白皙，中等身材清瘦",
-        "personality": "禅意淡泊、静谧悠远，眼神深邃平静，面带淡淡微笑，气质超然如入定的禅者",
+        "personality": "禅意宁静、温和淡泊，眼神平静深远带着淡淡微笑，像在竹林里打坐的温柔叔叔",
+        "signature": "身旁摆着一把古琴，右手轻轻抚摸琴弦，背景隐约有竹影",
+    },
+    "孟浩然": {
+        "desc": "约40岁，男性，身着素色亚麻交领长衫，黑色短发束髻，面容清秀带着田园气息，中等身材略显随性",
+        "personality": "淡泊自然、悠然自在，微笑望向远山，眼神清澈如山间溪水，像喜欢爬山看风景的自由叔叔",
+        "signature": "背着一个简单行囊，手持竹杖，斗笠挂于背后，仿佛刚从山间归来",
+    },
+    "骆宾王": {
+        "desc": "约7岁，男孩，身着淡黄色小童长衫系红色细腰带，黑色短发扎两个小圆髻，面容圆润可爱，小巧身材",
+        "personality": "天真聪慧、活泼好奇，眼睛大而明亮充满惊喜，嘴角挂着孩子般开心笑容",
+        "signature": "蹲在池塘边，小手指向水里的白鹅，眼睛睁得大大的充满惊喜",
+    },
+    "贺知章": {
+        "desc": "约80岁，男性，身着宽松淡绿色长衫，白色长须，白发以木簪随意束起，面容苍老但眼神童真活泼，体态圆胖",
+        "personality": "童心未泯、风趣可爱，眼神透着老顽童的调皮笑意，满脸皱纹都堆成笑脸，像超有趣的白胡子老爷爷",
+        "signature": "右手拄拐杖，左手摸着白胡子，歪头看着一棵绿柳树，眼神充满惊喜",
+    },
+    "李绅": {
+        "desc": "约35岁，男性，身着简朴灰色交领长衫，黑色发髻束于头顶，面容清瘦但眼神温厚，中等身材",
+        "personality": "悲悯善良、关心百姓，眉头轻蹙但眼神充满温柔关怀，嘴角带着忧愁而温暖的微笑",
+        "signature": "低头看向手中捧着的一碗白米饭，神情感慨而珍惜，仿佛在思念辛苦耕作的农民",
+    },
+    "王之涣": {
+        "desc": "约40岁，男性，身着深蓝色交领长衫系黑色腰带，黑色发髻束于头顶，面容英朗，体型挺拔高大",
+        "personality": "豪迈开阔、志向高远，目光眺望远方，嘴角带着自信微笑，像站在高楼上看黄河入海的勇敢叔叔",
+        "signature": "昂首挺胸双手背于身后，背景隐约有高楼远山剪影，英姿勃发",
+    },
+    "柳宗元": {
+        "desc": "约40岁，男性，身着深青色交领长衫，黑色发髻束起，面容清瘦但温和，中等身材清瘦",
+        "personality": "坚韧温和、孤独而不失温柔，眼神清澈带着淡淡微笑，像一个在雪中安静钓鱼的耐心叔叔",
+        "signature": "手持竹制鱼竿，坐于小舟或石头上，周围隐约有雪花飘落，神情宁静",
+    },
+    "杜牧": {
+        "desc": "约35岁，男性，身着浅红色交领长衫系深红腰带，黑色长发以玉簪束起，面容俊朗带笑，中等身材潇洒",
+        "personality": "风流洒脱、幽默风趣，眼神明亮带着促狭笑意，嘴角上扬，像一个爱出门游玩的帅气叔叔",
+        "signature": "手持一把红色折扇，侧身回头微笑，背景隐约有春雨和杏花",
+    },
+    "陶渊明": {
+        "desc": "约45岁，男性，身着朴素米色麻布长衫不系腰带，黑发略显蓬乱以布带松散束起，面容朴实带着满足笑容，中等身材",
+        "personality": "悠然自得、淡泊无忧，眼神宁静充满满足感，嘴角带着真诚开心的笑容，像一个爱种菜的快乐农夫爷爷",
+        "signature": "手捧一束刚采的菊花，身旁有篱笆和菜畦，神情怡然自乐",
     },
 }
 
@@ -605,7 +655,7 @@ def call_image_api_portrait(prompt: str) -> dict:
         "model": "Doubao-Seedream-4.5",
         "prompt": prompt,
         "parameters": {
-            "size": "1024x1280",   # 竖版 4:5，接近前端展示尺寸225×270（5:6），前端等比例缩小即可
+            "size": "1800x2160",   # 竖版 4:5，接近前端展示尺寸225×270（5:6），前端等比例缩小即可
         },
     }
 
@@ -628,6 +678,9 @@ def call_image_api_portrait(prompt: str) -> dict:
         return {"success": False, "error": "图像生成超时，请重试", "image_url": ""}
     except Exception as e:
         return {"success": False, "error": str(e), "image_url": ""}
+
+
+def load_poets_cache() -> dict:
     if POETS_CACHE_FILE.exists():
         try:
             with open(POETS_CACHE_FILE, "r", encoding="utf-8") as f:
@@ -645,47 +698,105 @@ def save_poets_cache(cache: dict) -> None:
         print(f"诗人缓存写入失败：{e}")
 
 
+def plan_poet_profile(poet_name: str, dynasty: str) -> dict:
+    """
+    POET_PROFILES 未收录的诗人：调用 LLM 生成儿童绘本人物档案。
+    失败时返回通用模板，保证流程不中断。
+    """
+    system_prompt = (
+        "你是一个中国传统儿童绘本的人物形象设计师。"
+        "你需要为古代诗人设计适合3-7岁儿童的卡通人物档案。"
+        "要求形象亲切可爱，让孩子一眼认出这是谁，"
+        "严格只输出JSON，不要任何其他文字或Markdown符号。"
+    )
+    user_prompt = (
+        f"请为{dynasty}代诗人【{poet_name}】设计一个儿童绘本人物档案。\n\n"
+        f"核心要求：\n"
+        f"1. 必须有能代表{poet_name}的标志性物品/动作，让孩子一眼认出是他而不是普通古人\n"
+        f"2. 表情必须亲切温和、嘴角上扬，绝对不能严肃、凶狠或恐怖\n"
+        f"3. 结合{poet_name}最著名的诗或典故设计形象\n\n"
+        f"只输出以下JSON，不要其他内容：\n"
+        f'{{"desc":"外貌：含①具体年龄②性别③服装颜色款式④发型⑤体型，不超过60字",'
+        f'"personality":"神态：含亲切温和表情和眼神描述，不超过40字",'
+        f'"signature":"标志性物品或动作，让人一眼认出是{poet_name}，不超过35字"}}'
+    )
+
+    url = "https://api-ai.vivo.com.cn/v1/chat/completions"
+    headers = {"Content-Type": "application/json", "Authorization": f"Bearer {VIVO_APP_KEY}"}
+    data = {
+        "requestId": str(uuid.uuid4()),
+        "model": "Volc-DeepSeek-V3.2",
+        "messages": [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt},
+        ],
+    }
+
+    try:
+        resp = requests.post(url, json=data, headers=headers, timeout=30)
+        content = resp.json()["choices"][0]["message"]["content"].strip()
+        content = re.sub(r"```json|```", "", content).strip()
+        profile = json.loads(content)
+        print(f"LLM 已为 {poet_name} 生成形象档案：{profile}")
+        return profile
+    except Exception as e:
+        print(f"LLM 为 {poet_name} 生成档案失败，使用通用模板：{e}")
+        return {
+            "desc": f"约40岁，男性，{dynasty}代文人交领长衫系素色腰带，黑色发髻束于头顶，面容温和有学者气质，中等身材",
+            "personality": "温文尔雅、亲切可亲，嘴角带着温和微笑，眼神充满智慧和慈爱",
+            "signature": "手持展开的书卷，侧头微笑，像一位博学的先生",
+        }
+
+
 def build_poet_avatar_prompt(poet_name: str, dynasty: str, profile: dict) -> str:
-    desc = profile.get("desc", f"约40岁，男性，{dynasty}代文人长衫，黑色发髻束于头顶，面容温和，中等身材")
-    personality = profile.get("personality", "温文尔雅，神态亲切，气质儒雅")
+    desc = profile.get("desc", f"约40岁，男性，{dynasty}代文人长衫，黑色发髻，面容温和，中等身材")
+    personality = profile.get("personality", "温文尔雅，嘴角带着温和微笑，眼神亲切")
+    signature = profile.get("signature", "手持书卷，神情专注")
     return (
         f"{dynasty}代著名诗人{poet_name}的人物肖像儿童插画，"
         f"人物外貌严格遵守：{desc}，"
         f"神态气质：{personality}，"
-        f"人物正面朝向观者，站立半身像，居于画面中央，"
-        f"背景简洁，以与诗人气质相符的淡色调渐变为主，不喧宾夺主，"
+        f"【必须出现的标志性特征，画面核心元素】：{signature}，"
+        f"【极其重要的表情要求】：表情必须亲切温和，嘴角上扬带温暖笑意，"
+        f"眼神充满智慧和慈爱，绝对禁止皱眉、严肃、生气或恐怖的表情，"
+        f"人物正面或3/4侧面朝向观者，半身像居于画面中央，"
+        f"背景简洁淡雅，与诗人气质相符的柔和渐变色，不喧宾夺主，"
         f"中国传统儿童绘本插画风格，水彩笔触，色彩柔和温润，"
-        f"人物造型圆润可爱但保留成人气质，线条细腻，"
-        f"整体氛围温暖亲切，国风古典美感，画面干净，无文字无水印"
+        f"人物造型圆润可爱同时保留成人气质，线条细腻，"
+        f"整体氛围温暖亲切，3-7岁儿童看了喜欢，国风古典美感，画面干净，无文字无水印"
     )
 
 
 @router.post("/generate/poet_avatar")
 def generate_poet_avatar(request: PoetAvatarRequest):
     """
-    生成诗人人物形象插画，进入诗词详情页时调用。
-    同一诗人只生成一次，之后命中缓存秒回。
+    生成诗人人物形象插画。
+    优先级：图片缓存 → 静态档案 → LLM规划档案 → 通用模板
+    同一诗人只生成一次图片，之后命中缓存秒回。
     """
     poet_name = request.poet_name.strip()
     if not poet_name:
         return {"success": False, "error": "poet_name 不能为空"}
 
     cache = load_poets_cache()
+
+    # ── 1. 图片缓存命中：直接返回 ────────────────────────────────────────
     if poet_name in cache:
-        print(f"{poet_name}诗人形象命中缓存，直接返回")
+        print(f"{poet_name} 诗人形象命中缓存，直接返回")
         cached = cache[poet_name]
         cached["from_cache"] = True
         return cached
 
-    profile = POET_PROFILES.get(
-        poet_name,
-        {
-            "desc": f"约40岁，男性，{request.dynasty}代文人长衫，黑色发髻束于头顶，面容温和有学问，中等身材",
-            "personality": "温文尔雅，神态亲切，气质儒雅",
-        }
-    )
+    # ── 2. 获取人物档案：静态库 → LLM规划（结果存入缓存供下次复用） ──────
+    if poet_name in POET_PROFILES:
+        profile = POET_PROFILES[poet_name]
+        print(f"{poet_name}：使用静态档案")
+    else:
+        print(f"{poet_name} 不在静态档案，调用 LLM 生成形象规划…")
+        profile = plan_poet_profile(poet_name, request.dynasty)
 
-    print(f"开始生成{poet_name}的诗人形象")
+    # ── 3. 生成图片 ───────────────────────────────────────────────────────
+    print(f"开始生成 {poet_name} 的诗人形象")
     prompt = build_poet_avatar_prompt(poet_name, request.dynasty, profile)
     print(f"Prompt：{prompt}")
 
@@ -699,20 +810,21 @@ def generate_poet_avatar(request: PoetAvatarRequest):
 
     if download_image(result["image_url"], local_path):
         avatar_url = local_url
-        print(f"{poet_name}形象已保存到本地：{local_url}")
+        print(f"{poet_name} 形象已保存到本地：{local_url}")
     else:
         avatar_url = result["image_url"]
 
+    # ── 4. 写缓存（同时保存 profile，强制重生时保持形象一致） ─────────────
     response_data = {
         "success": True,
         "from_cache": False,
         "poet_name": poet_name,
         "dynasty": request.dynasty,
         "avatar_url": avatar_url,
+        "profile": profile,          # 存档，下次强制重生可复用同一档案
     }
-
     cache[poet_name] = response_data
     save_poets_cache(cache)
-    print(f"{poet_name}诗人形象已写入缓存")
+    print(f"{poet_name} 诗人形象已写入缓存")
 
     return response_data

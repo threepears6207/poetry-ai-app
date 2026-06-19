@@ -106,7 +106,11 @@
                 v-for="poem in homeReviewPreview"
                 :key="poem.key"
                 class="review-poem-card"
-                :class="poem.passed ? 'done-card' : 'pending-card'"
+                :class="{
+                  'pending-card': poem.status === '待巩固',
+                  'consolidated-card': poem.status === '已巩固',
+                  'mastered-card': poem.status === '已掌握'
+                }"
               >
                 <view class="review-poem-icon-wrap">
                   <text class="review-poem-icon">{{ poem.icon }}</text>
@@ -116,9 +120,13 @@
                   <text class="review-poem-name">{{ poem.title }}</text>
                   <text
                     class="review-poem-status"
-                    :class="poem.passed ? 'done-text' : 'pending-text'"
+                    :class="{
+                      'pending-text': poem.status === '待巩固',
+                      'consolidated-text': poem.status === '已巩固',
+                      'mastered-text': poem.status === '已掌握'
+                    }"
                   >
-                    {{ poem.passed ? '已巩固' : '待巩固' }}
+                    {{ poem.status }}
                   </text>
                 </view>
               </view>
@@ -192,6 +200,7 @@
 
 <script setup>
 import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { onShow } from '@dcloudio/uni-app'
 import { API, LOCAL_POEMS, searchLocalPoems } from '@/utils/api.js'
 
 const DESIGN_WIDTH = 844
@@ -269,30 +278,59 @@ const extractArrayPayload = (payload) => {
   return candidates.find(item => Array.isArray(item)) || []
 }
 
-const normalizePassed = (payload, defaultValue = false) => {
-  const value = payload?.data?.status ?? payload?.data?.passed ?? payload?.status ?? payload?.passed ?? payload?.mastered ?? payload?.completed ?? payload?.is_passed ?? payload
+const normalizeConsolidationStatus = (payload, defaultStatus = '待巩固') => {
+  const data = payload?.data && !Array.isArray(payload.data) ? payload.data : payload
+  const rawStatus = data?.status ?? payload?.status
+  const practiceCount = Number(
+    data?.practice_count ??
+    data?.practiceCount ??
+    payload?.practice_count ??
+    payload?.practiceCount ??
+    0
+  )
 
-  if (typeof value === 'boolean') return value
-  if (typeof value === 'number') return value > 0
-
-  if (typeof value === 'string') {
+  if (typeof rawStatus === 'string') {
+    const value = rawStatus.trim()
     const lowerValue = value.toLowerCase()
 
+    if (value.includes('已掌握') || lowerValue.includes('mastered')) {
+      return '已掌握'
+    }
+
     if (
-      value.includes('已掌握') ||
-      value.includes('已通过') ||
       value.includes('已巩固') ||
-      value.includes('完成') ||
-      lowerValue.includes('passed') ||
-      lowerValue.includes('mastered') ||
-      lowerValue.includes('completed') ||
-      lowerValue.includes('done')
+      value.includes('已通过') ||
+      lowerValue.includes('consolidated') ||
+      lowerValue.includes('reviewed') ||
+      lowerValue.includes('passed')
     ) {
-      return true
+      return '已巩固'
+    }
+
+    if (
+      value.includes('待巩固') ||
+      value.includes('未学习') ||
+      value.includes('未巩固') ||
+      lowerValue.includes('pending') ||
+      lowerValue.includes('todo')
+    ) {
+      return '待巩固'
     }
   }
 
-  return defaultValue
+  if (practiceCount >= 3) return '已掌握'
+  if (practiceCount >= 1) return '已巩固'
+
+  if (data?.mastered === true || payload?.mastered === true) {
+    return '已掌握'
+  }
+
+  // 兼容旧接口中的 passed=true：只代表完成过一次巩固，不直接视为已掌握。
+  if (data?.passed === true || payload?.passed === true) {
+    return '已巩固'
+  }
+
+  return defaultStatus
 }
 
 const getLocalPoemByAnyId = (poemId = '') => {
@@ -318,14 +356,15 @@ const normalizeHomeReviewPoem = (rawItem = {}, index = 0) => {
     ...item
   }
 
-  const passed = normalizePassed(poem, false)
+  const status = normalizeConsolidationStatus(poem, '待巩固')
 
   return {
     key: poemId,
     poem_id: poemId,
     title: poem.title || poem.poem_title || poem.poemTitle || `古诗 ${index + 1}`,
     icon: poem.icon || POEM_ICONS[index % POEM_ICONS.length],
-    passed
+    status,
+    practice_count: Number(poem.practice_count || poem.practiceCount || 0)
   }
 }
 
@@ -336,7 +375,7 @@ const buildFallbackHomeReviewPoems = () => {
 const homeReviewPreview = computed(() => homeReviewPoems.value.slice(0, 2))
 
 const reviewLearningCount = computed(() => {
-  return homeReviewPoems.value.filter(item => !item.passed).length
+  return homeReviewPoems.value.filter(item => item.status === '待巩固').length
 })
 
 const loadHomeReviewPoems = async () => {
@@ -364,9 +403,12 @@ onMounted(() => {
   uni.setStorageSync(CHILD_AGE_TEXT_KEY, selectedAge.value)
   uni.setStorageSync(CHILD_AGE_KEY, getAgeNumber(selectedAge.value))
 
-  loadHomeReviewPoems()
 })
 
+onShow(() => {
+  // 从巩固页返回首页时重新拉取，避免首页继续显示旧状态。
+  loadHomeReviewPoems()
+})
 
 const chooseAge = (age) => {
   selectedAge.value = age
@@ -917,8 +959,12 @@ button::after {
   border: 2px dashed rgba(255, 142, 83, 0.4);
 }
 
-.done-card {
-  border: 2px solid rgba(102, 205, 170, 0.2);
+.consolidated-card {
+  border: 2px solid rgba(76, 164, 255, 0.22);
+}
+
+.mastered-card {
+  border: 2px solid rgba(102, 205, 170, 0.26);
 }
 
 .review-poem-icon-wrap {
@@ -956,8 +1002,12 @@ button::after {
   color: #ff8e53;
 }
 
-.done-text {
-  color: #66cdaa;
+.consolidated-text {
+  color: #4ca4ff;
+}
+
+.mastered-text {
+  color: #37b98d;
 }
 
 .more-card {

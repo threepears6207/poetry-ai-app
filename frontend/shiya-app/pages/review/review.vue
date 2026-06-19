@@ -38,7 +38,11 @@
                 >
                   <view
                     class="review-poem-icon"
-                    :class="poem.status === '已掌握' ? 'mastered-bg' : 'learning-bg'"
+                    :class="{
+                      'learning-bg': poem.status === '待巩固',
+                      'consolidated-bg': poem.status === '已巩固',
+                      'mastered-bg': poem.status === '已掌握'
+                    }"
                   >
                     {{ poem.icon }}
                   </view>
@@ -50,7 +54,11 @@
 
                   <view
                     class="review-poem-badge"
-                    :class="poem.status === '已掌握' ? 'badge-mastered' : 'badge-learning'"
+                    :class="{
+                      'badge-learning': poem.status === '待巩固',
+                      'badge-consolidated': poem.status === '已巩固',
+                      'badge-mastered': poem.status === '已掌握'
+                    }"
                   >
                     {{ poem.status }}
                   </view>
@@ -120,8 +128,8 @@
 
           <view class="read-right">
             <view class="score-card">
-              <view v-if="earnedStars > 0" class="score-value">
-                {{ earnedStars * 20 }} 分
+              <view v-if="currentScore !== null" class="score-value">
+                {{ currentScore }} 分
               </view>
 
               <view v-else class="score-empty">
@@ -129,7 +137,7 @@
               </view>
 
               <view class="stars">
-                <text v-for="i in 5" :key="i" class="star">
+                <text v-for="i in 3" :key="i" class="star">
                   {{ earnedStars > 0 && i <= earnedStars ? '🌟' : '⭐' }}
                 </text>
               </view>
@@ -273,6 +281,7 @@ const matchSuccess = ref(false)
 
 const activeReadLine = ref(0)
 const earnedStars = ref(0)
+const currentScore = ref(null)
 const isRecording = ref(false)
 const isReading = ref(false)
 const isScoring = ref(false)
@@ -403,40 +412,84 @@ const getAuthorText = (poem = {}) => {
   return dynasty ? `${dynasty} · ${author || '未知作者'}` : String(author)
 }
 
-const normalizePassed = (payload, defaultValue = false) => {
-  const value = payload?.data?.status ?? payload?.data?.passed ?? payload?.status ?? payload?.passed ?? payload?.mastered ?? payload?.completed ?? payload?.is_passed ?? payload
+const normalizeConsolidationStatus = (payload, defaultStatus = '待巩固') => {
+  const data = payload?.data && !Array.isArray(payload.data) ? payload.data : payload
+  const rawStatus = data?.status ?? payload?.status
+  const practiceCount = Number(
+    data?.practice_count ??
+    data?.practiceCount ??
+    payload?.practice_count ??
+    payload?.practiceCount ??
+    0
+  )
 
-  if (typeof value === 'boolean') return value
-
-  if (typeof value === 'number') return value > 0
-
-  if (typeof value === 'string') {
+  if (typeof rawStatus === 'string') {
+    const value = rawStatus.trim()
     const lowerValue = value.toLowerCase()
 
-    if (
-      value.includes('已掌握') ||
-      value.includes('已通过') ||
-      value.includes('完成') ||
-      lowerValue.includes('passed') ||
-      lowerValue.includes('mastered') ||
-      lowerValue.includes('completed') ||
-      lowerValue.includes('done')
-    ) {
-      return true
+    if (value.includes('已掌握') || lowerValue.includes('mastered')) {
+      return '已掌握'
     }
 
     if (
-      value.includes('待') ||
-      value.includes('未') ||
-      lowerValue.includes('learning') ||
+      value.includes('已巩固') ||
+      value.includes('已通过') ||
+      lowerValue.includes('consolidated') ||
+      lowerValue.includes('reviewed') ||
+      lowerValue.includes('passed')
+    ) {
+      return '已巩固'
+    }
+
+    if (
+      value.includes('待巩固') ||
+      value.includes('未学习') ||
+      value.includes('未巩固') ||
       lowerValue.includes('pending') ||
       lowerValue.includes('todo')
     ) {
-      return false
+      return '待巩固'
     }
   }
 
-  return defaultValue
+  if (practiceCount >= 3) return '已掌握'
+  if (practiceCount >= 1) return '已巩固'
+
+  if (data?.mastered === true || payload?.mastered === true) {
+    return '已掌握'
+  }
+
+  // 兼容旧接口中的 passed=true：只代表完成过一次巩固。
+  if (data?.passed === true || payload?.passed === true) {
+    return '已巩固'
+  }
+
+  return defaultStatus
+}
+
+const normalizeScoreValue = (payload = {}, stars = 0) => {
+  const rawScore = Number(payload?.score)
+
+  if (Number.isFinite(rawScore)) {
+    return Math.max(0, Math.min(100, Math.round(rawScore)))
+  }
+
+  const fallbackByStars = {
+    3: 100,
+    2: 80,
+    1: 60,
+    0: 0
+  }
+
+  return fallbackByStars[stars] ?? 0
+}
+
+const normalizeStarValue = (payload = {}) => {
+  const stars = Number(payload?.stars)
+
+  if (!Number.isFinite(stars)) return 0
+
+  return Math.max(0, Math.min(3, Math.round(stars)))
 }
 
 const normalizeReviewPoem = (rawItem = {}, index = 0) => {
@@ -460,7 +513,8 @@ const normalizeReviewPoem = (rawItem = {}, index = 0) => {
 
   const lines = extractPoemLines(poem)
   const pairs = normalizePairs(poem.pairs, lines)
-  const passed = normalizePassed(poem, false)
+  const status = normalizeConsolidationStatus(poem, '待巩固')
+  const practiceCount = Number(poem.practice_count || poem.practiceCount || 0)
 
   return {
     key: poemId,
@@ -469,8 +523,9 @@ const normalizeReviewPoem = (rawItem = {}, index = 0) => {
     author: getAuthorText(poem),
     dynasty: poem.dynasty || localPoem.dynasty || '',
     icon: poem.icon || POEM_ICONS[index % POEM_ICONS.length],
-    status: passed ? '已掌握' : '待巩固',
-    passed,
+    status,
+    passed: status === '已掌握',
+    practice_count: practiceCount,
     lines,
     pairs
   }
@@ -481,12 +536,22 @@ const buildFallbackReviewPoems = () => {
 }
 
 const mergePoemStatus = (poem = {}, statusPayload = {}) => {
-  const passed = normalizePassed(statusPayload, poem.passed)
+  const status = normalizeConsolidationStatus(statusPayload, poem.status || '待巩固')
+  const data = statusPayload?.data && !Array.isArray(statusPayload.data)
+    ? statusPayload.data
+    : statusPayload
+  const practiceCount = Number(
+    data?.practice_count ??
+    data?.practiceCount ??
+    poem.practice_count ??
+    0
+  )
 
   return {
     ...poem,
-    passed,
-    status: passed ? '已掌握' : '待巩固'
+    status,
+    passed: status === '已掌握',
+    practice_count: practiceCount
   }
 }
 
@@ -512,12 +577,13 @@ const rightPairs = computed(() => {
 
 const currentStats = computed(() => {
   const total = reviewPoems.value.length
-  const mastered = reviewPoems.value.filter(item => item.passed || item.status === '已掌握').length
+  const mastered = reviewPoems.value.filter(item => item.status === '已掌握').length
+  const pending = reviewPoems.value.filter(item => item.status === '待巩固').length
 
   return {
     total,
     mastered,
-    learning: Math.max(total - mastered, 0)
+    learning: pending
   }
 })
 
@@ -927,6 +993,7 @@ const backAction = () => {
 const resetReviewState = () => {
   activeReadLine.value = 0
   earnedStars.value = 0
+  currentScore.value = null
   completedReadLines.value = []
   isRecording.value = false
   isScoring.value = false
@@ -1084,7 +1151,6 @@ const moveToNextReadLine = () => {
 
   if (nextIndex < lines.length) {
     activeReadLine.value = nextIndex
-    earnedStars.value = 0
     readFeedback.value = `✅ 第 ${nextIndex} 句通过啦！请先听第 ${nextIndex + 1} 句范读，再录音跟读。`
     return
   }
@@ -1105,11 +1171,12 @@ const submitCurrentLineScore = async (tempFilePath) => {
 
   const audioBase64 = await fileToBase64(tempFilePath)
   const res = await API.scoreReading(audioBase64, line, 'mp3')
-  const stars = Number(res?.stars || 0)
-  const score = Number(res?.score || stars * 20 || 0)
-  const passed = Boolean(res?.passed)
+  const stars = normalizeStarValue(res)
+  const score = normalizeScoreValue(res, stars)
+  const passed = res?.passed === true || res?.passed === 1 || res?.passed === 'true'
 
   earnedStars.value = stars
+  currentScore.value = score
 
   if (passed) {
     if (!completedReadLines.value.includes(lineIndex)) {
@@ -1264,11 +1331,12 @@ const startBrowserRecording = async (lineIndex, line) => {
       const audioBase64 = await blobToBase64(audioBlob)
       const audioFormat = getAudioFormatFromMimeType(audioBlob.type)
       const res = await API.scoreReading(audioBase64, line, audioFormat)
-      const stars = Number(res?.stars || 0)
-      const score = Number(res?.score || stars * 20 || 0)
-      const passed = Boolean(res?.passed)
+      const stars = normalizeStarValue(res)
+      const score = normalizeScoreValue(res, stars)
+      const passed = res?.passed === true || res?.passed === 1 || res?.passed === 'true'
 
       earnedStars.value = stars
+      currentScore.value = score
 
       if (passed) {
         if (!completedReadLines.value.includes(lineIndex)) {
@@ -1424,6 +1492,7 @@ const recordReading = async () => {
   }
 
   earnedStars.value = 0
+  currentScore.value = null
   activeReadLine.value = lineIndex
   readFeedback.value = `🎙️ 正在请求麦克风权限，请允许后朗读第 ${lineIndex + 1} 句`
 
@@ -1516,15 +1585,19 @@ const submitConsolidationPassed = async () => {
   matchFeedback.value = '🎉 太棒了！正在保存巩固结果...'
 
   try {
-    await API.submitConsolidationResult(poem.poem_id, true)
+    const res = await API.submitConsolidationResult(poem.poem_id, true)
+    const updatedPoem = mergePoemStatus(poem, res)
 
     resultSubmitted.value = true
-    updateReviewPoem(poem.key, {
-      passed: true,
-      status: '已掌握'
-    })
+    updateReviewPoem(poem.key, updatedPoem)
 
-    matchFeedback.value = '🎉 太棒了！巩固结果已保存！'
+    if (res?.already_done_today) {
+      matchFeedback.value = res?.message || '今天已经巩固过了，按当前进度保存'
+    } else if (updatedPoem.status === '已掌握') {
+      matchFeedback.value = '🎉 太棒了！已经完成第 3 次巩固，成功掌握！'
+    } else {
+      matchFeedback.value = `🎉 第 ${updatedPoem.practice_count || 1} 次巩固完成，结果已保存！`
+    }
   } catch (err) {
     console.log('提交巩固结果失败：', err)
 
@@ -1585,6 +1658,7 @@ const backToMain = () => {
 
   activeReadLine.value = 0
   earnedStars.value = 0
+  currentScore.value = null
   completedReadLines.value = []
   isRecording.value = false
   isScoring.value = false
@@ -1776,6 +1850,10 @@ button::after {
   background: #e6fff7;
 }
 
+.consolidated-bg {
+  background: #eaf4ff;
+}
+
 .learning-bg {
   background: #fff4e6;
 }
@@ -1807,6 +1885,11 @@ button::after {
 .badge-mastered {
   background: #e6fff7;
   color: #2cbf9d;
+}
+
+.badge-consolidated {
+  background: #eaf4ff;
+  color: #4c9fe8;
 }
 
 .badge-learning {

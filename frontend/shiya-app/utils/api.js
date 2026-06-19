@@ -9,6 +9,7 @@ const BASE_URL = 'http://127.0.0.1:8000'
 // 手机真机联调时，不要用 127.0.0.1。
 // 要改成你电脑的局域网 IP，例如：
 //const BASE_URL = 'http://192.168.43.235:8000'
+//196.168.28.18
 
 export const DEFAULT_USER_ID = 'test_user'
 
@@ -535,14 +536,24 @@ export const API = {
   // POST /asr/score
   // -----------------------------------------------------
   scoreReading(audioBase64, poemContent = '', audioFormat = 'mp3') {
-    const pureBase64 = String(audioBase64 || '').replace(/^data:audio\/\w+;base64,/, '')
+    const pureBase64 = String(audioBase64 || '')
+      .replace(/^data:audio\/[^;]+;base64,/, '')
+      .replace(/^data:.*?;base64,/, '')
+
+    // 后端同时支持单句字符串和整首诗数组。
+    // 不再把数组强制 String()，避免丢失后端逐句评分能力。
+    const normalizedPoemContent = Array.isArray(poemContent)
+      ? poemContent
+          .map(line => String(line || '').trim())
+          .filter(Boolean)
+      : String(poemContent || '').trim()
 
     return request({
       url: '/asr/score',
       method: 'POST',
       data: {
         audio_base64: pureBase64,
-        poem_content: String(poemContent || '').replace(/[，,。；;！!？?\s]/g, ''),
+        poem_content: normalizedPoemContent,
         audio_format: audioFormat || 'mp3'
       },
       timeout: 120000

@@ -136,6 +136,29 @@ def get_next_interval_days(practice_count: int):
     return 7
 
 
+def get_display_status(item):
+    """
+    计算前端实际要显示的状态。
+
+    后端内部存的 status 只有三种："待巩固" / "已巩固" / "已掌握"。
+    "已巩固" 表示今天已经通过了练习，但还没练满3次；
+    一旦到了 next_review_date（该复习的日子），即使 status 还是"已巩固"，
+    展示层也要把它当成"待巩固"，提示孩子今天需要复习了。
+    """
+    status = item.get("status", "待巩固")
+    next_review_date = item.get("next_review_date", "")
+
+    if status == "已掌握":
+        return "已掌握"
+
+    if status == "已巩固" and not is_due_today(next_review_date):
+        # 巩固过，还没到下次复习时间，保持"已巩固"展示
+        return "已巩固"
+
+    # 从没巩固过，或者复习时间已经到了，都展示为"待巩固"
+    return "待巩固"
+
+
 @router.get("/consolidation/list")
 def get_consolidation_list(user_id: str = "test_user"):
     """
@@ -155,6 +178,7 @@ def get_consolidation_list(user_id: str = "test_user"):
         poem_id = item.get("poem_id")
         poem = poem_map.get(poem_id, {})
         next_review_date = item.get("next_review_date", "")
+        display_status = get_display_status(item)
 
         result.append({
             "id": item.get("id"),
@@ -164,7 +188,7 @@ def get_consolidation_list(user_id: str = "test_user"):
             "author": poem.get("author", ""),
             "dynasty": poem.get("dynasty", ""),
             "tags": poem.get("tags", []),
-            "status": item.get("status", "待巩固"),
+            "status": display_status,
             "practice_count": int(item.get("practice_count", 0) or 0),
             "next_review_date": next_review_date,
             "due_today": is_due_today(next_review_date),
@@ -214,6 +238,7 @@ def get_consolidation_status(poem_id: str, user_id: str = "test_user"):
         }
 
     next_review_date = item.get("next_review_date", "")
+    display_status = get_display_status(item)
 
     return {
         "success": True,
@@ -222,7 +247,7 @@ def get_consolidation_status(poem_id: str, user_id: str = "test_user"):
         "title": poem.get("title", "未知古诗"),
         "author": poem.get("author", ""),
         "dynasty": poem.get("dynasty", ""),
-        "status": item.get("status", "待巩固"),
+        "status": display_status,
         "practice_count": int(item.get("practice_count", 0) or 0),
         "next_review_date": next_review_date,
         "due_today": is_due_today(next_review_date),
@@ -236,10 +261,14 @@ def update_consolidation_result(result: ConsolidationResultIn):
     """
     前端做完跟读或连连看后提交结果。
 
+    今天如果还没到复习日期（已经巩固过了），不会重复累加练习次数，
+    直接返回当前状态，并带上 already_done_today 标记。
+
     passed = true:
     - 练习次数 +1
     - 按 1 天、3 天、7 天更新下次复习时间
-    - 练满 3 次后状态变为“已掌握”
+    - 没练满3次：状态变为"已巩固"
+    - 练满 3 次：状态变为"已掌握"
 
     passed = false:
     - 状态不变
@@ -257,6 +286,17 @@ def update_consolidation_result(result: ConsolidationResultIn):
         records = load_consolidations()
         item = find_consolidation(records, result.user_id, result.poem_id)
 
+    next_review_date = item.get("next_review_date", "")
+
+    # 今天还没到该巩固的日子，说明今天已经巩固过了，不重复累加进度
+    if not is_due_today(next_review_date):
+        return {
+            "success": True,
+            "message": "今天已经巩固过了，明天再来吧",
+            "data": item,
+            "already_done_today": True
+        }
+
     if result.passed:
         current_count = int(item.get("practice_count", 0) or 0)
         new_count = current_count + 1
@@ -267,7 +307,7 @@ def update_consolidation_result(result: ConsolidationResultIn):
             item["status"] = "已掌握"
             item["next_review_date"] = date_after_days(7)
         else:
-            item["status"] = "待巩固"
+            item["status"] = "已巩固"
             item["next_review_date"] = date_after_days(get_next_interval_days(new_count))
 
     else:

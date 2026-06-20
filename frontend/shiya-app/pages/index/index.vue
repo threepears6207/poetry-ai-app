@@ -131,8 +131,12 @@
                 </view>
               </view>
 
-              <view v-if="homeReviewPoems.length > 2" class="more-card">
+              <view v-if="homeDueReviewPoems.length > 2" class="more-card">
                 <text>···</text>
+              </view>
+
+              <view v-if="homeReviewPreview.length === 0" class="review-empty">
+                <text>{{ homeReviewEmptyText }}</text>
               </view>
             </view>
           </view>
@@ -289,6 +293,8 @@ const normalizeConsolidationStatus = (payload, defaultStatus = '待巩固') => {
     0
   )
 
+  // 优先相信后端展示状态。到复习日期时，后端可能会把“已巩固”
+  // 临时展示成“待巩固”，因此不能只按 practice_count 强行覆盖。
   if (typeof rawStatus === 'string') {
     const value = rawStatus.trim()
     const lowerValue = value.toLowerCase()
@@ -301,8 +307,7 @@ const normalizeConsolidationStatus = (payload, defaultStatus = '待巩固') => {
       value.includes('已巩固') ||
       value.includes('已通过') ||
       lowerValue.includes('consolidated') ||
-      lowerValue.includes('reviewed') ||
-      lowerValue.includes('passed')
+      lowerValue.includes('reviewed')
     ) {
       return '已巩固'
     }
@@ -310,14 +315,16 @@ const normalizeConsolidationStatus = (payload, defaultStatus = '待巩固') => {
     if (
       value.includes('待巩固') ||
       value.includes('未学习') ||
-      value.includes('未巩固') ||
+      value.includes('未掌握') ||
       lowerValue.includes('pending') ||
-      lowerValue.includes('todo')
+      lowerValue.includes('learning')
     ) {
       return '待巩固'
     }
   }
 
+  // 兼容后端未返回 status 的情况：
+  // 0 次待巩固，1～2 次已巩固，3 次及以上已掌握。
   if (practiceCount >= 3) return '已掌握'
   if (practiceCount >= 1) return '已巩固'
 
@@ -325,12 +332,25 @@ const normalizeConsolidationStatus = (payload, defaultStatus = '待巩固') => {
     return '已掌握'
   }
 
-  // 兼容旧接口中的 passed=true：只代表完成过一次巩固，不直接视为已掌握。
-  if (data?.passed === true || payload?.passed === true) {
-    return '已巩固'
+  return defaultStatus
+}
+
+const normalizeDueToday = (payload = {}) => {
+  const rawValue = payload?.due_today ?? payload?.dueToday
+
+  if (typeof rawValue === 'boolean') return rawValue
+  if (typeof rawValue === 'number') return rawValue > 0
+
+  if (typeof rawValue === 'string') {
+    const value = rawValue.trim().toLowerCase()
+
+    if (['true', '1', 'yes'].includes(value)) return true
+    if (['false', '0', 'no'].includes(value)) return false
   }
 
-  return defaultStatus
+  // 兼容后端暂未返回 due_today 的旧数据：
+  // 未掌握记录先展示，避免首页完全漏掉待复习内容。
+  return true
 }
 
 const getLocalPoemByAnyId = (poemId = '') => {
@@ -364,32 +384,87 @@ const normalizeHomeReviewPoem = (rawItem = {}, index = 0) => {
     title: poem.title || poem.poem_title || poem.poemTitle || `古诗 ${index + 1}`,
     icon: poem.icon || POEM_ICONS[index % POEM_ICONS.length],
     status,
-    practice_count: Number(poem.practice_count || poem.practiceCount || 0)
+    practice_count: Number(poem.practice_count || poem.practiceCount || 0),
+    next_review_date: poem.next_review_date || poem.nextReviewDate || '',
+    due_today: normalizeDueToday(poem)
   }
 }
 
-const buildFallbackHomeReviewPoems = () => {
-  return LOCAL_POEMS.slice(0, 3).map((poem, index) => normalizeHomeReviewPoem(poem, index))
-}
+const homeReviewSummary = ref({
+  total_count: 0,
+  pending_count: 0,
+  consolidated_count: 0,
+  mastered_count: 0,
+  due_today_count: 0
+})
 
-const homeReviewPreview = computed(() => homeReviewPoems.value.slice(0, 2))
+const homeDueReviewPoems = computed(() => {
+  return homeReviewPoems.value.filter(item => {
+    return item.status !== '已掌握' && item.due_today
+  })
+})
+
+const homeReviewPreview = computed(() => homeDueReviewPoems.value.slice(0, 2))
 
 const reviewLearningCount = computed(() => {
-  return homeReviewPoems.value.filter(item => item.status === '待巩固').length
+  const backendCount = Number(homeReviewSummary.value.due_today_count)
+
+  if (Number.isFinite(backendCount)) {
+    return backendCount
+  }
+
+  return homeDueReviewPoems.value.length
+})
+
+const homeReviewEmptyText = computed(() => {
+  if (homeReviewPoems.value.length === 0) {
+    return '学习完成后会出现在这里'
+  }
+
+  return '今天没有到期的巩固任务'
 })
 
 const loadHomeReviewPoems = async () => {
-  homeReviewPoems.value = buildFallbackHomeReviewPoems()
-
   try {
     const res = await API.getConsolidationList()
     const list = extractArrayPayload(res)
 
-    if (list.length) {
-      homeReviewPoems.value = list.map((item, index) => normalizeHomeReviewPoem(item, index))
+    // 只展示后端巩固记录。后端只会为点过“看完了”的已学习诗歌创建记录。
+    homeReviewPoems.value = list.map((item, index) => normalizeHomeReviewPoem(item, index))
+
+    const summary = res?.data && !Array.isArray(res.data) ? res.data : res
+
+    homeReviewSummary.value = {
+      total_count: Number(summary?.total_count ?? list.length),
+      pending_count: Number(
+        summary?.pending_count ??
+        homeReviewPoems.value.filter(item => item.status === '待巩固').length
+      ),
+      consolidated_count: Number(
+        summary?.consolidated_count ??
+        homeReviewPoems.value.filter(item => item.status === '已巩固').length
+      ),
+      mastered_count: Number(
+        summary?.mastered_count ??
+        homeReviewPoems.value.filter(item => item.status === '已掌握').length
+      ),
+      due_today_count: Number(
+        summary?.due_today_count ??
+        homeDueReviewPoems.value.length
+      )
     }
   } catch (err) {
-    console.log('首页巩固列表接口暂不可用，使用本地数据', err)
+    console.log('首页巩固列表接口加载失败', err)
+
+    // 不使用 LOCAL_POEMS 兜底，否则未学习诗歌会被误显示为巩固任务。
+    homeReviewPoems.value = []
+    homeReviewSummary.value = {
+      total_count: 0,
+      pending_count: 0,
+      consolidated_count: 0,
+      mastered_count: 0,
+      due_today_count: 0
+    }
   }
 }
 
@@ -960,7 +1035,7 @@ button::after {
 }
 
 .consolidated-card {
-  border: 2px solid rgba(76, 164, 255, 0.22);
+  border: 2px solid rgba(76, 164, 255, 0.24);
 }
 
 .mastered-card {
@@ -1003,11 +1078,27 @@ button::after {
 }
 
 .consolidated-text {
-  color: #4ca4ff;
+  color: #4c9fe8;
 }
 
 .mastered-text {
   color: #37b98d;
+}
+
+
+.review-empty {
+  flex: 1;
+  min-height: 54px;
+  border: 2px dashed rgba(255, 142, 83, 0.24);
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #a18f84;
+  font-size: 12px;
+  font-weight: 800;
+  text-align: center;
+  padding: 8px 12px;
 }
 
 .more-card {

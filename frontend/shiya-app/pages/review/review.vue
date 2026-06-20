@@ -26,7 +26,7 @@
               </view>
 
               <view v-else-if="!reviewPoems.length" class="list-message">
-                暂无需要巩固的古诗
+                暂无已学习的古诗，学习完成后会自动出现在这里
               </view>
 
               <block v-else>
@@ -157,7 +157,7 @@
               </button>
             </view>
 
-            <view class="read-feedback" :class="{ success: earnedStars > 0 }">
+            <view class="read-feedback" :class="{ success: lastScorePassed === true }">
               {{ readFeedback }}
             </view>
 
@@ -282,6 +282,7 @@ const matchSuccess = ref(false)
 const activeReadLine = ref(0)
 const earnedStars = ref(0)
 const currentScore = ref(null)
+const lastScorePassed = ref(null)
 const isRecording = ref(false)
 const isReading = ref(false)
 const isScoring = ref(false)
@@ -327,13 +328,25 @@ const extractArrayPayload = (payload) => {
 }
 
 const extractObjectPayload = (payload) => {
-  return payload?.data?.poem ||
-    payload?.data?.item ||
-    payload?.poem ||
-    payload?.item ||
-    payload?.data ||
-    payload ||
-    {}
+  const candidates = [
+    payload?.data?.poem,
+    payload?.data?.poem_info,
+    payload?.data?.item,
+    payload?.data?.data,
+    payload?.poem,
+    payload?.poem_info,
+    payload?.item,
+    Array.isArray(payload?.data) ? payload.data[0] : null,
+    Array.isArray(payload?.items) ? payload.items[0] : null,
+    Array.isArray(payload?.results) ? payload.results[0] : null,
+    Array.isArray(payload) ? payload[0] : null,
+    payload?.data,
+    payload
+  ]
+
+  return candidates.find(item => {
+    return item && typeof item === 'object' && !Array.isArray(item)
+  }) || {}
 }
 
 const splitPoemText = (text = '') => {
@@ -397,8 +410,19 @@ const normalizePairs = (pairs = [], lines = []) => {
   return buildPairsFromLines(lines)
 }
 
-const getLocalPoemByAnyId = (poemId = '') => {
-  return LOCAL_POEMS.find(item => item.id === poemId || item.poem_id === poemId) || null
+const getLocalPoemByAnyId = (poemId = '', title = '') => {
+  const normalizedId = String(poemId || '').trim()
+  const normalizedTitle = String(title || '').trim()
+
+  return LOCAL_POEMS.find(item => {
+    return (
+      String(item.id || item.poem_id || '').trim() === normalizedId ||
+      (
+        normalizedTitle &&
+        String(item.title || item.poem_title || '').trim() === normalizedTitle
+      )
+    )
+  }) || null
 }
 
 const getAuthorText = (poem = {}) => {
@@ -412,8 +436,25 @@ const getAuthorText = (poem = {}) => {
   return dynasty ? `${dynasty} · ${author || '未知作者'}` : String(author)
 }
 
+const normalizePassedFlag = (value, defaultValue = false) => {
+  if (typeof value === 'boolean') return value
+  if (typeof value === 'number') return value > 0
+
+  if (typeof value === 'string') {
+    const normalized = value.trim().toLowerCase()
+
+    if (['true', '1', 'yes', 'passed'].includes(normalized)) return true
+    if (['false', '0', 'no', 'failed'].includes(normalized)) return false
+  }
+
+  return defaultValue
+}
+
 const normalizeConsolidationStatus = (payload, defaultStatus = '待巩固') => {
-  const data = payload?.data && !Array.isArray(payload.data) ? payload.data : payload
+  const data = payload?.data && !Array.isArray(payload.data)
+    ? payload.data
+    : payload
+
   const rawStatus = data?.status ?? payload?.status
   const practiceCount = Number(
     data?.practice_count ??
@@ -423,6 +464,7 @@ const normalizeConsolidationStatus = (payload, defaultStatus = '待巩固') => {
     0
   )
 
+  // 后端状态优先，确保“到期后重新变为待巩固”的展示仍然有效。
   if (typeof rawStatus === 'string') {
     const value = rawStatus.trim()
     const lowerValue = value.toLowerCase()
@@ -435,8 +477,7 @@ const normalizeConsolidationStatus = (payload, defaultStatus = '待巩固') => {
       value.includes('已巩固') ||
       value.includes('已通过') ||
       lowerValue.includes('consolidated') ||
-      lowerValue.includes('reviewed') ||
-      lowerValue.includes('passed')
+      lowerValue.includes('reviewed')
     ) {
       return '已巩固'
     }
@@ -444,9 +485,9 @@ const normalizeConsolidationStatus = (payload, defaultStatus = '待巩固') => {
     if (
       value.includes('待巩固') ||
       value.includes('未学习') ||
-      value.includes('未巩固') ||
+      value.includes('未掌握') ||
       lowerValue.includes('pending') ||
-      lowerValue.includes('todo')
+      lowerValue.includes('learning')
     ) {
       return '待巩固'
     }
@@ -459,21 +500,17 @@ const normalizeConsolidationStatus = (payload, defaultStatus = '待巩固') => {
     return '已掌握'
   }
 
-  // 兼容旧接口中的 passed=true：只代表完成过一次巩固。
-  if (data?.passed === true || payload?.passed === true) {
-    return '已巩固'
-  }
-
   return defaultStatus
 }
 
 const normalizeScoreValue = (payload = {}, stars = 0) => {
-  const rawScore = Number(payload?.score)
+  const score = Number(payload?.score)
 
-  if (Number.isFinite(rawScore)) {
-    return Math.max(0, Math.min(100, Math.round(rawScore)))
+  if (Number.isFinite(score)) {
+    return Math.max(0, Math.min(100, Math.round(score)))
   }
 
+  // 仅用于旧接口没返回 score 时兜底，不再使用 stars * 20。
   const fallbackByStars = {
     3: 100,
     2: 80,
@@ -505,7 +542,10 @@ const normalizeReviewPoem = (rawItem = {}, index = 0) => {
     `poem_${String(index + 1).padStart(3, '0')}`
   )
 
-  const localPoem = getLocalPoemByAnyId(poemId) || {}
+  const localPoem = getLocalPoemByAnyId(
+    poemId,
+    item.title || item.poem_title || item.poemTitle || ''
+  ) || {}
   const poem = {
     ...localPoem,
     ...item
@@ -526,20 +566,22 @@ const normalizeReviewPoem = (rawItem = {}, index = 0) => {
     status,
     passed: status === '已掌握',
     practice_count: practiceCount,
+    next_review_date: poem.next_review_date || poem.nextReviewDate || '',
+    due_today: Boolean(poem.due_today ?? poem.dueToday ?? false),
     lines,
     pairs
   }
 }
 
-const buildFallbackReviewPoems = () => {
-  return LOCAL_POEMS.slice(0, 3).map((poem, index) => normalizeReviewPoem(poem, index))
-}
-
 const mergePoemStatus = (poem = {}, statusPayload = {}) => {
-  const status = normalizeConsolidationStatus(statusPayload, poem.status || '待巩固')
   const data = statusPayload?.data && !Array.isArray(statusPayload.data)
     ? statusPayload.data
     : statusPayload
+
+  const status = normalizeConsolidationStatus(
+    statusPayload,
+    poem.status || '待巩固'
+  )
   const practiceCount = Number(
     data?.practice_count ??
     data?.practiceCount ??
@@ -549,18 +591,38 @@ const mergePoemStatus = (poem = {}, statusPayload = {}) => {
 
   return {
     ...poem,
-    status,
     passed: status === '已掌握',
-    practice_count: practiceCount
+    status,
+    practice_count: practiceCount,
+    next_review_date: data?.next_review_date ?? poem.next_review_date ?? '',
+    due_today: Boolean(data?.due_today ?? poem.due_today ?? false)
   }
 }
 
-const reviewPoems = ref(buildFallbackReviewPoems())
+const EMPTY_REVIEW_POEM = {
+  key: '',
+  poem_id: '',
+  title: '',
+  author: '',
+  dynasty: '',
+  icon: '🌱',
+  status: '待巩固',
+  passed: false,
+  practice_count: 0,
+  next_review_date: '',
+  due_today: false,
+  lines: [],
+  pairs: []
+}
+
+// 巩固页只能展示 /consolidation/list 返回的已学习诗歌。
+// 接口失败时不再塞入本地演示诗歌，避免未学习诗歌出现在巩固页。
+const reviewPoems = ref([])
 
 const currentReviewPoem = computed(() => {
   return reviewPoems.value.find(item => item.key === currentReviewKey.value) ||
     reviewPoems.value[0] ||
-    buildFallbackReviewPoems()[0]
+    EMPTY_REVIEW_POEM
 })
 
 const currentPairs = computed(() => currentReviewPoem.value.pairs || [])
@@ -578,11 +640,13 @@ const rightPairs = computed(() => {
 const currentStats = computed(() => {
   const total = reviewPoems.value.length
   const mastered = reviewPoems.value.filter(item => item.status === '已掌握').length
+  const consolidated = reviewPoems.value.filter(item => item.status === '已巩固').length
   const pending = reviewPoems.value.filter(item => item.status === '待巩固').length
 
   return {
     total,
     mastered,
+    consolidated,
     learning: pending
   }
 })
@@ -612,75 +676,76 @@ const updateReviewPoem = (key, updater) => {
   })
 }
 
-const refreshPoemStatus = async (poemKey) => {
-  const poem = reviewPoems.value.find(item => item.key === poemKey)
+const hydrateSinglePoemDetail = async (poem, index = 0) => {
+  if (!poem?.poem_id) return poem
 
-  if (!poem || !poem.poem_id) return
+  // 完整本地诗库已经可以兜底；若当前对象有诗句，直接使用。
+  if ((poem.lines || []).length) {
+    return {
+      ...poem,
+      pairs: (poem.pairs || []).length
+        ? poem.pairs
+        : buildPairsFromLines(poem.lines)
+    }
+  }
 
   try {
-    const res = await API.getConsolidationStatus(poem.poem_id)
-    updateReviewPoem(poem.key, item => mergePoemStatus(item, res))
+    const detailRes = await API.getPoemDetail(poem.poem_id)
+    const detail = extractObjectPayload(detailRes)
+
+    const hydrated = normalizeReviewPoem(
+      {
+        ...poem,
+        ...detail,
+        poem_id: poem.poem_id
+      },
+      index
+    )
+
+    return {
+      ...hydrated,
+      passed: poem.passed,
+      status: poem.status,
+      practice_count: poem.practice_count,
+      next_review_date: poem.next_review_date,
+      due_today: poem.due_today
+    }
   } catch (err) {
-    console.log('查询巩固状态失败：', err)
+    console.log(`获取 ${poem.poem_id} 详情失败：`, err)
+
+    // 再按 ID/标题读取完整本地诗库，避免详情接口失败时诗句为空。
+    const localPoem = getLocalPoemByAnyId(poem.poem_id, poem.title)
+
+    if (!localPoem) return poem
+
+    const hydrated = normalizeReviewPoem(
+      {
+        ...poem,
+        ...localPoem,
+        poem_id: poem.poem_id
+      },
+      index
+    )
+
+    return {
+      ...hydrated,
+      passed: poem.passed,
+      status: poem.status,
+      practice_count: poem.practice_count,
+      next_review_date: poem.next_review_date,
+      due_today: poem.due_today
+    }
   }
 }
 
 const hydratePoemDetailsForList = async () => {
   if (!reviewPoems.value.length) return
 
-  const hydratedPoems = await Promise.all(
-    reviewPoems.value.map(async (poem, index) => {
-      if ((poem.lines || []).length && (poem.pairs || []).length) {
-        return poem
-      }
-
-      if (!poem.poem_id) return poem
-
-      try {
-        const detailRes = await API.getPoemDetail(poem.poem_id)
-        const detail = extractObjectPayload(detailRes)
-        const hydrated = normalizeReviewPoem(
-          {
-            ...poem,
-            ...detail,
-            poem_id: poem.poem_id
-          },
-          index
-        )
-
-        return {
-          ...hydrated,
-          passed: poem.passed,
-          status: poem.status
-        }
-      } catch (err) {
-        console.log(`获取 ${poem.poem_id} 详情失败：`, err)
-        return poem
-      }
+  reviewPoems.value = await Promise.all(
+    reviewPoems.value.map((poem, index) => {
+      return hydrateSinglePoemDetail(poem, index)
     })
   )
-
-  reviewPoems.value = hydratedPoems
-}
-
-const refreshStatusesForList = async () => {
-  if (!reviewPoems.value.length) return
-
-  const poemsWithStatus = await Promise.all(
-    reviewPoems.value.map(async (poem) => {
-      if (!poem.poem_id) return poem
-
-      try {
-        const res = await API.getConsolidationStatus(poem.poem_id)
-        return mergePoemStatus(poem, res)
-      } catch (err) {
-        console.log(`查询 ${poem.poem_id} 巩固状态失败：`, err)
-        return poem
-      }
-    })
-  )
-
-  reviewPoems.value = poemsWithStatus
 }
 
 const loadConsolidationList = async () => {
@@ -698,14 +763,12 @@ const loadConsolidationList = async () => {
     }
 
     await hydratePoemDetailsForList()
-    await refreshStatusesForList()
   } catch (err) {
     console.log('加载巩固列表失败：', err)
 
-    const fallbackPoems = buildFallbackReviewPoems()
-    reviewPoems.value = fallbackPoems
-    currentReviewKey.value = fallbackPoems[0]?.key || 'poem_001'
-    listError.value = '巩固接口暂不可用，当前显示本地演示数据'
+    reviewPoems.value = []
+    currentReviewKey.value = ''
+    listError.value = '巩固列表加载失败，请检查 /consolidation/list 接口'
   } finally {
     isLoadingList.value = false
   }
@@ -994,6 +1057,7 @@ const resetReviewState = () => {
   activeReadLine.value = 0
   earnedStars.value = 0
   currentScore.value = null
+  lastScorePassed.value = null
   completedReadLines.value = []
   isRecording.value = false
   isScoring.value = false
@@ -1007,14 +1071,32 @@ const resetReviewState = () => {
   resultSubmitted.value = false
 }
 
-const startReview = (key) => {
+const startReview = async (key) => {
   stopReadingAudio()
 
   currentReviewKey.value = key
   resetReviewState()
 
+  const poemIndex = reviewPoems.value.findIndex(item => item.key === key)
+  const selectedPoem = poemIndex >= 0 ? reviewPoems.value[poemIndex] : null
+
+  if (selectedPoem && !(selectedPoem.lines || []).length) {
+    const hydrated = await hydrateSinglePoemDetail(selectedPoem, poemIndex)
+
+    updateReviewPoem(key, hydrated)
+  }
+
+  const readyPoem = reviewPoems.value.find(item => item.key === key)
+
+  if (!readyPoem || !(readyPoem.lines || []).length) {
+    uni.showToast({
+      title: '诗句加载失败，请检查诗歌详情接口',
+      icon: 'none'
+    })
+    return
+  }
+
   reviewStep.value = 'read'
-  refreshPoemStatus(key)
 }
 
 const clearRecordStopTimer = () => {
@@ -1158,6 +1240,86 @@ const moveToNextReadLine = () => {
   readFeedback.value = '🎉 全部诗句都跟读通过啦！可以进入连连看啦！'
 }
 
+const submitConsolidationOutcome = async (passed) => {
+  if (resultSubmitted.value) {
+    return currentReviewPoem.value
+  }
+
+  const poem = currentReviewPoem.value
+
+  if (!poem?.poem_id) {
+    throw new Error('缺少 poem_id，无法提交巩固结果')
+  }
+
+  isSubmittingResult.value = true
+
+  try {
+    const res = await API.submitConsolidationResult({
+      poem_id: poem.poem_id,
+      passed
+    })
+
+    const updatedPoem = mergePoemStatus(poem, res)
+
+    updateReviewPoem(poem.key, updatedPoem)
+    resultSubmitted.value = true
+
+    return updatedPoem
+  } finally {
+    isSubmittingResult.value = false
+  }
+}
+
+const handleReadingScoreResult = async (res, lineIndex) => {
+  const stars = normalizeStarValue(res)
+  const score = normalizeScoreValue(res, stars)
+  const passed = normalizePassedFlag(res?.passed, score >= 70)
+
+  earnedStars.value = stars
+  currentScore.value = score
+  lastScorePassed.value = passed
+
+  if (!passed) {
+    // 单句评分未通过，不代表整次巩固失败：
+    // 1. 停留在当前句；
+    // 2. 不调用 /consolidation/result；
+    // 3. 不设置 resultSubmitted；
+    // 4. 允许孩子马上重新录这一句。
+    activeReadLine.value = lineIndex
+    readFeedback.value =
+      res?.message ||
+      `😅 第 ${lineIndex + 1} 句得了 ${score} 分，再读一次这一句吧！`
+
+    return false
+  }
+
+  if (!completedReadLines.value.includes(lineIndex)) {
+    completedReadLines.value = [...completedReadLines.value, lineIndex].sort((a, b) => a - b)
+  }
+
+  const lines = getReadingLines()
+  const allPassed = lines.length > 0 && completedReadLines.value.length >= lines.length
+
+  if (allPassed) {
+    try {
+      const updatedPoem = await submitConsolidationOutcome(true)
+      const count = Number(updatedPoem?.practice_count || 0)
+
+      readFeedback.value = updatedPoem?.status === '已掌握'
+        ? '🎉 全部诗句都通过啦！这是第 3 次巩固，已经掌握这首诗！'
+        : `🎉 全部诗句都通过啦！第 ${count || 1} 次巩固结果已保存，可以继续连连看。`
+    } catch (err) {
+      console.log('提交通过结果失败：', err)
+      readFeedback.value = '🎉 全部诗句都通过了，但巩固结果保存失败，请稍后重试。'
+    }
+
+    return true
+  }
+
+  moveToNextReadLine()
+  return true
+}
+
 const submitCurrentLineScore = async (tempFilePath) => {
   const lineIndex = getCurrentLineIndex()
   const line = getReadingLines()[lineIndex] || ''
@@ -1171,24 +1333,7 @@ const submitCurrentLineScore = async (tempFilePath) => {
 
   const audioBase64 = await fileToBase64(tempFilePath)
   const res = await API.scoreReading(audioBase64, line, 'mp3')
-  const stars = normalizeStarValue(res)
-  const score = normalizeScoreValue(res, stars)
-  const passed = res?.passed === true || res?.passed === 1 || res?.passed === 'true'
-
-  earnedStars.value = stars
-  currentScore.value = score
-
-  if (passed) {
-    if (!completedReadLines.value.includes(lineIndex)) {
-      completedReadLines.value = [...completedReadLines.value, lineIndex].sort((a, b) => a - b)
-    }
-
-    moveToNextReadLine()
-    return
-  }
-
-  activeReadLine.value = lineIndex
-  readFeedback.value = res?.message || `😅 第 ${lineIndex + 1} 句得了 ${score} 分，再听一遍范读后重新录音吧！`
+  await handleReadingScoreResult(res, lineIndex)
 }
 
 const requestRecordPermission = () => {
@@ -1331,23 +1476,7 @@ const startBrowserRecording = async (lineIndex, line) => {
       const audioBase64 = await blobToBase64(audioBlob)
       const audioFormat = getAudioFormatFromMimeType(audioBlob.type)
       const res = await API.scoreReading(audioBase64, line, audioFormat)
-      const stars = normalizeStarValue(res)
-      const score = normalizeScoreValue(res, stars)
-      const passed = res?.passed === true || res?.passed === 1 || res?.passed === 'true'
-
-      earnedStars.value = stars
-      currentScore.value = score
-
-      if (passed) {
-        if (!completedReadLines.value.includes(lineIndex)) {
-          completedReadLines.value = [...completedReadLines.value, lineIndex].sort((a, b) => a - b)
-        }
-
-        moveToNextReadLine()
-      } else {
-        activeReadLine.value = lineIndex
-        readFeedback.value = res?.message || `😅 第 ${lineIndex + 1} 句得了 ${score} 分，再听一遍范读后重新录音吧！`
-      }
+      await handleReadingScoreResult(res, lineIndex)
     } catch (err) {
       console.log('浏览器当前句跟读评分失败：', err)
       activeReadLine.value = lineIndex
@@ -1493,6 +1622,7 @@ const recordReading = async () => {
 
   earnedStars.value = 0
   currentScore.value = null
+  lastScorePassed.value = null
   activeReadLine.value = lineIndex
   readFeedback.value = `🎙️ 正在请求麦克风权限，请允许后朗读第 ${lineIndex + 1} 句`
 
@@ -1575,40 +1705,27 @@ const selectLeft = (id) => {
 }
 
 const submitConsolidationPassed = async () => {
-  if (isSubmittingResult.value || resultSubmitted.value) return
-
-  const poem = currentReviewPoem.value
-
-  if (!poem || !poem.poem_id) return
-
-  isSubmittingResult.value = true
-  matchFeedback.value = '🎉 太棒了！正在保存巩固结果...'
+  // 正常情况下，跟读全部通过时已经按 ASR 的 passed 结论提交过一次。
+  // 这里仅做异常兜底，避免连连看再次累计练习次数。
+  if (resultSubmitted.value) {
+    matchFeedback.value = '🎉 连连看完成！巩固结果已经保存啦！'
+    return
+  }
 
   try {
-    const res = await API.submitConsolidationResult(poem.poem_id, true)
-    const updatedPoem = mergePoemStatus(poem, res)
+    const updatedPoem = await submitConsolidationOutcome(true)
 
-    resultSubmitted.value = true
-    updateReviewPoem(poem.key, updatedPoem)
-
-    if (res?.already_done_today) {
-      matchFeedback.value = res?.message || '今天已经巩固过了，按当前进度保存'
-    } else if (updatedPoem.status === '已掌握') {
-      matchFeedback.value = '🎉 太棒了！已经完成第 3 次巩固，成功掌握！'
-    } else {
-      matchFeedback.value = `🎉 第 ${updatedPoem.practice_count || 1} 次巩固完成，结果已保存！`
-    }
+    matchFeedback.value = updatedPoem?.status === '已掌握'
+      ? '🎉 连连看完成！这首诗已经掌握啦！'
+      : '🎉 连连看完成！巩固结果已保存！'
   } catch (err) {
     console.log('提交巩固结果失败：', err)
-
     matchFeedback.value = '🎉 练习已完成，但巩固结果保存失败，请稍后再试'
 
     uni.showToast({
       title: '结果保存失败',
       icon: 'none'
     })
-  } finally {
-    isSubmittingResult.value = false
   }
 }
 
@@ -1659,6 +1776,7 @@ const backToMain = () => {
   activeReadLine.value = 0
   earnedStars.value = 0
   currentScore.value = null
+  lastScorePassed.value = null
   completedReadLines.value = []
   isRecording.value = false
   isScoring.value = false

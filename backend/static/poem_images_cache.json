@@ -389,5 +389,49 @@
     ],
     "errors": [],
     "from_cache": false
+  },
+  "poem_015": {
+    "success": true,
+    "poem_title": "绝句",
+    "has_character": false,
+    "character_desc": "",
+    "recurring_elements": "",
+    "total_lines": 4,
+    "frames": [
+      {
+        "index": 0,
+        "line": "迟日江山丽",
+        "scene": "远景。阳光明媚，天空高远。画面中央是平静宽阔的江水，远处是连绵起伏、被春日阳光染上柔和色彩的秀丽山峦。色调温暖明亮。",
+        "shot_type": "远景",
+        "image_url": "/static/images/poems/poem_015/frame_0.jpg",
+        "duration_ms": 3000
+      },
+      {
+        "index": 1,
+        "line": "春风花草香",
+        "scene": "中景。镜头拉近至江岸。几缕柔和的春风吹过，岸边的绿草随风轻轻摇曳，几丛野花（如黄色蒲公英、紫色地丁）微微晃动。画面仿佛能感受到风的流动和花草的清新气息。",
+        "shot_type": "中景",
+        "image_url": "/static/images/poems/poem_015/frame_1.jpg",
+        "duration_ms": 3000
+      },
+      {
+        "index": 2,
+        "line": "泥融飞燕子",
+        "scene": "近景。镜头聚焦在江岸湿润松软的泥土上。两只黑色的燕子低空掠过泥土上方，翅膀展开，姿态轻盈灵动，正准备衔泥筑巢。",
+        "shot_type": "近景",
+        "image_url": "/static/images/poems/poem_015/frame_2.jpg",
+        "duration_ms": 3000
+      },
+      {
+        "index": 3,
+        "line": "沙暖睡鸳鸯",
+        "scene": "中景。镜头转向江心一处被阳光晒得暖洋洋的浅色沙洲。一对色彩斑斓的鸳鸯依偎在沙洲上，闭着眼睛，头部微微靠在一起，正在安详地睡觉，神态十分惬意。",
+        "shot_type": "中景",
+        "image_url": "/static/images/poems/poem_015/frame_3.jpg",
+        "duration_ms": 3000
+      }
+    ],
+    "errors": [],
+    "from_cache": false
   }
 }

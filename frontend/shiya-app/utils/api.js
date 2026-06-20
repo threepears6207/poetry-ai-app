@@ -9,7 +9,6 @@ const BASE_URL = 'http://127.0.0.1:8000'
 // 手机真机联调时，不要用 127.0.0.1。
 // 要改成你电脑的局域网 IP，例如：
 //const BASE_URL = 'http://192.168.43.235:8000'
-//196.168.28.18
 
 export const DEFAULT_USER_ID = 'test_user'
 
@@ -441,7 +440,7 @@ export const API = {
     }
 
     const requestPromise = request({
-      url: '/generate/peot_avatar',
+      url: '/generate/poet_avatar',
       method: 'POST',
       data: {
         poet_name: poetName,
@@ -497,7 +496,18 @@ export const API = {
           passed
         }
 
-    const hasPassed = Object.prototype.hasOwnProperty.call(data, 'passed')
+    const rawPassed = Object.prototype.hasOwnProperty.call(data, 'passed')
+      ? data.passed
+      : passed
+
+    // 只提交后端需要的三个字段，不传分数。
+    // 避免 Boolean('false') 被错误转换成 true。
+    const normalizedPassed = (
+      rawPassed === true ||
+      rawPassed === 1 ||
+      rawPassed === '1' ||
+      String(rawPassed).toLowerCase() === 'true'
+    )
 
     return request({
       url: '/consolidation/result',
@@ -505,7 +515,7 @@ export const API = {
       data: {
         poem_id: data.poem_id || data.poemId || data.id || '',
         user_id: data.user_id || data.userId || userId || DEFAULT_USER_ID,
-        passed: hasPassed ? Boolean(data.passed) : true
+        passed: normalizedPassed
       }
     })
   },
@@ -517,7 +527,9 @@ export const API = {
   // 用于“和诗人聊天”的语音输入
   // -----------------------------------------------------
   speechToText(audioBase64, audioFormat = 'mp3') {
-    const pureBase64 = String(audioBase64 || '').replace(/^data:audio\/\w+;base64,/, '')
+    const pureBase64 = String(audioBase64 || '')
+      .replace(/^data:audio\/[^;]+;base64,/, '')
+      .replace(/^data:.*?;base64,/, '')
 
     return request({
       url: '/asr',
@@ -536,24 +548,14 @@ export const API = {
   // POST /asr/score
   // -----------------------------------------------------
   scoreReading(audioBase64, poemContent = '', audioFormat = 'mp3') {
-    const pureBase64 = String(audioBase64 || '')
-      .replace(/^data:audio\/[^;]+;base64,/, '')
-      .replace(/^data:.*?;base64,/, '')
-
-    // 后端同时支持单句字符串和整首诗数组。
-    // 不再把数组强制 String()，避免丢失后端逐句评分能力。
-    const normalizedPoemContent = Array.isArray(poemContent)
-      ? poemContent
-          .map(line => String(line || '').trim())
-          .filter(Boolean)
-      : String(poemContent || '').trim()
+    const pureBase64 = String(audioBase64 || '').replace(/^data:audio\/\w+;base64,/, '')
 
     return request({
       url: '/asr/score',
       method: 'POST',
       data: {
         audio_base64: pureBase64,
-        poem_content: normalizedPoemContent,
+        poem_content: String(poemContent || '').replace(/[，,。；;！!？?\s]/g, ''),
         audio_format: audioFormat || 'mp3'
       },
       timeout: 120000

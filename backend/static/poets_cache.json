@@ -19,5 +19,17 @@
     "poet_name": "孟浩然",
     "dynasty": "唐",
     "avatar_url": "/static/images/poets/孟浩然.jpg"
+  },
+  "王维": {
+    "success": true,
+    "from_cache": false,
+    "poet_name": "王维",
+    "dynasty": "唐",
+    "avatar_url": "/static/images/poets/王维.jpg",
+    "profile": {
+      "desc": "约40岁，男性，身着淡青色素雅交领长衫系米色腰带，黑色长发以竹簪整齐束于头顶，面容清秀白皙，中等身材清瘦",
+      "personality": "禅意宁静、温和淡泊，眼神平静深远带着淡淡微笑，像在竹林里打坐的温柔叔叔",
+      "signature": "身旁摆着一把古琴，右手轻轻抚摸琴弦，背景隐约有竹影"
+    }
   }
 }

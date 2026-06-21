@@ -1,48 +1,4 @@
 {
-  "poem_001": {
-    "success": true,
-    "poem_title": "春晓",
-    "has_character": true,
-    "character_desc": "① 年龄约30岁 ② 男性 ③ 身着浅青色交领宽袖长袍，系深蓝色腰带 ④ 头发束成发髻，以木簪固定 ⑤ 体型清瘦，文人气质",
-    "recurring_elements": "一张简单的木质床榻，无帐幔。一扇打开的木质窗棂。",
-    "total_lines": 4,
-    "frames": [
-      {
-        "index": 0,
-        "line": "春眠不觉晓",
-        "scene": "中景。人物在床榻上，刚睁开惺忪睡眼，双手自然放在身侧被褥上。晨光从窗外斜照进来，照亮室内一角。",
-        "shot_type": "中景",
-        "image_url": "/static/images/poems/poem_001/frame_0.jpg",
-        "duration_ms": 3000
-      },
-      {
-        "index": 1,
-        "line": "处处闻啼鸟",
-        "scene": "近景。人物已坐起，身体微微转向窗户方向，双手轻按在床沿，侧耳倾听。窗外传来几只小鸟的剪影和声音符号“啾啾”。",
-        "shot_type": "近景",
-        "image_url": "/static/images/poems/poem_001/frame_1.jpg",
-        "duration_ms": 3000
-      },
-      {
-        "index": 2,
-        "line": "夜来风雨声",
-        "scene": "近景。人物保持坐姿，眼神放空，头部旁飘出一个白色半透明气泡，气泡内画有窗外树枝在风雨中摇曳的模糊动态线条。",
-        "shot_type": "近景",
-        "image_url": "/static/images/poems/poem_001/frame_2.jpg",
-        "duration_ms": 3000
-      },
-      {
-        "index": 3,
-        "line": "花落知多少",
-        "scene": "主观视角。从人物视角看向窗外，庭院地面上散落着一些粉色和白色的花瓣，色调偏冷。人物自身不出现在画面中。",
-        "shot_type": "主观视角",
-        "image_url": "/static/images/poems/poem_001/frame_3.jpg",
-        "duration_ms": 3000
-      }
-    ],
-    "errors": [],
-    "from_cache": false
-  },
   "poem_002": {
     "success": true,
     "poem_title": "静夜思",
@@ -160,7 +116,7 @@
         "line": "谁知盘中餐",
         "scene": "中景。画面从农田场景平滑过渡，一个盛满白米饭的碗（或盘子）叠化出现在画面中央，仿佛从农民劳作的汗水联想而来。背景虚化，色调依然保持暖黄。农民本人不再直接出现，但通过场景的延续暗示联想。",
         "shot_type": "中景",
-        "image_url": "/static/images/poems/poem_004/frame_2",
+        "image_url": "/static/images/poems/poem_004/frame_2.jpg",
         "duration_ms": 3000
       },
       {
@@ -219,50 +175,6 @@
     "errors": [],
     "from_cache": false
   },
-  "poem_006": {
-    "success": true,
-    "poem_title": "望庐山瀑布",
-    "has_character": true,
-    "character_desc": "① 年龄：40岁（中年） ② 性别：男 ③ 服装：白色宽袖长袍，外罩浅青色对襟半臂，腰系深色宽带 ④ 发型：束发戴黑色幞头 ⑤ 体型：中等身材，略显清瘦，姿态挺拔",
-    "recurring_elements": "",
-    "total_lines": 4,
-    "frames": [
-      {
-        "index": 0,
-        "line": "日照香炉生紫烟",
-        "scene": "远景。诗人（李白）站在画面左侧的山坡上，双手自然垂于身侧，面向右前方。画面主体是远处被阳光照射、云雾缭绕的香炉峰，峰顶有淡紫色雾气升腾。",
-        "shot_type": "远景",
-        "image_url": "/static/images/poems/poem_006/frame_0.jpg",
-        "duration_ms": 3000
-      },
-      {
-        "index": 1,
-        "line": "遥看瀑布挂前川",
-        "scene": "中景。诗人仍站在山坡上，身体微微转向，右手抬起，手指向前方瀑布方向。视线沿着他的指向，画面中景是壮观的白色瀑布从两山之间倾泻而下，如白练挂于山前。",
-        "shot_type": "中景",
-        "image_url": "/static/images/poems/poem_006/frame_1.jpg",
-        "duration_ms": 3000
-      },
-      {
-        "index": 2,
-        "line": "飞流直下三千尺",
-        "scene": "近景。镜头拉近，聚焦诗人上半身。他仰头望向高处，双手微微张开，眼神充满惊叹。画面色调明亮，背景是模糊的、极具纵深感的高耸山崖和飞泻的瀑布水流，强化“直下”的动感与高度。",
-        "shot_type": "近景",
-        "image_url": "/static/images/poems/poem_006/frame_2.jpg",
-        "duration_ms": 3000
-      },
-      {
-        "index": 3,
-        "line": "疑是银河落九天",
-        "scene": "主观视角。画面不出现诗人自身。从诗人所在位置看出去，瀑布水流在阳光下泛着耀眼的银白色光芒，奔流不息，气势恢宏，如同天上的星河坠落。画面右上角飘出一个小的白色感叹号“！”。",
-        "shot_type": "主观视角",
-        "image_url": "/static/images/poems/poem_006/frame_3.jpg",
-        "duration_ms": 3000
-      }
-    ],
-    "errors": [],
-    "from_cache": false
-  },
   "poem_008": {
     "success": true,
     "poem_title": "早发白帝城",
@@ -286,60 +198,21 @@
         "shot_type": "中景",
         "image_url": "/static/images/poems/poem_008/frame_1.jpg",
         "duration_ms": 3000
-      }
-    ],
-    "errors": [
+      },
       {
         "index": 2,
         "line": "两岸猿声啼不住",
-        "error": "Rate limit exceeded for model Doubao-Seedream-4.5"
+        "scene": "两岸猿声啼不住",
+        "shot_type": "中景",
+        "image_url": "/static/images/poems/poem_008/frame_2.jpg",
+        "duration_ms": 3000
       },
       {
         "index": 3,
         "line": "轻舟已过万重山",
-        "error": "Rate limit exceeded for model Doubao-Seedream-4.5"
-      }
-    ],
-    "from_cache": false
-  },
-  "poem_007": {
-    "success": true,
-    "poem_title": "赠汪伦",
-    "has_character": true,
-    "character_desc": "① 年龄：约40岁（李白此时约中年）② 性别：男 ③ 服装：白色交领宽袖长袍，外罩淡青色半臂，腰系深色布带 ④ 发型：头戴黑色幞头，蓄有胡须 ⑤ 体型：中等身材，文人气质，略显清瘦。",
-    "recurring_elements": "",
-    "total_lines": 4,
-    "frames": [
-      {
-        "index": 0,
-        "line": "李白乘舟将欲行",
-        "scene": "中景。李白站在小船的船头，双手自然垂在身侧，船夫在船尾撑篙。小船微微晃动，准备离岸。岸边有几株桃树，远处是青山。色调明快。",
+        "scene": "轻舟已过万重山",
         "shot_type": "中景",
-        "image_url": "/static/images/poems/poem_007/frame_0.jpg",
-        "duration_ms": 3000
-      },
-      {
-        "index": 1,
-        "line": "忽闻岸上踏歌声",
-        "scene": "远景。李白在船上，身体转向岸边，右手抬起作倾听状。岸上，汪伦（身着褐色长袍）正一边用脚有节奏地踏地，一边挥手唱歌。人物（李白）高度小于画面10%。",
-        "shot_type": "远景",
-        "image_url": "/static/images/poems/poem_007/frame_1.jpg",
-        "duration_ms": 3000
-      },
-      {
-        "index": 2,
-        "line": "桃花潭水深千尺",
-        "scene": "主观视角（李白）。画面从船上望向水面，青绿色的潭水深邃平静，倒映着天空和岸边的桃树。水面上方飘着一个巨大的白色感叹号“！”，表示李白内心的惊叹。",
-        "shot_type": "主观视角",
-        "image_url": "/static/images/poems/poem_007/frame_2.jpg",
-        "duration_ms": 3000
-      },
-      {
-        "index": 3,
-        "line": "不及汪伦送我情",
-        "scene": "近景。李白站在船头，双手交叠置于胸前，嘴角上扬，眼神明亮而感动。他的视线望向岸边的汪伦。画面色调温暖，有几片桃花花瓣飘过。",
-        "shot_type": "近景",
-        "image_url": "/static/images/poems/poem_007/frame_3.jpg",
+        "image_url": "/static/images/poems/poem_008/frame_3.jpg",
         "duration_ms": 3000
       }
     ],
@@ -390,44 +263,176 @@
     "errors": [],
     "from_cache": false
   },
-  "poem_015": {
+  "poem_001": {
     "success": true,
-    "poem_title": "绝句",
-    "has_character": false,
-    "character_desc": "",
+    "poem_title": "春晓",
+    "has_character": true,
+    "character_desc": "①年龄：约25-30岁 ②性别：男 ③服装：淡青色或浅褐色交领右衽宽袖长袍，内着白色中衣 ④发型：黑色长发束于头顶，以简单发簪固定 ⑤体型：清瘦，文人气质",
+    "recurring_elements": "一张简单的木质床榻，床上有素色被褥；房间内有一扇木格窗，窗外可见树木一角。",
+    "total_lines": 4,
+    "frames": [
+      {
+        "index": 0,
+        "line": "春眠不觉晓",
+        "scene": "中景。人物在床上侧卧沉睡，被褥盖到胸口，一只手放在身侧，一只手自然搭在腹部。窗外天色微亮，透进柔和的光线。",
+        "shot_type": "中景",
+        "image_url": "/static/images/poems/poem_001/frame_0.jpg",
+        "duration_ms": 3000
+      },
+      {
+        "index": 1,
+        "line": "处处闻啼鸟",
+        "scene": "近景。人物已从床上坐起，身体微微前倾，一只手撑在床沿，一只手轻放在膝上，侧耳倾听，表情专注。窗外传来清脆的鸟鸣声。",
+        "shot_type": "近景",
+        "image_url": "/static/images/poems/poem_001/frame_1.jpg",
+        "duration_ms": 3000
+      },
+      {
+        "index": 2,
+        "line": "夜来风雨声",
+        "scene": "近景。人物已下床站在窗边，一只手扶着窗框，另一只手自然垂放。他微微低头，眼神飘向下方，表情若有所思。头部旁飘出一个白色半透明云朵气泡，气泡内画着风雨中摇曳的树枝。",
+        "shot_type": "近景",
+        "image_url": "/static/images/poems/poem_001/frame_2.jpg",
+        "duration_ms": 3000
+      },
+      {
+        "index": 3,
+        "line": "花落知多少",
+        "scene": "中景。人物站在敞开的门或窗边，双手交叠在身前，目光投向门外或窗外。门外/窗外地上散落着一些粉色的花瓣，色调偏柔和。人物嘴角微抿，眼神带着一丝淡淡的惋惜。",
+        "shot_type": "中景",
+        "image_url": "/static/images/poems/poem_001/frame_3.jpg",
+        "duration_ms": 3000
+      }
+    ],
+    "errors": [],
+    "from_cache": false
+  },
+  "poem_006": {
+    "success": true,
+    "poem_title": "望庐山瀑布",
+    "has_character": true,
+    "character_desc": "① 40岁 ② 男性 ③ 白色圆领袍，外罩青色半臂，腰间束带 ④ 束发戴黑色幞头 ⑤ 身材颀长，姿态潇洒",
     "recurring_elements": "",
     "total_lines": 4,
     "frames": [
       {
         "index": 0,
-        "line": "迟日江山丽",
-        "scene": "远景。阳光明媚，天空高远。画面中央是平静宽阔的江水，远处是连绵起伏、被春日阳光染上柔和色彩的秀丽山峦。色调温暖明亮。",
+        "line": "日照香炉生紫烟",
+        "scene": "远景。李白站在画面左下角，双手自然垂于身侧，望向远方。阳光从右上方洒下，照亮远处的香炉峰，峰顶有紫色云雾缭绕升腾。",
         "shot_type": "远景",
-        "image_url": "/static/images/poems/poem_015/frame_0.jpg",
+        "image_url": "/static/images/poems/poem_006/frame_0.jpg",
         "duration_ms": 3000
       },
       {
         "index": 1,
-        "line": "春风花草香",
-        "scene": "中景。镜头拉近至江岸。几缕柔和的春风吹过，岸边的绿草随风轻轻摇曳，几丛野花（如黄色蒲公英、紫色地丁）微微晃动。画面仿佛能感受到风的流动和花草的清新气息。",
+        "line": "遥看瀑布挂前川",
+        "scene": "中景。李白位置同前，双手抬起，一手遥指瀑布方向。画面中央偏右，瀑布如白色长练悬挂于青翠山崖之间，下方是蜿蜒的河流。",
         "shot_type": "中景",
-        "image_url": "/static/images/poems/poem_015/frame_1.jpg",
+        "image_url": "/static/images/poems/poem_006/frame_1.jpg",
         "duration_ms": 3000
       },
       {
         "index": 2,
-        "line": "泥融飞燕子",
-        "scene": "近景。镜头聚焦在江岸湿润松软的泥土上。两只黑色的燕子低空掠过泥土上方，翅膀展开，姿态轻盈灵动，正准备衔泥筑巢。",
+        "line": "飞流直下三千尺",
+        "scene": "近景。李白位置微调，更靠近画面中心，双手交叠于身前，专注凝视。镜头拉近瀑布，展现其从极高处飞泻而下、水花四溅的磅礴动态。",
         "shot_type": "近景",
-        "image_url": "/static/images/poems/poem_015/frame_2.jpg",
+        "image_url": "/static/images/poems/poem_006/frame_2.jpg",
         "duration_ms": 3000
       },
       {
         "index": 3,
-        "line": "沙暖睡鸳鸯",
-        "scene": "中景。镜头转向江心一处被阳光晒得暖洋洋的浅色沙洲。一对色彩斑斓的鸳鸯依偎在沙洲上，闭着眼睛，头部微微靠在一起，正在安详地睡觉，神态十分惬意。",
+        "line": "疑是银河落九天",
+        "scene": "中景。李白回到画面左下角，双手摊开，表情惊叹，头顶飘出感叹号“！”。瀑布占据画面主体，在阳光照耀下光芒璀璨，气势恢宏，呼应银河的联想。",
         "shot_type": "中景",
-        "image_url": "/static/images/poems/poem_015/frame_3.jpg",
+        "image_url": "/static/images/poems/poem_006/frame_3.jpg",
+        "duration_ms": 3000
+      }
+    ],
+    "errors": [],
+    "from_cache": false
+  },
+  "poem_007": {
+    "success": true,
+    "poem_title": "赠汪伦",
+    "has_character": true,
+    "character_desc": "①李白（约40岁），汪伦（约35岁）；②男性；③李白着白色圆领长袍，汪伦着青色圆领长袍，均为唐代士人便服；④束发戴黑色幞头；⑤李白身形清瘦，汪伦身形敦厚。",
+    "recurring_elements": "",
+    "total_lines": 4,
+    "frames": [
+      {
+        "index": 0,
+        "line": "李白乘舟将欲行",
+        "scene": "中景。碧绿潭水边，一叶小舟半离岸边。李白站在船头，双手自然垂于身侧。船夫在船尾撑篙。画面色调明亮。",
+        "shot_type": "中景",
+        "image_url": "/static/images/poems/poem_007/frame_0.jpg",
+        "duration_ms": 3000
+      },
+      {
+        "index": 1,
+        "line": "忽闻岸上踏歌声",
+        "scene": "中景。李白在船上，身体微微转向岸边，双手抬起作倾听状。岸上，汪伦双手打着节拍，脚在地上有节奏地踏动，嘴巴张开在唱歌。",
+        "shot_type": "中景",
+        "image_url": "/static/images/poems/poem_007/frame_1.jpg",
+        "duration_ms": 3000
+      },
+      {
+        "index": 2,
+        "line": "桃花潭水深千尺",
+        "scene": "主观视角（李白视角）。画面中没有李白本人。镜头从船上望向潭水深处，水面幽深碧绿，倒映着天空和远山，波纹向深处延伸，营造深邃感。",
+        "shot_type": "主观视角",
+        "image_url": "/static/images/poems/poem_007/frame_2.jpg",
+        "duration_ms": 3000
+      },
+      {
+        "index": 3,
+        "line": "不及汪伦送我情",
+        "scene": "近景。李白在船头，双手在胸前交握，眼神感动地望向岸上的汪伦。汪伦在岸上挥手，表情真挚。画面右上角飘出一个白色云朵气泡，里面画着李白与汪伦举杯对饮的温馨小场景。",
+        "shot_type": "近景",
+        "image_url": "/static/images/poems/poem_007/frame_3.jpg",
+        "duration_ms": 3000
+      }
+    ],
+    "errors": [],
+    "from_cache": false
+  },
+  "poem_020": {
+    "success": true,
+    "poem_title": "九月九日忆山东兄弟",
+    "has_character": true,
+    "character_desc": "① 约25岁 ② 男性 ③ 身着浅青色圆领窄袖袍，腰系深色革带 ④ 束发戴黑色幞头 ⑤ 身材清瘦，文人气质",
+    "recurring_elements": "",
+    "total_lines": 4,
+    "frames": [
+      {
+        "index": 0,
+        "line": "独在异乡为异客",
+        "scene": "中景。诗人站在异乡客栈的庭院中，双手自然垂于身侧，眼神略显迷茫。背景是简单的院墙和远处陌生的街景，天色微暗。",
+        "shot_type": "中景",
+        "image_url": "/static/images/poems/poem_020/frame_0.jpg",
+        "duration_ms": 3000
+      },
+      {
+        "index": 1,
+        "line": "每逢佳节倍思亲",
+        "scene": "近景。诗人微微低头，双手交握于身前，表情落寞。眼角有一颗小泪珠。画面色调偏冷蓝。他身旁飘起一个白色半透明云朵气泡，气泡内是模糊的家乡屋舍轮廓。",
+        "shot_type": "近景",
+        "image_url": "/static/images/poems/poem_020/frame_1.jpg",
+        "duration_ms": 3000
+      },
+      {
+        "index": 2,
+        "line": "遥知兄弟登高处",
+        "scene": "主观视角。画面不出现诗人自身。我们看到一片秋色山峦，远处有几个小小的人影（诗人的兄弟们）正在山腰向上攀登。这是诗人想象的场景。",
+        "shot_type": "主观视角",
+        "image_url": "/static/images/poems/poem_020/frame_2.jpg",
+        "duration_ms": 3000
+      },
+      {
+        "index": 3,
+        "line": "遍插茱萸少一人",
+        "scene": "远景。山巅，几位与诗人服饰相似的人影（兄弟们）背对镜头眺望远方，他们头上或身上隐约可见插着茱萸枝叶。其中一人身边有一个淡淡的人形空白轮廓，表示“少一人”。色调温暖但与诗人所在场景形成对比。",
+        "shot_type": "远景",
+        "image_url": "/static/images/poems/poem_020/frame_3.jpg",
         "duration_ms": 3000
       }
     ],

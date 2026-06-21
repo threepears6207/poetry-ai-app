@@ -13,6 +13,7 @@
 - requests
 - python-dotenv
 - edge-tts
+- websocket-client（连接 vivo WebSocket TTS，已写入 `requirements.txt`）
 - funasr（语音识别，需单独安装，见下方说明）
 
 ---
@@ -34,6 +35,27 @@ uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
 启动后访问 `http://127.0.0.1:8000/docs` 查看接口文档（Swagger UI）。
+
+---
+
+## 诗人对话语音安装说明
+
+诗人对话语音使用 vivo WebSocket TTS。新环境不需要单独安装音频软件，激活虚拟环境后执行下面的命令即可安装所需 Python 依赖：
+
+```bash
+pip install -r requirements.txt
+```
+
+其中本功能新增的依赖是 `websocket-client==1.9.0`。PCM 转 WAV 使用 Python 标准库 `wave`，不需要额外安装；vivo TTS 失败时会使用项目已有的 `edge-tts` 作为降级方案。
+
+运行条件：
+
+- Python 3.11；
+- 可访问 vivo 蓝心开放平台的网络；
+- `backend/.env` 中正确配置 `VIVO_APP_KEY` 和 `VIVO_APP_ID`；
+- 蓝心账号已开通对应的 TTS 能力。
+
+前端不需要新增第三方播放依赖，可使用 uni-app 自带的音频播放能力处理后端返回的 `audio_url`。
 
 ---
 
@@ -78,11 +100,11 @@ BAIDU_IMAGE_SECRET_KEY=你的百度图像识别 Secret Key
 
 说明：
 
-- `VIVO_APP_KEY`：用于 AI 诗人对话和 AI 配图接口。
-- `VIVO_APP_ID`：当前主要用于 `/ping` 健康检查接口返回环境配置状态。
+- `VIVO_APP_KEY`：用于 AI 诗人对话、AI 配图和 vivo 诗人对话语音合成。
+- `VIVO_APP_ID`：用于 vivo TTS 请求标识和 `/ping` 健康检查。
 - `BAIDU_OCR_API_KEY` / `BAIDU_OCR_SECRET_KEY`：用于有文字图片的 OCR 识别。
 - `BAIDU_IMAGE_API_KEY` / `BAIDU_IMAGE_SECRET_KEY`：用于无文字风景图的场景识别。
-- 如果未配置 `VIVO_APP_KEY`，基础业务接口仍可运行，但 `/chat`、`/generate/image` 等 AI 能力无法正常调用。
+- 如果未配置 `VIVO_APP_KEY`，基础业务接口仍可运行，但 `/chat`、`/chat/voice-preview`、`/generate/image` 等 AI 能力无法正常调用。
 
 ---
 
@@ -91,7 +113,9 @@ BAIDU_IMAGE_SECRET_KEY=你的百度图像识别 Secret Key
 | 文件 | 说明 |
 |---|---|
 | main.py | 主入口，注册所有路由，配置 CORS，提供 `/` 和 `/ping` |
-| chat.py | AI 诗人对话接口 `POST /chat` |
+| chat.py | AI 诗人对话接口 `POST /chat`，返回文字回复和对应诗人的语音地址 |
+| poet_voice.py | 九位诗人的声音档案、语音文本清理、音频缓存和 Edge TTS 降级逻辑 |
+| vivo_tts.py | vivo WebSocket TTS 客户端，将返回的 PCM 音频封装为 WAV |
 | poems.py | 古诗搜索与详情接口，支持关键词、作者、朝代、标签筛选 |
 | generate.py | AI 配图接口 `POST /generate/image`，按诗句生成连续插画分镜，含本地缓存机制 |
 | tts.py | 语音朗读接口 `POST /tts`，使用 edge-tts 生成中文朗读音频，返回本地音频 URL |
@@ -114,7 +138,7 @@ BAIDU_IMAGE_SECRET_KEY=你的百度图像识别 Secret Key
 |---|---|---|
 | 古诗识别与输入 | 已实现 | 支持文字图片百度 OCR 识别 + 风景图场景识别匹配古诗 |
 | 古诗搜索与详情 | 已实现 | 支持搜索、详情查询、作者/朝代/标签筛选 |
-| 智能讲解与交互 | 已实现，支持年龄分层 | AI 诗人对话按年龄（3-4岁/5-7岁）自动调整回复风格和语言难度，内置9位诗人性格库，其余诗人动态生成 |
+| 智能讲解与交互 | 已实现，支持年龄分层和语音 | AI 诗人对话按年龄调整语言难度，内置9位诗人性格和声音档案，回复同时返回文字与语音地址 |
 | 多模态内容生成 | 已实现 | 已实现 AI 配图接口，含分镜规划和本地缓存，已生成古诗秒回 |
 | 语音朗读 | 已实现 | `/tts` 使用 edge-tts 生成中文朗读音频，返回可播放音频 URL |
 | 趣味学习与巩固 | 已实现跟读评分 | `/asr/score` 接收录音+原诗文本，返回星级评分和是否通过 |
@@ -130,7 +154,9 @@ BAIDU_IMAGE_SECRET_KEY=你的百度图像识别 Secret Key
 |---|---|---|---|
 | `/` | GET | 后端根路径，返回 API 运行状态 | ✅ 已完成 |
 | `/ping` | GET | 健康检查，返回 vivo 配置状态 | ✅ 已完成 |
-| `/chat` | POST | AI 诗人对话，支持年龄分层（age参数），内置9位诗人性格 | ✅ 已完成，需配置 `VIVO_APP_KEY` |
+| `/chat` | POST | AI 诗人对话，支持年龄分层和诗人语音，返回 `reply` 与 `audio_url` | ✅ 已完成，需配置 vivo 环境变量 |
+| `/chat/voice-preview` | POST | 根据诗人姓名和试听文本生成语音，不调用对话模型 | ✅ 已完成 |
+| `/chat/voice-profile/{poet_name}` | GET | 查询诗人的音色、语速、音量和声音特点 | ✅ 已完成 |
 | `/poems/search` | GET | 古诗搜索，支持关键词、作者、朝代、标签、分页 | ✅ 已完成 |
 | `/poems/{poem_id}` | GET | 古诗详情 | ✅ 已完成 |
 | `/record` | POST | 添加学习记录 | ✅ 已完成 |
@@ -445,7 +471,56 @@ GET /recommend?user_id=test_user&limit=5
 - `history` 由前端维护，每轮对话结束后把本轮的 user 和 assistant 消息追加后完整传入；
 - 第一轮 `message` 传空字符串，诗人会根据年龄档自动主动开口；
 - 使用模型：Volc-DeepSeek-V3.2；
-- 该接口依赖 `VIVO_APP_KEY`，未配置时会调用失败。
+- 该接口依赖 `VIVO_APP_KEY` 和 `VIVO_APP_ID`；
+- 语音生成失败不会影响文字对话，前端仍可使用 `reply` 正常展示回复。
+
+成功响应示例：
+
+```json
+{
+  "success": true,
+  "reply": "小朋友你好，我是李白。",
+  "audio_url": "/static/audio/chat/poet_xxx.wav",
+  "audio": {
+    "url": "/static/audio/chat/poet_xxx.wav",
+    "format": "wav",
+    "provider": "vivo",
+    "voice_id": "M24",
+    "engineid": "tts_humanoid_lam",
+    "fallback_used": false
+  },
+  "audio_error": ""
+}
+```
+
+新增字段说明：
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| audio_url | string | 音频相对地址，前端需要拼接后端基础地址后播放 |
+| audio | object/null | 完整音频信息；语音生成失败时为 `null` |
+| audio_error | string | 语音生成失败原因；正常时为空字符串 |
+
+前端不要写死音频扩展名。正常情况下 vivo TTS 返回 WAV；如果自动降级到 Edge TTS，可能返回 MP3。
+
+#### 诗人声音试听
+
+`POST /chat/voice-preview`
+
+```json
+{
+  "poet_name": "李白",
+  "text": "小朋友你好，我是李白，我们一起读诗吧！"
+}
+```
+
+该接口不调用对话模型，只根据指定诗人和文本生成试听音频，响应中的 `audio` 和 `audio_url` 与 `/chat` 相同。
+
+#### 查询诗人声音档案
+
+`GET /chat/voice-profile/{poet_name}`
+
+返回指定诗人的 `engineid`、`vcn`、`speed`、`volume` 和声音特点。当前内置李白、杜甫、苏轼、白居易、王维、孟浩然、骆宾王、王之涣、李绅九位诗人的声音档案；其他诗人使用默认声音档案。
 
 ---
 
@@ -574,13 +649,14 @@ GET /recommend?user_id=test_user&limit=5
 | `data/records.json` | 用户学习记录 |
 | `static/poem_images_cache.json` | AI 配图缓存，存储已生成图片的本地路径 |
 | `static/images/poems/{poem_id}/` | 各首古诗的生成图片，按 poem_id 分文件夹存放 |
-| `static/audio/` | TTS 生成的音频文件 |
+| `static/audio/` | 普通诗歌朗读接口生成的音频文件 |
+| `static/audio/chat/` | 诗人对话语音缓存，运行时自动创建 |
 
 注意：
 
 - 当前阶段未接入 MySQL 或 SQLite；
 - `records.json` 会在调用 `POST /record` 或运行测试脚本时发生变化，提交前注意检查；
-- `static/audio/` 下的音频文件为运行时生成，无需提交到 GitHub；
+- `static/audio/` 下的音频文件为运行时生成，无需提交到 GitHub；其中 `static/audio/chat/` 已加入 `.gitignore`；
 - `static/images/` 和 `static/poem_images_cache.json` 建议提交，前端联调时可直接使用已缓存的图片。
 
 ---
@@ -660,6 +736,8 @@ uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 - 完成 AI 诗人对话接口 `/chat` 的核心逻辑；
 - 新增年龄分层功能：基于皮亚杰认知发展理论，以5岁为分界线分为两档，分别制定语言规则和回复策略；
 - 扩充诗人性格库至9位（李白、杜甫、苏轼、白居易、王维、孟浩然、骆宾王、王之涣、李绅），其余诗人动态生成并缓存；
+- 接入 vivo WebSocket TTS，为9位诗人配置不同的音色、语速和音量；
+- `/chat` 同时返回文字回复和音频地址，并提供声音试听、声音档案查询和 Edge TTS 自动降级；
 - 完成 AI 配图接口 `/generate/image`，含两阶段分镜规划和本地缓存机制；
 - 完成语音朗读接口 `/tts`，使用 edge-tts 生成中文朗读音频；
 - 完成后端接口测试脚本 `test_api.py`；

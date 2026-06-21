@@ -6,6 +6,8 @@ import re
 import requests
 import uuid
 
+from poet_voice import get_poet_voice_profile, synthesize_poet_speech
+
 router = APIRouter()
 
 VIVO_APP_KEY = os.getenv("VIVO_APP_KEY")
@@ -26,6 +28,11 @@ class ChatRequest(BaseModel):
     poem_content: str = ""
     history: List[Message] = []   # 前端维护的历史对话，每轮追加后传入
     age: int = 5                  # 新增：孩子的实际年龄（岁），前端从用户画像传入，默认5岁
+
+
+class PoetVoicePreviewRequest(BaseModel):
+    poet_name: str
+    text: str = "小朋友，你好呀！我们一起读诗吧。"
 
 
 # ── 诗人性格动态生成与缓存（方案B）────────────────────────────────────────────
@@ -521,6 +528,33 @@ def strip_think_tags(text: str) -> str:
 
 # ── 对话接口 ──────────────────────────────────────────────────────────────────
 
+@router.post("/chat/voice-preview")
+def preview_poet_voice(request: PoetVoicePreviewRequest):
+    """不调用大模型，直接生成指定诗人的试听语音。"""
+    try:
+        audio = synthesize_poet_speech(request.poet_name, request.text)
+        return {
+            "success": True,
+            "poet_name": request.poet_name,
+            "text": request.text,
+            "audio": audio,
+            "audio_url": audio["url"],
+        }
+    except Exception as e:
+        return {
+            "success": False,
+            "poet_name": request.poet_name,
+            "error": str(e),
+            "audio": None,
+            "audio_url": "",
+        }
+
+
+@router.get("/chat/voice-profile/{poet_name}")
+def get_voice_profile(poet_name: str):
+    """返回诗人当前声音档案，不生成音频。"""
+    return {"success": True, "poet_name": poet_name, "profile": get_poet_voice_profile(poet_name)}
+
 @router.post("/chat")
 def chat(request: ChatRequest):
     result = None
@@ -569,7 +603,22 @@ def chat(request: ChatRequest):
         ai_reply = result["choices"][0]["message"]["content"]
         ai_reply = strip_think_tags(ai_reply)
 
-        return {"success": True, "reply": ai_reply}
+        audio = None
+        audio_error = ""
+        try:
+            audio = synthesize_poet_speech(request.poet_name, ai_reply)
+        except Exception as speech_error:
+            # 语音失败不能让整轮对话失败，前端仍可正常显示文字。
+            audio_error = str(speech_error)
+            print(f"[诗人语音] {request.poet_name} 生成失败：{speech_error}")
+
+        return {
+            "success": True,
+            "reply": ai_reply,
+            "audio": audio,
+            "audio_url": audio["url"] if audio else "",
+            "audio_error": audio_error,
+        }
 
     except Exception as e:
         return {"success": False, "error": str(e), "raw": str(result) if result else ""}

@@ -271,8 +271,8 @@ def update_consolidation_result(result: ConsolidationResultIn):
     - 练满 3 次：状态变为"已掌握"
 
     passed = false:
-    - 状态不变
-    - 下次复习时间改为明天
+    - 不增加练习次数，状态不变
+    - 下次复习时间保持为今天，允许孩子当天继续尝试
     """
     records = load_consolidations()
 
@@ -311,7 +311,9 @@ def update_consolidation_result(result: ConsolidationResultIn):
             item["next_review_date"] = date_after_days(get_next_interval_days(new_count))
 
     else:
-        item["next_review_date"] = date_after_days(1)
+        # 兼容仍会提交失败结果的旧版前端：单句未通过不代表整次巩固失败，
+        # 不增加次数、不改变状态，并允许孩子当天立即继续尝试。
+        item["next_review_date"] = today_text()
 
     item["updated_at"] = now_text()
 

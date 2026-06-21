@@ -3,9 +3,7 @@ import os
 import re
 import tempfile
 from difflib import SequenceMatcher
-from typing import List, Union
-
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 from funasr import AutoModel
 from pydantic import BaseModel
 
@@ -26,7 +24,7 @@ class ASRRequest(BaseModel):
 
 class ScoreRequest(BaseModel):
     audio_base64: str
-    poem_content: Union[List[str], str]  # 兼容数组["鹅鹅鹅","曲项向天歌"]和字符串"鹅鹅鹅曲项向天歌"两种格式
+    poem_content: str  # 当前正在跟读的单句诗文
     audio_format: str = "mp3"
 
 
@@ -135,69 +133,45 @@ def speech_to_text(req: ASRRequest):
 @router.post("/asr/score")
 def score_reading(req: ScoreRequest):
     """
-    跟读评分。支持逐句评分 + 整体评分。
+    对当前正在跟读的一句诗进行评分。
 
     请求示例：
     {
       "audio_base64": "...",
       "audio_format": "mp3",
-      "poem_content": ["鹅鹅鹅", "曲项向天歌", "白毛浮绿水", "红掌拨清波"]
+      "poem_content": "曲项向天歌"
     }
 
     返回示例：
     {
-      "success": true,
       "score": 85,
       "stars": 2,
       "passed": true,
-      "message": "读得很好，再练一遍更完美！👍",
-      "recognized": "鹅鹅鹅曲项向天歌...",
-      "sentence_scores": [
-        {"line": "鹅鹅鹅", "score": 100},
-        {"line": "曲项向天歌", "score": 80},
-        ...
-      ]
+      "message": "读得很好，再练一遍更完美！👍"
     }
+
+    passed=false 只表示当前句需要重读，不代表整次巩固失败。
+    本接口不更新巩固状态；整首诗全部通过后，由前端单独调用
+    POST /consolidation/result。
     """
     try:
-        # ── poem_content 兼容字符串和数组两种格式 ─────────────────────────────
-        if isinstance(req.poem_content, str):
-            # 旧格式：整首诗拼成一个字符串，无法逐句评分，作为单句处理
-            lines = [req.poem_content]
-        else:
-            lines = req.poem_content
+        current_line = clean_text(req.poem_content)
+        if not current_line:
+            raise HTTPException(status_code=400, detail="poem_content 不能为空")
 
-        # ── 识别录音 ──────────────────────────────────────────────────────────
         recognized = recognize_audio(req.audio_base64, req.audio_format)
-        recognized_clean = clean_text(recognized)
-
-        # ── 整首诗标准文本 ─────────────────────────────────────────────────────
-        full_poem = "".join(lines)
-        overall_score = calc_score(full_poem, recognized_clean)
-
-        # ── 逐句评分 ──────────────────────────────────────────────────────────
-        sentence_scores = []
-        remaining = recognized_clean
-        for line in lines:
-            line_clean = clean_text(line)
-            line_len = len(line_clean)
-            # 取对应长度的片段
-            chunk = remaining[:line_len]
-            remaining = remaining[line_len:]
-            s = calc_score(line_clean, chunk)
-            sentence_scores.append({"line": line, "score": s})
-
-        stars, passed, message = score_to_feedback(overall_score)
+        score = calc_score(current_line, recognized)
+        stars, passed, message = score_to_feedback(score)
 
         return {
-            "success":         True,
-            "score":           overall_score,
-            "stars":           stars,
-            "passed":          passed,
-            "message":         message,
-            "recognized":      recognized,
-            "sentence_scores": sentence_scores,
+            "score": score,
+            "stars": stars,
+            "message": message,
+            "passed": passed,
         }
 
+    except HTTPException:
+        raise
     except Exception as e:
-        return {"success": False, "error": str(e)}
+        # 使用非 2xx 状态，让前端区分“评分服务异常”和“当前句未通过”。
+        raise HTTPException(status_code=500, detail=f"跟读评分失败：{e}") from e

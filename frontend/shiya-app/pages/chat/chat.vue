@@ -43,7 +43,21 @@
                   <image class="poet-face-image" :src="poetAvatarImage" mode="aspectFill" @error="handlePoetAvatarError"></image>
                 </view>
 
-                <view class="bubble">{{ msg.text }}</view>
+                <view class="bubble-stack">
+                  <view class="bubble">{{ msg.text }}</view>
+
+                  <view
+                    v-if="msg.role === 'poet' && msg.audioUrl"
+                    class="audio-status"
+                    :class="{ speaking: msg.audioState === 'playing' }"
+                  >
+                    <text class="audio-icon">{{ msg.audioState === 'playing' ? '🔊' : '🎧' }}</text>
+                    <text class="audio-text">{{ getAudioStateText(msg) }}</text>
+                    <button class="replay-btn" @tap.stop="replayPoetAudio(index)">
+                      {{ msg.audioState === 'playing' ? '重播' : '重新播放' }}
+                    </button>
+                  </view>
+                </view>
               </view>
 
               <view v-if="isReplying" class="bubble-row poet">
@@ -115,7 +129,7 @@
 
 <script setup>
 import { computed, onMounted, onUnmounted, ref } from 'vue'
-import { onLoad } from '@dcloudio/uni-app'
+import { onLoad, onUnload } from '@dcloudio/uni-app'
 import { API, getLocalPoemById, normalizeAssetUrl, getPoetAvatarStaticUrl } from '@/utils/api.js'
 
 const DESIGN_WIDTH = 844
@@ -153,6 +167,12 @@ onUnmounted(() => {
   if (typeof uni.offWindowResize === 'function') {
     uni.offWindowResize(handleAppResize)
   }
+
+  stopChatReplyAudio(false)
+})
+
+onUnload(() => {
+  stopChatReplyAudio(false)
 })
 
 const poemId = ref('poem_001')
@@ -170,6 +190,9 @@ const chatScrollTop = ref(0)
 const canNext = ref(false)
 const isReplying = ref(false)
 const poetAvatarUrl = ref('')
+const replyAudioContext = ref(null)
+const playingAudioMessageIndex = ref(-1)
+const currentReplyAudioUrl = ref('')
 
 const isVoiceRecording = ref(false)
 const isRecognizingVoice = ref(false)
@@ -203,6 +226,252 @@ const suggestions = ref([
   '这句诗里有什么画面？',
   '这首诗适合什么时候读？'
 ])
+
+const getChatReplyAudioPath = (res = {}) => {
+  return res?.audio?.url || res?.audio_url || ''
+}
+
+const normalizeChatAudioUrl = (url = '') => {
+  const value = String(url || '').trim()
+
+  if (!value) return ''
+
+  if (value.startsWith('data:audio') || value.startsWith('blob:')) {
+    return value
+  }
+
+  return normalizeAssetUrl(value)
+}
+
+const updateAudioMessageState = (index, audioState) => {
+  if (index < 0 || !messages.value[index] || !messages.value[index].audioUrl) return
+
+  messages.value[index] = {
+    ...messages.value[index],
+    audioState
+  }
+}
+
+const getAudioStateText = (msg = {}) => {
+  if (msg.audioState === 'playing') return '诗人正在说话'
+  if (msg.audioState === 'loading') return '准备播放...'
+  if (msg.audioState === 'error') return '语音暂时不能播放'
+  return '语音已就绪'
+}
+
+const cleanupReplyAudio = (audioContext) => {
+  if (replyAudioContext.value !== audioContext) return
+
+  replyAudioContext.value = null
+  playingAudioMessageIndex.value = -1
+  currentReplyAudioUrl.value = ''
+}
+
+const destroyReplyAudioContext = (audioContext) => {
+  if (!audioContext) return
+
+  try {
+    if (typeof audioContext.pause === 'function') {
+      audioContext.pause()
+    }
+  } catch (err) {
+    console.log('暂停诗人语音失败：', err)
+  }
+
+  try {
+    if (typeof audioContext.stop === 'function') {
+      audioContext.stop()
+    }
+  } catch (err) {
+    console.log('停止诗人语音失败：', err)
+  }
+
+  try {
+    if (typeof audioContext.destroy === 'function') {
+      audioContext.destroy()
+    }
+  } catch (err) {
+    console.log('释放诗人语音失败：', err)
+  }
+
+  try {
+    if ('src' in audioContext) {
+      audioContext.src = ''
+    }
+  } catch (err) {
+    console.log('清空诗人语音地址失败：', err)
+  }
+}
+
+const stopChatReplyAudio = (resetMessageState = true) => {
+  const currentIndex = playingAudioMessageIndex.value
+
+  if (resetMessageState && currentIndex >= 0) {
+    updateAudioMessageState(currentIndex, 'ready')
+  }
+
+  const audioContext = replyAudioContext.value
+  replyAudioContext.value = null
+  playingAudioMessageIndex.value = -1
+  currentReplyAudioUrl.value = ''
+
+  destroyReplyAudioContext(audioContext)
+}
+
+const playByUniInnerAudioContext = (audioUrl, messageIndex, showFailToast = false) => {
+  const audioContext = uni.createInnerAudioContext()
+
+  replyAudioContext.value = audioContext
+  playingAudioMessageIndex.value = messageIndex
+  currentReplyAudioUrl.value = audioUrl
+  updateAudioMessageState(messageIndex, 'loading')
+
+  audioContext.autoplay = false
+  audioContext.src = audioUrl
+  audioContext.obeyMuteSwitch = false
+
+  audioContext.onPlay(() => {
+    if (replyAudioContext.value !== audioContext) return
+    updateAudioMessageState(messageIndex, 'playing')
+  })
+
+  audioContext.onEnded(() => {
+    if (replyAudioContext.value !== audioContext) return
+    updateAudioMessageState(messageIndex, 'ready')
+    cleanupReplyAudio(audioContext)
+    destroyReplyAudioContext(audioContext)
+  })
+
+  audioContext.onStop(() => {
+    if (replyAudioContext.value !== audioContext) return
+    updateAudioMessageState(messageIndex, 'ready')
+    cleanupReplyAudio(audioContext)
+  })
+
+  audioContext.onError((err) => {
+    if (replyAudioContext.value !== audioContext) return
+
+    console.log('诗人语音播放失败：', err)
+    updateAudioMessageState(messageIndex, 'error')
+    cleanupReplyAudio(audioContext)
+    destroyReplyAudioContext(audioContext)
+
+    if (showFailToast) {
+      toast('语音播放失败，请稍后再试')
+    }
+  })
+
+  try {
+    audioContext.play()
+  } catch (err) {
+    console.log('启动诗人语音失败：', err)
+    updateAudioMessageState(messageIndex, 'error')
+    cleanupReplyAudio(audioContext)
+    destroyReplyAudioContext(audioContext)
+
+    if (showFailToast) {
+      toast('语音播放失败，请稍后再试')
+    }
+  }
+}
+
+const playByBrowserAudio = (audioUrl, messageIndex, showFailToast = false) => {
+  const audioContext = new Audio(audioUrl)
+
+  replyAudioContext.value = audioContext
+  playingAudioMessageIndex.value = messageIndex
+  currentReplyAudioUrl.value = audioUrl
+  updateAudioMessageState(messageIndex, 'loading')
+
+  audioContext.preload = 'auto'
+
+  audioContext.onplaying = () => {
+    if (replyAudioContext.value !== audioContext) return
+    updateAudioMessageState(messageIndex, 'playing')
+  }
+
+  audioContext.onended = () => {
+    if (replyAudioContext.value !== audioContext) return
+    updateAudioMessageState(messageIndex, 'ready')
+    cleanupReplyAudio(audioContext)
+    destroyReplyAudioContext(audioContext)
+  }
+
+  audioContext.onerror = (err) => {
+    if (replyAudioContext.value !== audioContext) return
+
+    console.log('浏览器播放诗人语音失败：', err)
+    updateAudioMessageState(messageIndex, 'error')
+    cleanupReplyAudio(audioContext)
+    destroyReplyAudioContext(audioContext)
+
+    if (showFailToast) {
+      toast('语音播放失败，请稍后再试')
+    }
+  }
+
+  const playResult = audioContext.play()
+
+  if (playResult && typeof playResult.catch === 'function') {
+    playResult.catch((err) => {
+      if (replyAudioContext.value !== audioContext) return
+
+      console.log('浏览器自动播放诗人语音被拦截或失败：', err)
+      updateAudioMessageState(messageIndex, 'error')
+      cleanupReplyAudio(audioContext)
+      destroyReplyAudioContext(audioContext)
+
+      if (showFailToast) {
+        toast('语音播放失败，请稍后再试')
+      }
+    })
+  }
+}
+
+const playPoetAudio = (audioPath, messageIndex, showFailToast = false) => {
+  const audioUrl = normalizeChatAudioUrl(audioPath)
+
+  if (!audioUrl) return
+
+  stopChatReplyAudio()
+
+  if (typeof uni.createInnerAudioContext === 'function') {
+    playByUniInnerAudioContext(audioUrl, messageIndex, showFailToast)
+    return
+  }
+
+  if (typeof Audio !== 'undefined') {
+    playByBrowserAudio(audioUrl, messageIndex, showFailToast)
+    return
+  }
+
+  updateAudioMessageState(messageIndex, 'error')
+}
+
+const replayPoetAudio = (messageIndex) => {
+  const message = messages.value[messageIndex]
+
+  if (!message?.audioUrl) return
+
+  playPoetAudio(message.audioUrl, messageIndex, true)
+}
+
+const appendPoetMessage = (text, res = {}) => {
+  const audioUrl = normalizeChatAudioUrl(getChatReplyAudioPath(res))
+  const messageIndex = messages.value.length
+
+  messages.value.push({
+    role: 'poet',
+    text,
+    audioUrl,
+    audioState: audioUrl ? 'ready' : ''
+  })
+
+  if (audioUrl) {
+    playPoetAudio(audioUrl, messageIndex)
+  }
+}
+
 
 onLoad(async (options) => {
   poemId.value = options.poem_id || 'poem_001'
@@ -282,6 +551,8 @@ const loadPoetAvatar = async () => {
 }
 
 const initPoetChat = async () => {
+  stopChatReplyAudio(false)
+
   isReplying.value = true
   messages.value = []
   history.value = []
@@ -298,12 +569,7 @@ const initPoetChat = async () => {
     })
 
     if (res && res.success && res.reply) {
-      messages.value = [
-        {
-          role: 'poet',
-          text: res.reply
-        }
-      ]
+      appendPoetMessage(res.reply, res)
 
       history.value = [
         {
@@ -314,12 +580,7 @@ const initPoetChat = async () => {
     } else {
       const fallbackText = `小朋友你好，我是${poemData.value.dynasty || '唐'}代诗人${poemData.value.author}。你刚刚学习了《${poemData.value.title}》，现在可以问我问题。`
 
-      messages.value = [
-        {
-          role: 'poet',
-          text: fallbackText
-        }
-      ]
+      appendPoetMessage(fallbackText)
 
       history.value = [
         {
@@ -333,12 +594,7 @@ const initPoetChat = async () => {
 
     const fallbackText = `小朋友你好，我是${poemData.value.dynasty || '唐'}代诗人${poemData.value.author}。你刚刚学习了《${poemData.value.title}》，现在可以问我问题。`
 
-    messages.value = [
-      {
-        role: 'poet',
-        text: fallbackText
-      }
-    ]
+    appendPoetMessage(fallbackText)
 
     history.value = [
       {
@@ -353,6 +609,8 @@ const initPoetChat = async () => {
 }
 
 const goBack = () => {
+  stopChatReplyAudio(false)
+
   const pages = typeof getCurrentPages === 'function' ? getCurrentPages() : []
   const fallbackUrl = `/pages/study/study?poem_id=${poemId.value || poemData.id || 'poem_001'}`
 
@@ -859,6 +1117,8 @@ const sendMessage = async () => {
   const text = userInput.value.trim()
   if (!text || isReplying.value) return
 
+  stopChatReplyAudio()
+
   messages.value.push({
     role: 'user',
     text
@@ -880,10 +1140,7 @@ const sendMessage = async () => {
     })
 
     if (res && res.success && res.reply) {
-      messages.value.push({
-        role: 'poet',
-        text: res.reply
-      })
+      appendPoetMessage(res.reply, res)
 
       history.value.push({
         role: 'user',
@@ -897,10 +1154,7 @@ const sendMessage = async () => {
     } else {
       const fallbackText = fakeReply(text)
 
-      messages.value.push({
-        role: 'poet',
-        text: fallbackText
-      })
+      appendPoetMessage(fallbackText)
 
       history.value.push({
         role: 'user',
@@ -917,10 +1171,7 @@ const sendMessage = async () => {
 
     const fallbackText = fakeReply(text)
 
-    messages.value.push({
-      role: 'poet',
-      text: fallbackText
-    })
+    appendPoetMessage(fallbackText)
 
     history.value.push({
       role: 'user',
@@ -948,6 +1199,8 @@ const handleNext = () => {
     toast('先和诗人聊一句吧')
     return
   }
+
+  stopChatReplyAudio(false)
 
   uni.navigateTo({
     url: `/pages/recommend/recommend?poem_id=${poemId.value}`,
@@ -1237,8 +1490,20 @@ button::after {
   transform: scale(1.85) translateY(5px);
 }
 
-.bubble {
+.bubble-stack {
   max-width: 84%;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 5px;
+}
+
+.bubble-row.user .bubble-stack {
+  align-items: flex-end;
+}
+
+.bubble {
+  max-width: 100%;
   padding: 8px 11px;
   border-radius: 17px;
   font-size: 13px;
@@ -1256,6 +1521,51 @@ button::after {
   background: linear-gradient(180deg, #ffac68, #ff853b);
   color: #fff;
   border-bottom-right-radius: 8px;
+}
+
+.audio-status {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  max-width: 100%;
+  min-height: 26px;
+  padding: 3px 5px 3px 7px;
+  border-radius: 999px;
+  background: #fff7e9;
+  color: #ff914d;
+  font-size: 11px;
+  font-weight: 950;
+  box-shadow: inset 0 -1px 0 rgba(255, 145, 77, 0.12);
+}
+
+.audio-status.speaking {
+  background: #eafff9;
+  color: #2cbf9d;
+}
+
+.audio-icon {
+  line-height: 1;
+}
+
+.audio-text {
+  max-width: 92px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.replay-btn {
+  height: 22px;
+  margin: 0;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #5b508d;
+  font-size: 11px;
+  font-weight: 950;
+  line-height: 22px;
+  box-shadow: 0 2px 5px rgba(111, 84, 55, 0.1);
 }
 
 .suggest-box {

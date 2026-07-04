@@ -1,0 +1,3288 @@
+[
+  {
+    "id": "poem_022",
+    "title": "池上",
+    "translation": "小孩子撑着小船，偷偷地采了白莲回来。他不懂得隐藏自己的踪迹，小船划过，浮萍向两边分开，留下了一条长长的水路。",
+    "tags": [
+      "儿童",
+      "童趣",
+      "自然"
+    ],
+    "theme_tags": [
+      "儿童",
+      "童趣",
+      "自然"
+    ],
+    "knowledge_tags": [
+      "背诵积累",
+      "生活画面",
+      "观察能力"
+    ],
+    "new_tags": [],
+    "provider": "vivo",
+    "model": "Volc-DeepSeek-V3.2",
+    "generated_at": "2026-07-03 17:50:27",
+    "review_status": "已人工确认样本"
+  },
+  {
+    "id": "poem_023",
+    "title": "夏日绝句",
+    "translation": "活着就要做人中豪杰，死了也要成为鬼中英雄。直到今天人们还在思念项羽，因为他宁死也不肯逃回江东。",
+    "tags": [
+      "英雄",
+      "家国",
+      "悲壮"
+    ],
+    "theme_tags": [
+      "英雄",
+      "家国",
+      "悲壮"
+    ],
+    "knowledge_tags": [
+      "背诵积累",
+      "价值启蒙",
+      "情感理解"
+    ],
+    "new_tags": [
+      "英雄",
+      "家国",
+      "悲壮"
+    ],
+    "provider": "vivo",
+    "model": "Volc-DeepSeek-V3.2",
+    "generated_at": "2026-07-03 17:53:25",
+    "review_status": "已人工校正第一批"
+  },
+  {
+    "id": "poem_024",
+    "title": "寻隐者不遇",
+    "translation": "在松树下询问一个童子，他说师父采药去了。就在这座大山里面，但云雾深深不知道具体在什么地方。",
+    "tags": [
+      "山林",
+      "隐居",
+      "寻找"
+    ],
+    "theme_tags": [
+      "山林",
+      "隐居",
+      "寻找"
+    ],
+    "knowledge_tags": [
+      "背诵积累",
+      "自然意象",
+      "想象能力"
+    ],
+    "new_tags": [
+      "隐居",
+      "寻找"
+    ],
+    "provider": "vivo",
+    "model": "Volc-DeepSeek-V3.2",
+    "generated_at": "2026-07-03 17:53:25",
+    "review_status": "已人工校正第一批"
+  },
+  {
+    "id": "poem_025",
+    "title": "鹿柴",
+    "translation": "空旷的山里看不见人影，只听见有人说话的声音。夕阳的余晖照进树林深处，又重新映照在青苔之上。",
+    "tags": [
+      "山林",
+      "景色",
+      "自然"
+    ],
+    "theme_tags": [
+      "山林",
+      "景色",
+      "自然"
+    ],
+    "knowledge_tags": [
+      "背诵积累",
+      "自然认知",
+      "意象理解"
+    ],
+    "new_tags": [],
+    "provider": "vivo",
+    "model": "Volc-DeepSeek-V3.2",
+    "generated_at": "2026-07-03 17:53:25",
+    "review_status": "已人工确认第一批"
+  },
+  {
+    "id": "poem_026",
+    "title": "悯农",
+    "translation": "春天种下一粒谷种，秋天收获万颗粮食。普天之下没有荒废的田地，可种田的农夫还是会饿死。",
+    "tags": [
+      "劳动",
+      "农事",
+      "农民疾苦",
+      "珍惜粮食"
+    ],
+    "theme_tags": [
+      "劳动",
+      "农事",
+      "农民疾苦",
+      "珍惜粮食"
+    ],
+    "knowledge_tags": [
+      "背诵积累",
+      "生活常识",
+      "简单哲理"
+    ],
+    "new_tags": [
+      "农事",
+      "农民疾苦"
+    ],
+    "provider": "vivo",
+    "model": "Volc-DeepSeek-V3.2",
+    "generated_at": "2026-07-03 17:53:25",
+    "review_status": "已人工校正第一批"
+  },
+  {
+    "id": "poem_027",
+    "title": "蜂",
+    "translation": "无论是平地还是山顶，所有美好的风光都被它们占尽。采集了百花酿成蜂蜜之后，不知是为谁辛苦，又是为谁带来甘甜。",
+    "tags": [
+      "动物",
+      "劳动",
+      "生活观察"
+    ],
+    "theme_tags": [
+      "动物",
+      "劳动",
+      "生活观察"
+    ],
+    "knowledge_tags": [
+      "背诵积累",
+      "观察能力",
+      "简单哲理"
+    ],
+    "new_tags": [],
+    "provider": "vivo",
+    "model": "Volc-DeepSeek-V3.2",
+    "generated_at": "2026-07-03 17:53:25",
+    "review_status": "已人工确认第一批"
+  },
+  {
+    "id": "poem_028",
+    "title": "泊船瓜洲",
+    "translation": "京口和瓜洲之间只隔着一条江水，钟山也仅仅隔着几重山峰。和煦的春风又一次吹绿了江南岸，天上的明月什么时候才能照着我回家呢？",
+    "tags": [
+      "思乡",
+      "春天",
+      "江南",
+      "月亮"
+    ],
+    "theme_tags": [
+      "思乡",
+      "春天",
+      "江南",
+      "月亮"
+    ],
+    "knowledge_tags": [
+      "背诵积累",
+      "季节意象",
+      "情感理解"
+    ],
+    "new_tags": [],
+    "provider": "vivo",
+    "model": "Volc-DeepSeek-V3.2",
+    "generated_at": "2026-07-03 17:53:25",
+    "review_status": "已人工校正第一批"
+  },
+  {
+    "id": "poem_029",
+    "title": "清明",
+    "translation": "清明时节细雨纷纷飘洒，路上的行人心情愁苦，失魂落魄。打听一下哪里有酒家可以歇脚，牧童远远地指向了杏花深处的村庄。",
+    "tags": [
+      "节日",
+      "清明",
+      "雨景",
+      "牧童"
+    ],
+    "theme_tags": [
+      "节日",
+      "清明",
+      "雨景",
+      "牧童"
+    ],
+    "knowledge_tags": [
+      "背诵积累",
+      "季节意象",
+      "文化常识"
+    ],
+    "new_tags": [
+      "清明",
+      "雨景"
+    ],
+    "provider": "vivo",
+    "model": "Volc-DeepSeek-V3.2",
+    "generated_at": "2026-07-03 17:53:25",
+    "review_status": "已人工校正第一批"
+  },
+  {
+    "id": "poem_030",
+    "title": "秋日湖上",
+    "translation": "夕阳西下时在广阔的湖面游览，烟波浩渺，处处都让人感到忧愁。古往今来有多少兴亡沉浮的往事，又有谁能向这东流的湖水问个明白呢？",
+    "tags": [
+      "秋天",
+      "湖景",
+      "怀古",
+      "忧愁"
+    ],
+    "theme_tags": [
+      "秋天",
+      "湖景",
+      "怀古",
+      "忧愁"
+    ],
+    "knowledge_tags": [
+      "背诵积累",
+      "自然意象",
+      "情感理解"
+    ],
+    "new_tags": [
+      "湖景",
+      "怀古",
+      "忧愁"
+    ],
+    "provider": "vivo",
+    "model": "Volc-DeepSeek-V3.2",
+    "generated_at": "2026-07-03 17:53:25",
+    "review_status": "已人工校正第一批"
+  },
+  {
+    "id": "poem_031",
+    "title": "乡村四月",
+    "translation": "山坡和原野一片碧绿，稻田里的水光映着天空，白茫茫一片。在杜鹃鸟的啼叫声中，细雨像烟雾一样飘着。乡村四月里闲着的人很少，刚忙完养蚕采桑，又要去插秧种田。",
+    "tags": [
+      "田园",
+      "劳动",
+      "农事",
+      "乡村"
+    ],
+    "theme_tags": [
+      "田园",
+      "劳动",
+      "农事",
+      "乡村"
+    ],
+    "knowledge_tags": [
+      "背诵积累",
+      "季节意象",
+      "生活观察"
+    ],
+    "new_tags": [
+      "田园",
+      "农事",
+      "乡村"
+    ],
+    "provider": "vivo",
+    "model": "Volc-DeepSeek-V3.2",
+    "generated_at": "2026-07-03 17:53:25",
+    "review_status": "已人工校正第一批"
+  },
+  {
+    "id": "poem_032",
+    "title": "八阵图",
+    "translation": "诸葛亮建立的功业盖世，促成了三国鼎立，他也因八阵图而声名远扬。任凭江水冲刷，组成八阵图的石头依然不动；没能吞并东吴，是他留下的遗憾。",
+    "tags": [
+      "三国",
+      "历史",
+      "战争",
+      "遗憾"
+    ],
+    "theme_tags": [
+      "三国",
+      "历史",
+      "战争",
+      "遗憾"
+    ],
+    "knowledge_tags": [
+      "背诵积累",
+      "文化常识",
+      "情感理解"
+    ],
+    "new_tags": [
+      "三国",
+      "历史",
+      "战争",
+      "遗憾"
+    ],
+    "provider": "vivo",
+    "model": "Volc-DeepSeek-V3.2",
+    "generated_at": "2026-07-03 17:53:25",
+    "review_status": "已人工校正第一批"
+  },
+  {
+    "id": "poem_033",
+    "title": "别卢秦卿",
+    "translation": "明明知道以后还有相见的日子，可今夜还是难以分手。不要让老朋友送别的酒，还比不上阻挡行船的逆风；还是多留一会儿吧。",
+    "tags": [
+      "送别",
+      "友情",
+      "惜别"
+    ],
+    "theme_tags": [
+      "送别",
+      "友情",
+      "惜别"
+    ],
+    "knowledge_tags": [
+      "背诵积累",
+      "情感理解",
+      "比喻感知"
+    ],
+    "new_tags": [
+      "惜别"
+    ],
+    "provider": "vivo",
+    "model": "Volc-DeepSeek-V3.2",
+    "generated_at": "2026-07-03 17:56:36",
+    "review_status": "已人工校正第二批"
+  },
+  {
+    "id": "poem_034",
+    "title": "宫词",
+    "translation": "故乡远在三千里之外，幽居深宫已有二十年时光。听到一声《何满子》的悲歌，忍不住在君王面前流下了两行眼泪。",
+    "tags": [
+      "思乡",
+      "宫廷",
+      "悲伤"
+    ],
+    "theme_tags": [
+      "思乡",
+      "宫廷",
+      "悲伤"
+    ],
+    "knowledge_tags": [
+      "背诵积累",
+      "情感理解",
+      "文化常识"
+    ],
+    "new_tags": [
+      "宫廷",
+      "悲伤"
+    ],
+    "provider": "vivo",
+    "model": "Volc-DeepSeek-V3.2",
+    "generated_at": "2026-07-03 17:50:27",
+    "review_status": "已人工确认样本"
+  },
+  {
+    "id": "poem_035",
+    "title": "独坐敬亭山",
+    "translation": "所有的鸟儿都高高飞走，看不见了，一片孤单的云彩也独自悠闲地飘远。相互看着而不觉得厌烦的，只有这眼前的敬亭山。",
+    "tags": [
+      "山水",
+      "孤独",
+      "宁静"
+    ],
+    "theme_tags": [
+      "山水",
+      "孤独",
+      "宁静"
+    ],
+    "knowledge_tags": [
+      "背诵积累",
+      "自然意象",
+      "情绪感知"
+    ],
+    "new_tags": [
+      "孤独",
+      "宁静"
+    ],
+    "provider": "vivo",
+    "model": "Volc-DeepSeek-V3.2",
+    "generated_at": "2026-07-03 17:56:36",
+    "review_status": "已人工校正第二批"
+  },
+  {
+    "id": "poem_036",
+    "title": "登乐游原",
+    "translation": "傍晚时分心情不太好，于是驾车登上古老的乐游原。那夕阳景色真是无限美好，只是已经接近黄昏时分了。",
+    "tags": [
+      "登高",
+      "夕阳",
+      "感叹"
+    ],
+    "theme_tags": [
+      "登高",
+      "夕阳",
+      "感叹"
+    ],
+    "knowledge_tags": [
+      "背诵积累",
+      "自然意象",
+      "情感理解"
+    ],
+    "new_tags": [
+      "夕阳",
+      "感叹"
+    ],
+    "provider": "vivo",
+    "model": "Volc-DeepSeek-V3.2",
+    "generated_at": "2026-07-03 17:56:36",
+    "review_status": "已人工校正第二批"
+  },
+  {
+    "id": "poem_037",
+    "title": "秋浦歌",
+    "translation": "白发好像有三千丈那么长，心中的离愁也像它一样悠长。不知道在明亮的镜子里，是从哪里得来的这满头秋霜般的白发。",
+    "tags": [
+      "白发",
+      "忧愁",
+      "衰老"
+    ],
+    "theme_tags": [
+      "白发",
+      "忧愁",
+      "衰老"
+    ],
+    "knowledge_tags": [
+      "背诵积累",
+      "夸张修辞",
+      "情感理解"
+    ],
+    "new_tags": [
+      "白发",
+      "忧愁",
+      "衰老"
+    ],
+    "provider": "vivo",
+    "model": "Volc-DeepSeek-V3.2",
+    "generated_at": "2026-07-03 17:56:36",
+    "review_status": "已人工校正第二批"
+  },
+  {
+    "id": "poem_038",
+    "title": "答人",
+    "translation": "偶然来到松树下面，枕着石头安然入睡。深山里没有日历，寒冷的季节过去了，也不知道如今是哪一年。",
+    "tags": [
+      "山林",
+      "隐居",
+      "宁静"
+    ],
+    "theme_tags": [
+      "山林",
+      "隐居",
+      "宁静"
+    ],
+    "knowledge_tags": [
+      "背诵积累",
+      "生活画面",
+      "自然意象"
+    ],
+    "new_tags": [
+      "隐居",
+      "宁静"
+    ],
+    "provider": "vivo",
+    "model": "Volc-DeepSeek-V3.2",
+    "generated_at": "2026-07-03 17:56:36",
+    "review_status": "已人工校正第二批"
+  },
+  {
+    "id": "poem_039",
+    "title": "罢相作",
+    "translation": "我刚辞去宰相职位，说是给贤能的人让路，姑且举杯饮酒自乐。想问从前门前的那些客人，今天还有几个人会来呢？",
+    "tags": [
+      "官场",
+      "饮酒",
+      "人情冷暖",
+      "讽刺"
+    ],
+    "theme_tags": [
+      "官场",
+      "饮酒",
+      "人情冷暖",
+      "讽刺"
+    ],
+    "knowledge_tags": [
+      "背诵积累",
+      "情感理解",
+      "生活观察"
+    ],
+    "new_tags": [
+      "官场",
+      "饮酒",
+      "人情冷暖",
+      "讽刺"
+    ],
+    "provider": "vivo",
+    "model": "Volc-DeepSeek-V3.2",
+    "generated_at": "2026-07-03 17:56:36",
+    "review_status": "已人工校正第二批"
+  },
+  {
+    "id": "poem_040",
+    "title": "送朱大入秦",
+    "translation": "你离开这里前往五陵，我有一把价值千金的宝剑。在分手时解下它送给你，代表我平生对你的情意。",
+    "tags": [
+      "送别",
+      "友情",
+      "宝剑"
+    ],
+    "theme_tags": [
+      "送别",
+      "友情",
+      "宝剑"
+    ],
+    "knowledge_tags": [
+      "背诵积累",
+      "情感理解",
+      "生活画面"
+    ],
+    "new_tags": [
+      "宝剑"
+    ],
+    "provider": "vivo",
+    "model": "Volc-DeepSeek-V3.2",
+    "generated_at": "2026-07-03 17:56:36",
+    "review_status": "已人工校正第二批"
+  },
+  {
+    "id": "poem_041",
+    "title": "逢侠者",
+    "translation": "燕赵一带多有慷慨豪迈的侠士，我在侠士剧孟的故乡遇见了你。心里的话怎么也说不完，可前路上的太阳将要西斜，还是到了分别的时候。",
+    "tags": [
+      "侠客",
+      "相逢",
+      "送别"
+    ],
+    "theme_tags": [
+      "侠客",
+      "相逢",
+      "送别"
+    ],
+    "knowledge_tags": [
+      "背诵积累",
+      "情感理解",
+      "文化常识"
+    ],
+    "new_tags": [
+      "侠客",
+      "相逢"
+    ],
+    "provider": "vivo",
+    "model": "Volc-DeepSeek-V3.2",
+    "generated_at": "2026-07-03 17:56:36",
+    "review_status": "已人工校正第二批"
+  },
+  {
+    "id": "poem_042",
+    "title": "长干行·家临九江水",
+    "translation": "我的家临近九江江水，来来去去都在九江的旁边。我们同是长干里的人，从小却互相不认识。",
+    "tags": [
+      "同乡",
+      "相遇",
+      "江河"
+    ],
+    "theme_tags": [
+      "同乡",
+      "相遇",
+      "江河"
+    ],
+    "knowledge_tags": [
+      "背诵积累",
+      "生活常识",
+      "方位认知"
+    ],
+    "new_tags": [
+      "同乡",
+      "相遇"
+    ],
+    "provider": "vivo",
+    "model": "Volc-DeepSeek-V3.2",
+    "generated_at": "2026-07-03 17:56:36",
+    "review_status": "已人工校正第二批"
+  },
+  {
+    "id": "poem_043",
+    "title": "题西林壁",
+    "translation": "从正面看是连绵的山岭，从侧面看又成了高耸的山峰。从远处、近处、高处、低处看，山的样子各不相同。认不清庐山的真实面貌，只因为自己正身处于这座山中。",
+    "tags": [
+      "山水",
+      "观察",
+      "哲理"
+    ],
+    "theme_tags": [
+      "山水",
+      "观察",
+      "哲理"
+    ],
+    "knowledge_tags": [
+      "背诵积累",
+      "观察能力",
+      "简单哲理"
+    ],
+    "new_tags": [
+      "哲理"
+    ],
+    "provider": "vivo",
+    "model": "Volc-DeepSeek-V3.2",
+    "generated_at": "2026-07-03 17:56:36",
+    "review_status": "已人工校正第二批"
+  },
+  {
+    "id": "poem_044",
+    "title": "夜雨寄北",
+    "translation": "你问我归期，我还没有确定的日期。巴山夜里下着雨，雨水涨满了秋天的池塘。何时才能和你一起在西窗下剪烛谈心，那时再回头说说今晚巴山夜雨的情景。",
+    "tags": [
+      "思乡",
+      "夜晚",
+      "秋天"
+    ],
+    "theme_tags": [
+      "思乡",
+      "夜晚",
+      "秋天"
+    ],
+    "knowledge_tags": [
+      "背诵积累",
+      "情感理解",
+      "季节意象"
+    ],
+    "new_tags": [],
+    "provider": "vivo",
+    "model": "Volc-DeepSeek-V3.2",
+    "generated_at": "2026-07-03 18:11:50",
+    "review_status": "模型二次复核"
+  },
+  {
+    "id": "poem_045",
+    "title": "晓出净慈寺送林子方",
+    "translation": "到底是六月的西湖，风光与其他季节大不相同。碧绿的莲叶连接天际，一望无际；阳光映照下的荷花，红得格外鲜艳。",
+    "tags": [
+      "夏天",
+      "荷花",
+      "景色"
+    ],
+    "theme_tags": [
+      "夏天",
+      "荷花",
+      "景色"
+    ],
+    "knowledge_tags": [
+      "背诵积累",
+      "季节意象",
+      "画面理解"
+    ],
+    "new_tags": [],
+    "provider": "vivo",
+    "model": "Volc-DeepSeek-V3.2",
+    "generated_at": "2026-07-03 18:11:50",
+    "review_status": "模型二次复核"
+  },
+  {
+    "id": "poem_046",
+    "title": "行军九日思长安故园",
+    "translation": "勉强想要去登高，却没有人送酒来。远远地怜惜故乡的菊花，它们大概正依傍着战场开放。",
+    "tags": [
+      "思乡",
+      "秋天",
+      "旅途"
+    ],
+    "theme_tags": [
+      "思乡",
+      "秋天",
+      "旅途"
+    ],
+    "knowledge_tags": [
+      "背诵积累",
+      "情感理解",
+      "自然意象"
+    ],
+    "new_tags": [],
+    "provider": "vivo",
+    "model": "Volc-DeepSeek-V3.2",
+    "generated_at": "2026-07-03 18:11:50",
+    "review_status": "模型二次复核"
+  },
+  {
+    "id": "poem_047",
+    "title": "出塞",
+    "translation": "这明月还是秦汉时的明月，关塞还是秦汉时的关塞。远征万里的将士们至今还没能返回家园。倘若英勇善战的守边将领还在，绝不会让敌军跨过阴山。",
+    "tags": [
+      "边塞",
+      "战争",
+      "家国",
+      "悲壮"
+    ],
+    "theme_tags": [
+      "边塞",
+      "战争",
+      "家国",
+      "悲壮"
+    ],
+    "knowledge_tags": [
+      "背诵积累",
+      "文化常识",
+      "情感理解"
+    ],
+    "new_tags": [
+      "边塞",
+      "战争",
+      "家国",
+      "悲壮"
+    ],
+    "provider": "vivo",
+    "model": "Volc-DeepSeek-V3.2",
+    "generated_at": "2026-07-03 17:50:27",
+    "review_status": "已人工校正样本"
+  },
+  {
+    "id": "poem_048",
+    "title": "回乡偶书",
+    "translation": "年少时离开家乡，年老才回来。家乡的口音没有改变，但鬓角的头发已经稀疏变白。村里的孩子们看见我都不认识，笑着问客人是从哪里来的。",
+    "tags": [
+      "思乡",
+      "变化",
+      "生活"
+    ],
+    "theme_tags": [
+      "思乡",
+      "变化",
+      "生活"
+    ],
+    "knowledge_tags": [
+      "背诵积累",
+      "生活观察",
+      "情感理解"
+    ],
+    "new_tags": [],
+    "provider": "vivo",
+    "model": "Volc-DeepSeek-V3.2",
+    "generated_at": "2026-07-03 18:11:50",
+    "review_status": "模型二次复核"
+  },
+  {
+    "id": "poem_049",
+    "title": "秋风引",
+    "translation": "秋风是从哪里吹来的？萧萧风声送走了南飞的雁群。清晨秋风吹入院中的树木，孤独的旅人最先听到。",
+    "tags": [
+      "秋天",
+      "风",
+      "思乡"
+    ],
+    "theme_tags": [
+      "秋天",
+      "风",
+      "思乡"
+    ],
+    "knowledge_tags": [
+      "背诵积累",
+      "季节意象",
+      "情感理解"
+    ],
+    "new_tags": [],
+    "provider": "vivo",
+    "model": "Volc-DeepSeek-V3.2",
+    "generated_at": "2026-07-03 18:11:50",
+    "review_status": "模型二次复核"
+  },
+  {
+    "id": "poem_050",
+    "title": "送上人",
+    "translation": "孤云伴着野鹤，怎会愿意住在人间。不要去买沃洲山那样的地方，因为那里已经是世人知晓的处所。",
+    "tags": [
+      "自然",
+      "送别",
+      "山林"
+    ],
+    "theme_tags": [
+      "自然",
+      "送别",
+      "山林"
+    ],
+    "knowledge_tags": [
+      "背诵积累",
+      "自然意象",
+      "比喻理解"
+    ],
+    "new_tags": [],
+    "provider": "vivo",
+    "model": "Volc-DeepSeek-V3.2",
+    "generated_at": "2026-07-03 18:11:50",
+    "review_status": "模型二次复核"
+  },
+  {
+    "id": "poem_051",
+    "title": "春宵",
+    "translation": "春天的夜晚一刻时光也价值千金。花儿散发着清香，月亮投下朦胧的影子。楼台上传来细细的歌声和乐声，院子里秋千静立，夜色深沉。",
+    "tags": [
+      "春天",
+      "夜晚",
+      "景色"
+    ],
+    "theme_tags": [
+      "春天",
+      "夜晚",
+      "景色"
+    ],
+    "knowledge_tags": [
+      "背诵积累",
+      "季节意象",
+      "画面理解"
+    ],
+    "new_tags": [],
+    "provider": "vivo",
+    "model": "Volc-DeepSeek-V3.2",
+    "generated_at": "2026-07-03 18:11:50",
+    "review_status": "模型二次复核"
+  },
+  {
+    "id": "poem_052",
+    "title": "夜送赵纵",
+    "translation": "赵国的和氏璧，自古以来天下闻名。送你返回故乡的府邸，明亮的月光洒满前方的河川。",
+    "tags": [
+      "送别",
+      "月亮",
+      "友情"
+    ],
+    "theme_tags": [
+      "送别",
+      "月亮",
+      "友情"
+    ],
+    "knowledge_tags": [
+      "背诵积累",
+      "文化常识",
+      "自然意象"
+    ],
+    "new_tags": [],
+    "provider": "vivo",
+    "model": "Volc-DeepSeek-V3.2",
+    "generated_at": "2026-07-03 18:11:50",
+    "review_status": "模型二次复核"
+  },
+  {
+    "id": "poem_053",
+    "title": "婕妤怨",
+    "translation": "花枝从建章宫探出，昭阳殿里传来箫管之声。试问那得到君王恩宠的人，双眉画得究竟有多长。",
+    "tags": [
+      "宫廷",
+      "生活观察"
+    ],
+    "theme_tags": [
+      "宫廷",
+      "生活观察"
+    ],
+    "knowledge_tags": [
+      "背诵积累",
+      "生活观察",
+      "想象能力"
+    ],
+    "new_tags": [
+      "宫廷"
+    ],
+    "provider": "vivo",
+    "model": "Volc-DeepSeek-V3.2",
+    "generated_at": "2026-07-03 18:11:50",
+    "review_status": "模型二次复核"
+  },
+  {
+    "id": "poem_054",
+    "title": "左掖梨花",
+    "translation": "梨花冷艳洁白，完全胜过了雪；残留的香气忽然飘入衣衫。春风啊，暂且不要停息，把花瓣吹向皇宫的玉阶飞舞吧。",
+    "tags": [
+      "春天",
+      "自然",
+      "颜色"
+    ],
+    "theme_tags": [
+      "春天",
+      "自然",
+      "颜色"
+    ],
+    "knowledge_tags": [
+      "背诵积累",
+      "自然意象",
+      "比喻感知"
+    ],
+    "new_tags": [],
+    "provider": "vivo",
+    "model": "Volc-DeepSeek-V3.2",
+    "generated_at": "2026-07-03 18:11:50",
+    "review_status": "模型二次复核"
+  },
+  {
+    "id": "poem_055",
+    "title": "易水送别",
+    "translation": "当年在这里告别燕国太子丹，壮士的头发因激愤而竖立起来。从前的人已经消逝，今天的易水依然寒冷。",
+    "tags": [
+      "送别",
+      "历史"
+    ],
+    "theme_tags": [
+      "送别",
+      "历史"
+    ],
+    "knowledge_tags": [
+      "背诵积累",
+      "情感理解",
+      "文化常识"
+    ],
+    "new_tags": [
+      "历史"
+    ],
+    "provider": "vivo",
+    "model": "Volc-DeepSeek-V3.2",
+    "generated_at": "2026-07-03 18:12:12",
+    "review_status": "模型二次复核"
+  },
+  {
+    "id": "poem_056",
+    "title": "望洞庭",
+    "translation": "洞庭湖的水光与秋夜的月色交融在一起，湖面没有风，像没有打磨过的铜镜。远远望去，洞庭湖的山水一片青翠，君山就像白银盘里的一颗青螺。",
+    "tags": [
+      "山水",
+      "秋天",
+      "景色"
+    ],
+    "theme_tags": [
+      "山水",
+      "秋天",
+      "景色"
+    ],
+    "knowledge_tags": [
+      "背诵积累",
+      "比喻理解",
+      "画面理解"
+    ],
+    "new_tags": [],
+    "provider": "vivo",
+    "model": "Volc-DeepSeek-V3.2",
+    "generated_at": "2026-07-03 18:12:12",
+    "review_status": "模型二次复核"
+  },
+  {
+    "id": "poem_057",
+    "title": "渡汉江",
+    "translation": "在岭南与家人的音信已经断绝，经过了冬天又经过了春天。离家乡越近，心里反而更加害怕，不敢向从家乡来的人打听消息。",
+    "tags": [
+      "思乡",
+      "旅途"
+    ],
+    "theme_tags": [
+      "思乡",
+      "旅途"
+    ],
+    "knowledge_tags": [
+      "背诵积累",
+      "情感理解",
+      "情绪感知"
+    ],
+    "new_tags": [],
+    "provider": "vivo",
+    "model": "Volc-DeepSeek-V3.2",
+    "generated_at": "2026-07-03 18:12:12",
+    "review_status": "模型二次复核"
+  },
+  {
+    "id": "poem_058",
+    "title": "示儿",
+    "translation": "本来就知道人死去后万事都空了，只是悲伤没能见到国家统一的那一天。等到朝廷的军队平定中原的那一日，家祭时千万不要忘记告诉你的父亲。",
+    "tags": [
+      "亲情",
+      "爱国"
+    ],
+    "theme_tags": [
+      "亲情",
+      "爱国"
+    ],
+    "knowledge_tags": [
+      "背诵积累",
+      "价值启蒙",
+      "情感理解"
+    ],
+    "new_tags": [
+      "爱国"
+    ],
+    "provider": "vivo",
+    "model": "Volc-DeepSeek-V3.2",
+    "generated_at": "2026-07-03 18:12:12",
+    "review_status": "模型二次复核"
+  },
+  {
+    "id": "poem_059",
+    "title": "竹石",
+    "translation": "竹子紧紧咬住青山不放松，它的根原本就扎在破裂的岩石之中。经过千万次的磨砺和打击，它依然坚韧强劲，任凭你来自东西南北的狂风。",
+    "tags": [
+      "自然",
+      "励志"
+    ],
+    "theme_tags": [
+      "自然",
+      "励志"
+    ],
+    "knowledge_tags": [
+      "背诵积累",
+      "自然认知",
+      "简单哲理"
+    ],
+    "new_tags": [],
+    "provider": "vivo",
+    "model": "Volc-DeepSeek-V3.2",
+    "generated_at": "2026-07-03 18:12:12",
+    "review_status": "模型二次复核"
+  },
+  {
+    "id": "poem_060",
+    "title": "答五陵太守",
+    "translation": "我手持宝剑远行千里，虽然身躯微贱，但敢说一句话：我曾经是大梁的门客，不会辜负信陵君的恩情。",
+    "tags": [
+      "旅途",
+      "友情"
+    ],
+    "theme_tags": [
+      "旅途",
+      "友情"
+    ],
+    "knowledge_tags": [
+      "背诵积累",
+      "文化常识",
+      "价值启蒙"
+    ],
+    "new_tags": [],
+    "provider": "vivo",
+    "model": "Volc-DeepSeek-V3.2",
+    "generated_at": "2026-07-03 18:12:12",
+    "review_status": "模型二次复核"
+  },
+  {
+    "id": "poem_061",
+    "title": "答李浣",
+    "translation": "在树林里读完《周易》，到溪边悠闲地看着鸥鸟。楚地有很多擅长诗词的文人雅客，谁是最常与你往来的人呢？",
+    "tags": [
+      "自然",
+      "生活",
+      "友情"
+    ],
+    "theme_tags": [
+      "自然",
+      "生活",
+      "友情"
+    ],
+    "knowledge_tags": [
+      "背诵积累",
+      "生活画面",
+      "观察能力"
+    ],
+    "new_tags": [],
+    "provider": "vivo",
+    "model": "Volc-DeepSeek-V3.2",
+    "generated_at": "2026-07-03 18:12:12",
+    "review_status": "模型二次复核"
+  },
+  {
+    "id": "poem_062",
+    "title": "蜀道后期",
+    "translation": "游子的归心在与日月争快慢，来去都预先定好了日期。秋风却不肯等待我，抢先一步到达了洛阳城。",
+    "tags": [
+      "旅途",
+      "秋天",
+      "思乡"
+    ],
+    "theme_tags": [
+      "旅途",
+      "秋天",
+      "思乡"
+    ],
+    "knowledge_tags": [
+      "背诵积累",
+      "情感理解",
+      "季节意象"
+    ],
+    "new_tags": [],
+    "provider": "vivo",
+    "model": "Volc-DeepSeek-V3.2",
+    "generated_at": "2026-07-03 18:12:12",
+    "review_status": "模型二次复核"
+  },
+  {
+    "id": "poem_063",
+    "title": "题竹林寺",
+    "translation": "人间的岁月总是过得很快，这里的烟霞美景却特别多。我深情地眷恋着竹林寺，不知道还能再到这里来几回呢。",
+    "tags": [
+      "景色",
+      "山林"
+    ],
+    "theme_tags": [
+      "景色",
+      "山林"
+    ],
+    "knowledge_tags": [
+      "背诵积累",
+      "自然意象",
+      "情感理解"
+    ],
+    "new_tags": [],
+    "provider": "vivo",
+    "model": "Volc-DeepSeek-V3.2",
+    "generated_at": "2026-07-03 18:12:12",
+    "review_status": "模型二次复核"
+  },
+  {
+    "id": "poem_064",
+    "title": "江畔独步寻花",
+    "translation": "黄师塔前的江水向东流去，春光让人感到懒散困倦，便倚着微风休息。一簇簇没有主人的桃花开得正盛，究竟是深红色的可爱，还是浅红色的可爱呢？",
+    "tags": [
+      "春天",
+      "景色",
+      "桃花"
+    ],
+    "theme_tags": [
+      "春天",
+      "景色",
+      "桃花"
+    ],
+    "knowledge_tags": [
+      "背诵积累",
+      "季节意象",
+      "观察能力"
+    ],
+    "new_tags": [
+      "桃花"
+    ],
+    "provider": "vivo",
+    "model": "Volc-DeepSeek-V3.2",
+    "generated_at": "2026-07-03 18:12:12",
+    "review_status": "模型二次复核"
+  },
+  {
+    "id": "poem_065",
+    "title": "咏华清宫",
+    "translation": "走完了江南数十段路程，清晨的风和天边的残月伴我进入华清宫。朝元阁上西风刮得很急，那风声都吹进长杨宫，化作了雨点般的声音。",
+    "tags": [
+      "旅途",
+      "景色"
+    ],
+    "theme_tags": [
+      "旅途",
+      "景色"
+    ],
+    "knowledge_tags": [
+      "背诵积累",
+      "动态意象",
+      "自然意象"
+    ],
+    "new_tags": [],
+    "provider": "vivo",
+    "model": "Volc-DeepSeek-V3.2",
+    "generated_at": "2026-07-03 18:12:36",
+    "review_status": "模型二次复核"
+  },
+  {
+    "id": "poem_066",
+    "title": "有约",
+    "translation": "黄梅时节家家户户都笼罩在雨中，长满青草的池塘边处处都是蛙鸣。约好的朋友过了半夜还没有来，我闲来无事，敲着棋子，震落了灯花。",
+    "tags": [
+      "夏天",
+      "夜晚",
+      "生活"
+    ],
+    "theme_tags": [
+      "夏天",
+      "夜晚",
+      "生活"
+    ],
+    "knowledge_tags": [
+      "背诵积累",
+      "季节意象",
+      "生活画面"
+    ],
+    "new_tags": [],
+    "provider": "vivo",
+    "model": "Volc-DeepSeek-V3.2",
+    "generated_at": "2026-07-03 18:12:36",
+    "review_status": "模型二次复核"
+  },
+  {
+    "id": "poem_067",
+    "title": "题淮南寺",
+    "translation": "南来北往的行人想停歇便停歇，白色的苹花被风吹尽，楚江迎来了秋天。我并非那些为秋天而悲伤的过客，任凭傍晚的山峦相对发愁去吧。",
+    "tags": [
+      "秋天",
+      "景色"
+    ],
+    "theme_tags": [
+      "秋天",
+      "景色"
+    ],
+    "knowledge_tags": [
+      "背诵积累",
+      "季节意象",
+      "情感理解"
+    ],
+    "new_tags": [],
+    "provider": "vivo",
+    "model": "Volc-DeepSeek-V3.2",
+    "generated_at": "2026-07-03 18:12:36",
+    "review_status": "模型二次复核"
+  },
+  {
+    "id": "poem_068",
+    "title": "四时田园杂兴",
+    "translation": "白天出门锄草，夜晚在家搓麻线，村庄里的男男女女各自承担着家务。小孩子们还不懂得耕田织布，也在桑树荫下学着大人种瓜。",
+    "tags": [
+      "劳动",
+      "儿童",
+      "生活"
+    ],
+    "theme_tags": [
+      "劳动",
+      "儿童",
+      "生活"
+    ],
+    "knowledge_tags": [
+      "背诵积累",
+      "生活画面",
+      "观察能力"
+    ],
+    "new_tags": [],
+    "provider": "vivo",
+    "model": "Volc-DeepSeek-V3.2",
+    "generated_at": "2026-07-03 18:12:36",
+    "review_status": "模型二次复核"
+  },
+  {
+    "id": "poem_069",
+    "title": "秋夜寄丘员外",
+    "translation": "在这秋夜里想念着你，一边散步一边吟咏着凉爽的天气。山中空旷，能听到松子落下的声音，我想那位隐居的朋友应该也还没有入睡吧。",
+    "tags": [
+      "夜晚",
+      "友情",
+      "自然"
+    ],
+    "theme_tags": [
+      "夜晚",
+      "友情",
+      "自然"
+    ],
+    "knowledge_tags": [
+      "背诵积累",
+      "季节意象",
+      "情感理解"
+    ],
+    "new_tags": [],
+    "provider": "vivo",
+    "model": "Volc-DeepSeek-V3.2",
+    "generated_at": "2026-07-03 18:12:36",
+    "review_status": "模型二次复核"
+  },
+  {
+    "id": "poem_070",
+    "title": "芙蓉楼送辛渐",
+    "translation": "寒冷的雨水在夜晚洒满江面，流入吴地，天亮时送别客人，只觉楚山也显得孤独。如果洛阳的亲友们问起我，就说我的心依然像玉壶里的冰一样纯洁透明。",
+    "tags": [
+      "送别",
+      "友情",
+      "思乡"
+    ],
+    "theme_tags": [
+      "送别",
+      "友情",
+      "思乡"
+    ],
+    "knowledge_tags": [
+      "背诵积累",
+      "情感理解",
+      "比喻理解"
+    ],
+    "new_tags": [],
+    "provider": "vivo",
+    "model": "Volc-DeepSeek-V3.2",
+    "generated_at": "2026-07-03 18:12:36",
+    "review_status": "模型二次复核"
+  },
+  {
+    "id": "poem_071",
+    "title": "访袁拾遗不遇",
+    "translation": "我到洛阳去拜访一位有才学的朋友，他却已被贬谪到了遥远的江岭。听说那里的梅花开得很早，但怎么比得上此地的春色呢？",
+    "tags": [
+      "友情",
+      "春天"
+    ],
+    "theme_tags": [
+      "友情",
+      "春天"
+    ],
+    "knowledge_tags": [
+      "背诵积累",
+      "季节意象",
+      "情感理解"
+    ],
+    "new_tags": [],
+    "provider": "vivo",
+    "model": "Volc-DeepSeek-V3.2",
+    "generated_at": "2026-07-03 18:12:36",
+    "review_status": "模型二次复核"
+  },
+  {
+    "id": "poem_072",
+    "title": "城东早春",
+    "translation": "诗人眼中清新美好的景色就在初春，那时绿柳才刚抽出嫩黄的芽儿，颜色还不均匀。如果等到上林苑繁花似锦的时候，出门就全是看花的人了。",
+    "tags": [
+      "春天",
+      "景色",
+      "自然"
+    ],
+    "theme_tags": [
+      "春天",
+      "景色",
+      "自然"
+    ],
+    "knowledge_tags": [
+      "背诵积累",
+      "季节意象",
+      "观察能力"
+    ],
+    "new_tags": [],
+    "provider": "vivo",
+    "model": "Volc-DeepSeek-V3.2",
+    "generated_at": "2026-07-03 18:12:36",
+    "review_status": "模型二次复核"
+  },
+  {
+    "id": "poem_073",
+    "title": "逢入京使",
+    "translation": "向东遥望故乡，路途漫长遥远，两只衣袖都被泪水沾湿了也没有干。在马上与你相遇，没有纸笔写信，就请你给我家人捎个口信，说我一切平安。",
+    "tags": [
+      "思乡",
+      "旅途",
+      "亲情"
+    ],
+    "theme_tags": [
+      "思乡",
+      "旅途",
+      "亲情"
+    ],
+    "knowledge_tags": [
+      "背诵积累",
+      "情感理解",
+      "生活画面"
+    ],
+    "new_tags": [],
+    "provider": "vivo",
+    "model": "Volc-DeepSeek-V3.2",
+    "generated_at": "2026-07-03 18:12:36",
+    "review_status": "模型二次复核"
+  },
+  {
+    "id": "poem_074",
+    "title": "乌衣巷",
+    "translation": "朱雀桥边长满了野草野花，乌衣巷口的夕阳正在西斜。从前在王谢豪门家堂前筑巢的燕子，如今已飞进了普通百姓的家里。",
+    "tags": [
+      "景色",
+      "变化",
+      "生活观察"
+    ],
+    "theme_tags": [
+      "景色",
+      "变化",
+      "生活观察"
+    ],
+    "knowledge_tags": [
+      "背诵积累",
+      "观察能力",
+      "生活观察"
+    ],
+    "new_tags": [],
+    "provider": "vivo",
+    "model": "Volc-DeepSeek-V3.2",
+    "generated_at": "2026-07-03 18:12:36",
+    "review_status": "模型二次复核"
+  },
+  {
+    "id": "poem_075",
+    "title": "六月二十七日望湖楼醉书",
+    "translation": "乌云像打翻的墨汁一样翻滚，还没遮住远山。白色的雨点像珍珠般蹦跳，纷纷乱入船中。忽然一阵卷地的大风吹来，把云雨都吹散了。从望湖楼上看下去，湖水像天空一样明净开阔。",
+    "tags": [
+      "夏天",
+      "景色",
+      "自然"
+    ],
+    "theme_tags": [
+      "夏天",
+      "景色",
+      "自然"
+    ],
+    "knowledge_tags": [
+      "背诵积累",
+      "动态意象",
+      "自然意象"
+    ],
+    "new_tags": [],
+    "provider": "vivo",
+    "model": "Volc-DeepSeek-V3.2",
+    "generated_at": "2026-07-03 18:13:02",
+    "review_status": "模型二次复核"
+  },
+  {
+    "id": "poem_076",
+    "title": "寒夜",
+    "translation": "寒冷的夜晚有客人来访，我煮茶当作酒来招待。竹炉上的水烧开了，炉火刚刚烧得通红。窗前的月亮还是和往常一样，只是因为有了梅花的映衬，才显得格外不同。",
+    "tags": [
+      "夜晚",
+      "友情",
+      "生活"
+    ],
+    "theme_tags": [
+      "夜晚",
+      "友情",
+      "生活"
+    ],
+    "knowledge_tags": [
+      "背诵积累",
+      "生活画面",
+      "观察能力"
+    ],
+    "new_tags": [],
+    "provider": "vivo",
+    "model": "Volc-DeepSeek-V3.2",
+    "generated_at": "2026-07-03 18:13:02",
+    "review_status": "模型二次复核"
+  },
+  {
+    "id": "poem_077",
+    "title": "元日",
+    "translation": "在爆竹声中，旧的一年过去了。和暖的春风把暖意吹进了屠苏酒里。千家万户都迎来了明亮的朝阳。人们总是用新的桃符换下旧的桃符。",
+    "tags": [
+      "节日",
+      "春天",
+      "生活"
+    ],
+    "theme_tags": [
+      "节日",
+      "春天",
+      "生活"
+    ],
+    "knowledge_tags": [
+      "背诵积累",
+      "文化常识",
+      "生活观察"
+    ],
+    "new_tags": [],
+    "provider": "vivo",
+    "model": "Volc-DeepSeek-V3.2",
+    "generated_at": "2026-07-03 18:13:02",
+    "review_status": "模型二次复核"
+  },
+  {
+    "id": "poem_078",
+    "title": "立春偶成",
+    "translation": "时令回转，岁末年初，冰霜已经变少了。春天来到人间，草木最先知道。只觉得眼前充满了生机勃勃的景象。东风吹拂着水面，水波泛起参差不齐的绿色波纹。",
+    "tags": [
+      "春天",
+      "自然",
+      "景色"
+    ],
+    "theme_tags": [
+      "春天",
+      "自然",
+      "景色"
+    ],
+    "knowledge_tags": [
+      "背诵积累",
+      "季节意象",
+      "自然认知"
+    ],
+    "new_tags": [],
+    "provider": "vivo",
+    "model": "Volc-DeepSeek-V3.2",
+    "generated_at": "2026-07-03 18:13:02",
+    "review_status": "模型二次复核"
+  },
+  {
+    "id": "poem_079",
+    "title": "遣怀",
+    "translation": "我曾在江南失意潦倒，载着酒四处游走。欣赏着那些腰肢纤细、体态轻盈的歌女。在扬州的十年生活像一场大梦。只落得在歌楼舞馆中留下薄情的名声。",
+    "tags": [
+      "生活",
+      "旅途",
+      "变化"
+    ],
+    "theme_tags": [
+      "生活",
+      "旅途",
+      "变化"
+    ],
+    "knowledge_tags": [
+      "背诵积累",
+      "情感理解",
+      "生活观察"
+    ],
+    "new_tags": [],
+    "provider": "vivo",
+    "model": "Volc-DeepSeek-V3.2",
+    "generated_at": "2026-07-03 18:13:02",
+    "review_status": "模型二次复核"
+  },
+  {
+    "id": "poem_080",
+    "title": "题金陵渡",
+    "translation": "在金陵渡口有一座小山楼。在这里住上一晚的旅人自然会感到忧愁。潮水退去，夜晚的江面笼罩在斜月的光辉里。远处那两三点星星般的灯火，就是瓜州。",
+    "tags": [
+      "夜晚",
+      "旅途",
+      "思乡"
+    ],
+    "theme_tags": [
+      "夜晚",
+      "旅途",
+      "思乡"
+    ],
+    "knowledge_tags": [
+      "背诵积累",
+      "方位认知",
+      "情感理解"
+    ],
+    "new_tags": [],
+    "provider": "vivo",
+    "model": "Volc-DeepSeek-V3.2",
+    "generated_at": "2026-07-03 18:13:02",
+    "review_status": "模型二次复核"
+  },
+  {
+    "id": "poem_081",
+    "title": "观永乐公主入番",
+    "translation": "边塞之地莺歌花开的景象很少。新年到来，也没感觉到什么新鲜气象。美丽的公主像从天上降临一般。这遥远的边塞之地才仿佛迎来了春天。",
+    "tags": [
+      "边塞",
+      "变化",
+      "景色"
+    ],
+    "theme_tags": [
+      "边塞",
+      "变化",
+      "景色"
+    ],
+    "knowledge_tags": [
+      "背诵积累",
+      "季节意象",
+      "想象能力"
+    ],
+    "new_tags": [
+      "边塞"
+    ],
+    "provider": "vivo",
+    "model": "Volc-DeepSeek-V3.2",
+    "generated_at": "2026-07-03 18:13:02",
+    "review_status": "模型二次复核"
+  },
+  {
+    "id": "poem_082",
+    "title": "塞下曲·林暗草惊风",
+    "translation": "树林昏暗，风吹草动，令人心惊。将军在夜色中拉弓射箭。天亮时去寻找那支白色的箭羽。发现它已经深深地射进了石头的棱角之中。",
+    "tags": [
+      "夜晚",
+      "山林"
+    ],
+    "theme_tags": [
+      "夜晚",
+      "山林"
+    ],
+    "knowledge_tags": [
+      "背诵积累",
+      "动态意象",
+      "夸张修辞"
+    ],
+    "new_tags": [],
+    "provider": "vivo",
+    "model": "Volc-DeepSeek-V3.2",
+    "generated_at": "2026-07-03 18:13:02",
+    "review_status": "模型二次复核"
+  },
+  {
+    "id": "poem_083",
+    "title": "金缕衣",
+    "translation": "劝你不要过分爱惜那华贵的金缕衣。劝你要珍惜宝贵的青春时光。花儿盛开可以采摘的时候就要及时去摘。不要等到花儿凋谢了，只能空折树枝。",
+    "tags": [
+      "励志",
+      "珍惜时光"
+    ],
+    "theme_tags": [
+      "励志",
+      "珍惜时光"
+    ],
+    "knowledge_tags": [
+      "背诵积累",
+      "价值启蒙",
+      "简单哲理"
+    ],
+    "new_tags": [
+      "珍惜时光"
+    ],
+    "provider": "vivo",
+    "model": "Volc-DeepSeek-V3.2",
+    "generated_at": "2026-07-03 18:13:02",
+    "review_status": "模型二次复核"
+  },
+  {
+    "id": "poem_084",
+    "title": "听筝",
+    "translation": "精美的筝在弹奏，筝柱上装饰着金粟。一双洁白的手在华美的房舍前拨动琴弦。为了想得到那位懂音乐的人的回头一顾。她时不时故意弹错琴弦。",
+    "tags": [
+      "生活",
+      "观察"
+    ],
+    "theme_tags": [
+      "生活",
+      "观察"
+    ],
+    "knowledge_tags": [
+      "背诵积累",
+      "生活观察",
+      "情感理解"
+    ],
+    "new_tags": [],
+    "provider": "vivo",
+    "model": "Volc-DeepSeek-V3.2",
+    "generated_at": "2026-07-03 18:13:02",
+    "review_status": "模型二次复核"
+  },
+  {
+    "id": "poem_085",
+    "title": "浪淘沙",
+    "translation": "弯弯曲曲的黄河卷着万里泥沙。浪涛翻涌，狂风颠簸，仿佛来自天边。如今要沿着黄河直上银河，一同去到牛郎和织女的家里。",
+    "tags": [
+      "黄河",
+      "想象",
+      "自然"
+    ],
+    "theme_tags": [
+      "黄河",
+      "想象",
+      "自然"
+    ],
+    "knowledge_tags": [
+      "背诵积累",
+      "想象能力",
+      "自然意象"
+    ],
+    "new_tags": [],
+    "provider": "vivo",
+    "model": "Volc-DeepSeek-V3.2",
+    "generated_at": "2026-07-03 18:13:26",
+    "review_status": "模型二次复核"
+  },
+  {
+    "id": "poem_086",
+    "title": "七夕",
+    "translation": "不明白牛郎是什么心意，为何一定要邀请织女来穿梭织布。年年向天上乞求给人间更多灵巧，却不知道人间的机巧已经太多了。",
+    "tags": [
+      "节日",
+      "生活观察"
+    ],
+    "theme_tags": [
+      "节日",
+      "生活观察"
+    ],
+    "knowledge_tags": [
+      "背诵积累",
+      "文化常识",
+      "生活观察"
+    ],
+    "new_tags": [],
+    "provider": "vivo",
+    "model": "Volc-DeepSeek-V3.2",
+    "generated_at": "2026-07-03 18:13:26",
+    "review_status": "模型二次复核"
+  },
+  {
+    "id": "poem_087",
+    "title": "早春",
+    "translation": "朝南的枝条才开了两三朵花。在雪中吟咏花香，欣赏着淡淡的花粉。花朵上笼罩着淡淡的烟雾，也浸润在浓浓的月色里。那香气深深笼罩着水面，又浅浅地笼罩着沙地。",
+    "tags": [
+      "春天",
+      "景色",
+      "自然"
+    ],
+    "theme_tags": [
+      "春天",
+      "景色",
+      "自然"
+    ],
+    "knowledge_tags": [
+      "背诵积累",
+      "季节意象",
+      "观察能力"
+    ],
+    "new_tags": [],
+    "provider": "vivo",
+    "model": "Volc-DeepSeek-V3.2",
+    "generated_at": "2026-07-03 18:13:26",
+    "review_status": "模型二次复核"
+  },
+  {
+    "id": "poem_088",
+    "title": "枫桥夜泊",
+    "translation": "月亮落下，乌鸦啼叫，寒霜布满天空。江边的枫树和渔船上的灯火，对着我这个忧愁难眠的人。姑苏城外的寒山寺，半夜里敲响的钟声传到了我的客船上。",
+    "tags": [
+      "夜晚",
+      "旅途",
+      "思乡"
+    ],
+    "theme_tags": [
+      "夜晚",
+      "旅途",
+      "思乡"
+    ],
+    "knowledge_tags": [
+      "背诵积累",
+      "情绪感知",
+      "自然意象"
+    ],
+    "new_tags": [],
+    "provider": "vivo",
+    "model": "Volc-DeepSeek-V3.2",
+    "generated_at": "2026-07-03 18:13:26",
+    "review_status": "模型二次复核"
+  },
+  {
+    "id": "poem_089",
+    "title": "石灰吟",
+    "translation": "经过千锤万凿从深山里开采出来。面对烈火的焚烧也当作很平常的事。即使粉身碎骨也全然不怕，只愿将清白的品格留在人世间。",
+    "tags": [
+      "励志",
+      "自然"
+    ],
+    "theme_tags": [
+      "励志",
+      "自然"
+    ],
+    "knowledge_tags": [
+      "背诵积累",
+      "价值启蒙",
+      "比喻理解"
+    ],
+    "new_tags": [],
+    "provider": "vivo",
+    "model": "Volc-DeepSeek-V3.2",
+    "generated_at": "2026-07-03 18:13:26",
+    "review_status": "模型二次复核"
+  },
+  {
+    "id": "poem_090",
+    "title": "观书有感",
+    "translation": "半亩大的方形池塘像一面镜子打开。天光和云影一起在水面上来回晃动。要问池塘里的水为何这样清澈，是因为有活水从源头不断流来。",
+    "tags": [
+      "自然",
+      "景色",
+      "生活观察"
+    ],
+    "theme_tags": [
+      "自然",
+      "景色",
+      "生活观察"
+    ],
+    "knowledge_tags": [
+      "背诵积累",
+      "自然认知",
+      "简单哲理"
+    ],
+    "new_tags": [],
+    "provider": "vivo",
+    "model": "Volc-DeepSeek-V3.2",
+    "generated_at": "2026-07-03 18:13:26",
+    "review_status": "模型二次复核"
+  },
+  {
+    "id": "poem_091",
+    "title": "春晴",
+    "translation": "下雨前，刚看见花朵间新生的花蕊。下雨后，叶子底下却一朵花也没有了。蜜蜂和蝴蝶纷纷飞过围墙去，让人怀疑美好的春色是不是都在邻居家。",
+    "tags": [
+      "春天",
+      "变化",
+      "自然"
+    ],
+    "theme_tags": [
+      "春天",
+      "变化",
+      "自然"
+    ],
+    "knowledge_tags": [
+      "背诵积累",
+      "季节意象",
+      "观察能力"
+    ],
+    "new_tags": [],
+    "provider": "vivo",
+    "model": "Volc-DeepSeek-V3.2",
+    "generated_at": "2026-07-03 18:13:26",
+    "review_status": "模型二次复核"
+  },
+  {
+    "id": "poem_092",
+    "title": "江楼有感",
+    "translation": "独自登上江边的高楼，思绪飘渺。月光像水一样清澈，江水又像天空一样辽阔。从前一同来赏月的人如今在哪里？眼前的风景依稀和去年相似。",
+    "tags": [
+      "月亮",
+      "思亲",
+      "景色"
+    ],
+    "theme_tags": [
+      "月亮",
+      "思亲",
+      "景色"
+    ],
+    "knowledge_tags": [
+      "背诵积累",
+      "情感理解",
+      "意象理解"
+    ],
+    "new_tags": [],
+    "provider": "vivo",
+    "model": "Volc-DeepSeek-V3.2",
+    "generated_at": "2026-07-03 18:13:26",
+    "review_status": "模型二次复核"
+  },
+  {
+    "id": "poem_093",
+    "title": "金陵图",
+    "translation": "谁说伤心的景象是画不出来的？只是画家们都去迎合世人的喜好罢了。你看这六幅描绘南朝往事的画，古老的树木和寒冷的云朵充满了昔日的都城。",
+    "tags": [
+      "变化",
+      "景色"
+    ],
+    "theme_tags": [
+      "变化",
+      "景色"
+    ],
+    "knowledge_tags": [
+      "背诵积累",
+      "画面理解",
+      "文化常识"
+    ],
+    "new_tags": [],
+    "provider": "vivo",
+    "model": "Volc-DeepSeek-V3.2",
+    "generated_at": "2026-07-03 18:13:26",
+    "review_status": "模型二次复核"
+  },
+  {
+    "id": "poem_094",
+    "title": "早春呈水部张十八员外",
+    "translation": "京城街道上，细雨像酥油一样滋润。远看草色一片青绿，近看却几乎看不到。这是一年中最美好的初春景色，远胜过京城里满是烟柳的暮春时节。",
+    "tags": [
+      "春天",
+      "景色",
+      "自然"
+    ],
+    "theme_tags": [
+      "春天",
+      "景色",
+      "自然"
+    ],
+    "knowledge_tags": [
+      "背诵积累",
+      "季节意象",
+      "观察能力"
+    ],
+    "new_tags": [],
+    "provider": "vivo",
+    "model": "Volc-DeepSeek-V3.2",
+    "generated_at": "2026-07-03 18:13:26",
+    "review_status": "模型二次复核"
+  },
+  {
+    "id": "poem_095",
+    "title": "黄鹤楼送孟浩然之广陵",
+    "translation": "老朋友在黄鹤楼与我告别，向西辞行。在这繁花似锦的三月，他顺流东下去往扬州。那一叶孤帆的远影，渐渐消失在碧蓝的天空尽头。眼前只剩下长江水，向着天边不停地奔流。",
+    "tags": [
+      "送别",
+      "春天",
+      "景色"
+    ],
+    "theme_tags": [
+      "送别",
+      "春天",
+      "景色"
+    ],
+    "knowledge_tags": [
+      "背诵积累",
+      "情感理解",
+      "自然意象"
+    ],
+    "new_tags": [],
+    "provider": "vivo",
+    "model": "Volc-DeepSeek-V3.2",
+    "generated_at": "2026-07-03 18:13:53",
+    "review_status": "模型二次复核"
+  },
+  {
+    "id": "poem_096",
+    "title": "中秋月",
+    "translation": "傍晚的云霞散尽，天地间弥漫着清冷的寒意。银河寂静无声，明月像玉盘一样缓缓转动。这一生中，这样美好的中秋夜晚并不常有。明年此时，又会在哪里仰望这轮明月呢？",
+    "tags": [
+      "夜晚",
+      "月亮",
+      "节日"
+    ],
+    "theme_tags": [
+      "夜晚",
+      "月亮",
+      "节日"
+    ],
+    "knowledge_tags": [
+      "背诵积累",
+      "季节意象",
+      "情感理解"
+    ],
+    "new_tags": [],
+    "provider": "vivo",
+    "model": "Volc-DeepSeek-V3.2",
+    "generated_at": "2026-07-03 18:13:53",
+    "review_status": "模型二次复核"
+  },
+  {
+    "id": "poem_097",
+    "title": "再游玄都观",
+    "translation": "百亩大的庭院中，一半都长满了青苔。桃花已经全部凋谢，只剩下菜花在盛开。当年种桃树的道士如今去了哪里呢？从前那位来过的刘郎，今天又回来了。",
+    "tags": [
+      "变化",
+      "景色",
+      "生活观察"
+    ],
+    "theme_tags": [
+      "变化",
+      "景色",
+      "生活观察"
+    ],
+    "knowledge_tags": [
+      "背诵积累",
+      "生活观察",
+      "自然意象"
+    ],
+    "new_tags": [],
+    "provider": "vivo",
+    "model": "Volc-DeepSeek-V3.2",
+    "generated_at": "2026-07-03 18:13:53",
+    "review_status": "模型二次复核"
+  },
+  {
+    "id": "poem_098",
+    "title": "暮春即事",
+    "translation": "一对对瓦雀的影子，在书桌上移动。点点杨花，飘进了我的砚台水池。我悠闲地坐在小窗前，读着《周易》。不知不觉，春天已经过去很久了。",
+    "tags": [
+      "春天",
+      "生活观察",
+      "自然"
+    ],
+    "theme_tags": [
+      "春天",
+      "生活观察",
+      "自然"
+    ],
+    "knowledge_tags": [
+      "背诵积累",
+      "生活画面",
+      "季节意象"
+    ],
+    "new_tags": [],
+    "provider": "vivo",
+    "model": "Volc-DeepSeek-V3.2",
+    "generated_at": "2026-07-03 18:13:53",
+    "review_status": "模型二次复核"
+  },
+  {
+    "id": "poem_099",
+    "title": "登山",
+    "translation": "整天昏昏沉沉，仿佛在醉梦中度过。忽然听说春天快要结束了，才勉强去登山。因为路过种满竹子的寺院，遇到僧人交谈。在这纷扰的人生中，又得到了半日的清闲时光。",
+    "tags": [
+      "生活",
+      "登高",
+      "山林"
+    ],
+    "theme_tags": [
+      "生活",
+      "登高",
+      "山林"
+    ],
+    "knowledge_tags": [
+      "背诵积累",
+      "情感理解",
+      "生活常识"
+    ],
+    "new_tags": [],
+    "provider": "vivo",
+    "model": "Volc-DeepSeek-V3.2",
+    "generated_at": "2026-07-03 18:13:53",
+    "review_status": "模型二次复核"
+  },
+  {
+    "id": "poem_100",
+    "title": "秋月",
+    "translation": "清澈的溪水，流过碧绿的山头。澄澈的天空与溪水，在秋天里融为一色。这地方远离喧嚣的尘世，大约有三十里。只有白云和红叶，悠然自在地飘动。",
+    "tags": [
+      "秋天",
+      "山水",
+      "自然"
+    ],
+    "theme_tags": [
+      "秋天",
+      "山水",
+      "自然"
+    ],
+    "knowledge_tags": [
+      "背诵积累",
+      "自然意象",
+      "画面理解"
+    ],
+    "new_tags": [],
+    "provider": "vivo",
+    "model": "Volc-DeepSeek-V3.2",
+    "generated_at": "2026-07-03 18:13:53",
+    "review_status": "模型二次复核"
+  },
+  {
+    "id": "poem_101",
+    "title": "庆全庵桃花",
+    "translation": "寻到桃花源这样的好地方，可以躲避秦时的战乱。桃花红了，又迎来新的一年。桃花凋落时，不要让花瓣随溪水流走。怕的是会有打鱼人顺着溪水，找到这里来询问路径。",
+    "tags": [
+      "春天",
+      "自然",
+      "生活"
+    ],
+    "theme_tags": [
+      "春天",
+      "自然",
+      "生活"
+    ],
+    "knowledge_tags": [
+      "背诵积累",
+      "想象能力",
+      "文化常识"
+    ],
+    "new_tags": [],
+    "provider": "vivo",
+    "model": "Volc-DeepSeek-V3.2",
+    "generated_at": "2026-07-03 18:13:53",
+    "review_status": "模型二次复核"
+  },
+  {
+    "id": "poem_102",
+    "title": "寒食",
+    "translation": "春天的长安城处处都是飘飞的花絮。寒食节的东风，吹拂着皇宫的柳枝。傍晚时分，皇宫里传递着赏赐的蜡烛。那蜡烛的轻烟，飘散进了权贵大臣们的家中。",
+    "tags": [
+      "春天",
+      "节日",
+      "景色"
+    ],
+    "theme_tags": [
+      "春天",
+      "节日",
+      "景色"
+    ],
+    "knowledge_tags": [
+      "背诵积累",
+      "季节意象",
+      "文化常识"
+    ],
+    "new_tags": [],
+    "provider": "vivo",
+    "model": "Volc-DeepSeek-V3.2",
+    "generated_at": "2026-07-03 18:13:53",
+    "review_status": "模型二次复核"
+  },
+  {
+    "id": "poem_103",
+    "title": "春日偶成",
+    "translation": "云彩淡淡，微风轻轻，时间接近正午。我沿着花丛，顺着柳树，走过了前面的河川。当时的人不知道我内心的快乐。还以为我是像年轻人一样，在偷闲玩耍呢。",
+    "tags": [
+      "春天",
+      "自然",
+      "生活"
+    ],
+    "theme_tags": [
+      "春天",
+      "自然",
+      "生活"
+    ],
+    "knowledge_tags": [
+      "背诵积累",
+      "情感理解",
+      "自然认知"
+    ],
+    "new_tags": [],
+    "provider": "vivo",
+    "model": "Volc-DeepSeek-V3.2",
+    "generated_at": "2026-07-03 18:13:53",
+    "review_status": "模型二次复核"
+  },
+  {
+    "id": "poem_104",
+    "title": "蚕妇吟",
+    "translation": "杜鹃鸟啼叫到四更天的时候，养蚕的妇人就起床查看。她担心蚕太密集而桑叶不够。她不敢相信，楼头杨柳梢上的月亮都西斜了。那些美丽的歌女舞女，还在为达官贵人歌舞，没有回家。",
+    "tags": [
+      "劳动",
+      "夜晚",
+      "生活观察"
+    ],
+    "theme_tags": [
+      "劳动",
+      "夜晚",
+      "生活观察"
+    ],
+    "knowledge_tags": [
+      "背诵积累",
+      "生活观察",
+      "情感理解"
+    ],
+    "new_tags": [],
+    "provider": "vivo",
+    "model": "Volc-DeepSeek-V3.2",
+    "generated_at": "2026-07-03 18:13:53",
+    "review_status": "模型二次复核"
+  },
+  {
+    "id": "poem_105",
+    "title": "清平调·名花倾国两相欢",
+    "translation": "名花与倾国美人相互欢悦，常常能博得君王带笑欣赏。春风能消解无尽的愁恨，在沉香亭北倚靠着栏杆。",
+    "tags": [
+      "春天",
+      "景色"
+    ],
+    "theme_tags": [
+      "春天",
+      "景色"
+    ],
+    "knowledge_tags": [
+      "背诵积累",
+      "比喻理解",
+      "情感理解"
+    ],
+    "new_tags": [],
+    "provider": "vivo",
+    "model": "Volc-DeepSeek-V3.2",
+    "generated_at": "2026-07-03 18:14:15",
+    "review_status": "模型二次复核"
+  },
+  {
+    "id": "poem_106",
+    "title": "三月晦日送春",
+    "translation": "三月正好是三十日，春光要告别我这个苦吟的人。今夜与你一同不必入睡，晨钟未响前就还是春天。",
+    "tags": [
+      "春天",
+      "送别",
+      "珍惜时光"
+    ],
+    "theme_tags": [
+      "春天",
+      "送别",
+      "珍惜时光"
+    ],
+    "knowledge_tags": [
+      "背诵积累",
+      "季节意象",
+      "情感理解"
+    ],
+    "new_tags": [
+      "珍惜时光"
+    ],
+    "provider": "vivo",
+    "model": "Volc-DeepSeek-V3.2",
+    "generated_at": "2026-07-03 18:14:15",
+    "review_status": "模型二次复核"
+  },
+  {
+    "id": "poem_107",
+    "title": "墨梅",
+    "translation": "我家洗砚池边的树上，朵朵梅花开出了淡淡的墨痕。不需要人们夸赞颜色多么好看，只愿留下清香充满天地之间。",
+    "tags": [
+      "梅花",
+      "自然",
+      "励志"
+    ],
+    "theme_tags": [
+      "梅花",
+      "自然",
+      "励志"
+    ],
+    "knowledge_tags": [
+      "背诵积累",
+      "价值启蒙",
+      "简单哲理"
+    ],
+    "new_tags": [
+      "梅花"
+    ],
+    "provider": "vivo",
+    "model": "Volc-DeepSeek-V3.2",
+    "generated_at": "2026-07-03 18:14:15",
+    "review_status": "模型二次复核"
+  },
+  {
+    "id": "poem_108",
+    "title": "江南春",
+    "translation": "千里江南莺啼阵阵，绿树映衬着红花。水边村庄、山麓城郭，酒旗在风中招展。南朝留下的四百八十座寺庙，多少楼台笼罩在朦胧烟雨之中。",
+    "tags": [
+      "江南",
+      "春天",
+      "景色"
+    ],
+    "theme_tags": [
+      "江南",
+      "春天",
+      "景色"
+    ],
+    "knowledge_tags": [
+      "背诵积累",
+      "画面理解",
+      "季节意象"
+    ],
+    "new_tags": [],
+    "provider": "vivo",
+    "model": "Volc-DeepSeek-V3.2",
+    "generated_at": "2026-07-03 18:14:15",
+    "review_status": "模型二次复核"
+  },
+  {
+    "id": "poem_109",
+    "title": "伤春",
+    "translation": "本以为今年春天乐事很多，却依然白白辜负了春风。年年都没有赏花的眼福，不是在忧愁中就是在病痛中。",
+    "tags": [
+      "春天",
+      "生活",
+      "忧愁"
+    ],
+    "theme_tags": [
+      "春天",
+      "生活",
+      "忧愁"
+    ],
+    "knowledge_tags": [
+      "背诵积累",
+      "情感理解",
+      "季节意象"
+    ],
+    "new_tags": [
+      "忧愁"
+    ],
+    "provider": "vivo",
+    "model": "Volc-DeepSeek-V3.2",
+    "generated_at": "2026-07-03 18:14:15",
+    "review_status": "模型二次复核"
+  },
+  {
+    "id": "poem_110",
+    "title": "落花",
+    "translation": "连理枝头的花儿正在盛开，嫉妒的风雨便来催促凋零。但愿春神能长久做主，不要让花儿纷纷飘落在青苔上。",
+    "tags": [
+      "春天",
+      "落花",
+      "自然"
+    ],
+    "theme_tags": [
+      "春天",
+      "落花",
+      "自然"
+    ],
+    "knowledge_tags": [
+      "背诵积累",
+      "自然意象",
+      "情感理解"
+    ],
+    "new_tags": [
+      "落花"
+    ],
+    "provider": "vivo",
+    "model": "Volc-DeepSeek-V3.2",
+    "generated_at": "2026-07-03 18:14:15",
+    "review_status": "模型二次复核"
+  },
+  {
+    "id": "poem_111",
+    "title": "贾生",
+    "translation": "汉文帝在宣室求贤，询问被放逐的臣子。贾谊的才华格调无与伦比。可惜文帝半夜空自移近坐席，不询问百姓生计却询问鬼神之事。",
+    "tags": [
+      "历史",
+      "感慨"
+    ],
+    "theme_tags": [
+      "历史",
+      "感慨"
+    ],
+    "knowledge_tags": [
+      "背诵积累",
+      "文化常识",
+      "价值启蒙"
+    ],
+    "new_tags": [
+      "历史",
+      "感慨"
+    ],
+    "provider": "vivo",
+    "model": "Volc-DeepSeek-V3.2",
+    "generated_at": "2026-07-03 18:14:15",
+    "review_status": "模型二次复核"
+  },
+  {
+    "id": "poem_112",
+    "title": "送春",
+    "translation": "三月里残花落了又开，低矮的屋檐下天天有燕子飞来。杜鹃鸟半夜还在啼叫到流血，不相信春风是唤不回来的。",
+    "tags": [
+      "春天",
+      "动物",
+      "自然"
+    ],
+    "theme_tags": [
+      "春天",
+      "动物",
+      "自然"
+    ],
+    "knowledge_tags": [
+      "背诵积累",
+      "季节意象",
+      "自然意象"
+    ],
+    "new_tags": [],
+    "provider": "vivo",
+    "model": "Volc-DeepSeek-V3.2",
+    "generated_at": "2026-07-03 18:14:15",
+    "review_status": "模型二次复核"
+  },
+  {
+    "id": "poem_113",
+    "title": "上高侍郎",
+    "translation": "天上的碧桃有仙露滋润栽种，日边的红杏依傍着云霞生长。芙蓉却生在秋天的江面上，并不向东风抱怨自己还未开放。",
+    "tags": [
+      "自然",
+      "励志",
+      "秋天"
+    ],
+    "theme_tags": [
+      "自然",
+      "励志",
+      "秋天"
+    ],
+    "knowledge_tags": [
+      "背诵积累",
+      "自然意象",
+      "简单哲理"
+    ],
+    "new_tags": [],
+    "provider": "vivo",
+    "model": "Volc-DeepSeek-V3.2",
+    "generated_at": "2026-07-03 18:14:15",
+    "review_status": "模型二次复核"
+  },
+  {
+    "id": "poem_114",
+    "title": "清明",
+    "translation": "没有花也没有酒度过清明节，兴致索然如同山野的僧人。昨天向邻居讨来新火，清晨在窗前分火点亮读书的灯。",
+    "tags": [
+      "清明",
+      "节日",
+      "生活"
+    ],
+    "theme_tags": [
+      "清明",
+      "节日",
+      "生活"
+    ],
+    "knowledge_tags": [
+      "背诵积累",
+      "文化常识",
+      "生活画面"
+    ],
+    "new_tags": [
+      "清明"
+    ],
+    "provider": "vivo",
+    "model": "Volc-DeepSeek-V3.2",
+    "generated_at": "2026-07-03 18:14:15",
+    "review_status": "模型二次复核"
+  },
+  {
+    "id": "poem_115",
+    "title": "秦淮夜泊",
+    "translation": "烟雾笼罩着清寒的江水，月光笼罩着岸边的沙地。夜晚将船停泊在秦淮河，靠近酒家。歌女不懂得亡国的悲痛，隔着江水，还在唱着《玉树后庭花》这样的曲子。",
+    "tags": [
+      "夜晚",
+      "江河",
+      "景色"
+    ],
+    "theme_tags": [
+      "夜晚",
+      "江河",
+      "景色"
+    ],
+    "knowledge_tags": [
+      "背诵积累",
+      "画面理解",
+      "情感理解"
+    ],
+    "new_tags": [],
+    "provider": "vivo",
+    "model": "Volc-DeepSeek-V3.2",
+    "generated_at": "2026-07-03 18:14:43",
+    "review_status": "模型二次复核"
+  },
+  {
+    "id": "poem_116",
+    "title": "莺梭",
+    "translation": "黄莺在柳树和乔木间飞来飞去，显得很有情意。它们“交交”的鸣叫声，像是织布机的声音。洛阳三月里，繁花盛开如同锦绣。这要花费多少工夫，才能织成这般美景呢？",
+    "tags": [
+      "春天",
+      "动物",
+      "景色"
+    ],
+    "theme_tags": [
+      "春天",
+      "动物",
+      "景色"
+    ],
+    "knowledge_tags": [
+      "背诵积累",
+      "比喻感知",
+      "季节意象"
+    ],
+    "new_tags": [],
+    "provider": "vivo",
+    "model": "Volc-DeepSeek-V3.2",
+    "generated_at": "2026-07-03 18:14:43",
+    "review_status": "模型二次复核"
+  },
+  {
+    "id": "poem_117",
+    "title": "冬景",
+    "translation": "荷花凋谢，已经没有像雨伞一样撑开的荷叶了。菊花虽然残败，但仍有傲对霜雪的枝条。请你记住，一年中最好的景色，正是这橙子金黄、橘子青绿的时节。",
+    "tags": [
+      "秋天",
+      "景色",
+      "自然"
+    ],
+    "theme_tags": [
+      "秋天",
+      "景色",
+      "自然"
+    ],
+    "knowledge_tags": [
+      "背诵积累",
+      "季节意象",
+      "简单哲理"
+    ],
+    "new_tags": [],
+    "provider": "vivo",
+    "model": "Volc-DeepSeek-V3.2",
+    "generated_at": "2026-07-03 18:14:43",
+    "review_status": "模型二次复核"
+  },
+  {
+    "id": "poem_118",
+    "title": "初夏睡起",
+    "translation": "梅子的酸味流到牙齿间。芭蕉新绿的影子映上了窗纱。白天变长，午睡醒来没什么情绪，悠闲地看着儿童们追逐飘飞的柳絮。",
+    "tags": [
+      "夏天",
+      "童趣",
+      "生活观察"
+    ],
+    "theme_tags": [
+      "夏天",
+      "童趣",
+      "生活观察"
+    ],
+    "knowledge_tags": [
+      "背诵积累",
+      "生活观察",
+      "季节意象"
+    ],
+    "new_tags": [],
+    "provider": "vivo",
+    "model": "Volc-DeepSeek-V3.2",
+    "generated_at": "2026-07-03 18:14:43",
+    "review_status": "模型二次复核"
+  },
+  {
+    "id": "poem_119",
+    "title": "春宫曲",
+    "translation": "昨夜春风吹开了井边的桃花。未央宫前殿的月亮升得很高。平阳公主家的歌女因为歌舞得到新的宠爱。帘子外面春寒料峭，皇帝赏赐给她锦袍。",
+    "tags": [
+      "春天",
+      "宫廷",
+      "生活"
+    ],
+    "theme_tags": [
+      "春天",
+      "宫廷",
+      "生活"
+    ],
+    "knowledge_tags": [
+      "背诵积累",
+      "季节意象",
+      "文化常识"
+    ],
+    "new_tags": [
+      "宫廷"
+    ],
+    "provider": "vivo",
+    "model": "Volc-DeepSeek-V3.2",
+    "generated_at": "2026-07-03 18:14:43",
+    "review_status": "模型二次复核"
+  },
+  {
+    "id": "poem_120",
+    "title": "春怨",
+    "translation": "纱窗外太阳落下，天色渐近黄昏。华丽的屋子里没有人，只看见泪水的痕迹。寂寞的庭院里，春天将要过去。梨花落满一地，院门却紧闭不开。",
+    "tags": [
+      "春天",
+      "孤独",
+      "景色"
+    ],
+    "theme_tags": [
+      "春天",
+      "孤独",
+      "景色"
+    ],
+    "knowledge_tags": [
+      "背诵积累",
+      "季节意象",
+      "情感理解"
+    ],
+    "new_tags": [
+      "孤独"
+    ],
+    "provider": "vivo",
+    "model": "Volc-DeepSeek-V3.2",
+    "generated_at": "2026-07-03 18:14:43",
+    "review_status": "模型二次复核"
+  },
+  {
+    "id": "poem_121",
+    "title": "春词",
+    "translation": "梳好新的妆容，面容相宜，走下红色的楼阁。深深的庭院锁住了春光，也锁住了一院的愁绪。走到庭院中间数着花朵，一只蜻蜓飞上了她的玉簪。",
+    "tags": [
+      "春天",
+      "孤独",
+      "生活"
+    ],
+    "theme_tags": [
+      "春天",
+      "孤独",
+      "生活"
+    ],
+    "knowledge_tags": [
+      "背诵积累",
+      "生活画面",
+      "观察能力"
+    ],
+    "new_tags": [
+      "孤独"
+    ],
+    "provider": "vivo",
+    "model": "Volc-DeepSeek-V3.2",
+    "generated_at": "2026-07-03 18:14:43",
+    "review_status": "模型二次复核"
+  },
+  {
+    "id": "poem_122",
+    "title": "秋夕",
+    "translation": "银色的烛光映着秋夜的画屏，感觉清冷。拿着轻罗小扇扑打飞舞的萤火虫。皇宫台阶上的夜色清凉如水。躺着仰望天上的牵牛星和织女星。",
+    "tags": [
+      "秋天",
+      "夜晚",
+      "想象"
+    ],
+    "theme_tags": [
+      "秋天",
+      "夜晚",
+      "想象"
+    ],
+    "knowledge_tags": [
+      "背诵积累",
+      "季节意象",
+      "想象能力"
+    ],
+    "new_tags": [],
+    "provider": "vivo",
+    "model": "Volc-DeepSeek-V3.2",
+    "generated_at": "2026-07-03 18:14:43",
+    "review_status": "模型二次复核"
+  },
+  {
+    "id": "poem_123",
+    "title": "秋夜曲",
+    "translation": "月亮刚刚升起，秋天的露水还很轻微。身上轻薄的罗衣已经显得单薄，却没有去更换。夜深了还在深情地弹奏着银筝。心里害怕空荡荡的房间，不忍心回去。",
+    "tags": [
+      "秋天",
+      "夜晚",
+      "孤独"
+    ],
+    "theme_tags": [
+      "秋天",
+      "夜晚",
+      "孤独"
+    ],
+    "knowledge_tags": [
+      "背诵积累",
+      "季节意象",
+      "情绪感知"
+    ],
+    "new_tags": [
+      "孤独"
+    ],
+    "provider": "vivo",
+    "model": "Volc-DeepSeek-V3.2",
+    "generated_at": "2026-07-03 18:14:43",
+    "review_status": "模型二次复核"
+  },
+  {
+    "id": "poem_124",
+    "title": "金谷园",
+    "translation": "繁华的往事已经随着香尘消散。流水无情地流淌，草木依旧在春天生长。黄昏时分，东风吹来，鸟儿哀怨地啼叫。飘落的花朵，还像当年跳楼的美人一样。",
+    "tags": [
+      "春天",
+      "景色",
+      "变化"
+    ],
+    "theme_tags": [
+      "春天",
+      "景色",
+      "变化"
+    ],
+    "knowledge_tags": [
+      "背诵积累",
+      "自然意象",
+      "情感理解"
+    ],
+    "new_tags": [],
+    "provider": "vivo",
+    "model": "Volc-DeepSeek-V3.2",
+    "generated_at": "2026-07-03 18:14:43",
+    "review_status": "模型二次复核"
+  },
+  {
+    "id": "poem_125",
+    "title": "近试上张水部",
+    "translation": "昨夜洞房里红烛一直亮着，等待天亮后到堂前拜见公婆。梳妆打扮完，她小声地问丈夫：我眉毛画的深浅，合不合现在的流行呢？",
+    "tags": [
+      "生活",
+      "观察"
+    ],
+    "theme_tags": [
+      "生活",
+      "观察"
+    ],
+    "knowledge_tags": [
+      "背诵积累",
+      "生活常识",
+      "观察能力"
+    ],
+    "new_tags": [],
+    "provider": "vivo",
+    "model": "Volc-DeepSeek-V3.2",
+    "generated_at": "2026-07-03 18:15:07",
+    "review_status": "模型二次复核"
+  },
+  {
+    "id": "poem_126",
+    "title": "与史朗中饮听黄鹤楼上吹笛",
+    "translation": "一旦成为被贬谪的人前往长沙，向西遥望长安却看不见家乡。在黄鹤楼中听到有人吹奏玉笛，这五月的江城仿佛飘落了梅花。",
+    "tags": [
+      "思乡",
+      "旅途",
+      "景色"
+    ],
+    "theme_tags": [
+      "思乡",
+      "旅途",
+      "景色"
+    ],
+    "knowledge_tags": [
+      "背诵积累",
+      "方位认知",
+      "想象能力"
+    ],
+    "new_tags": [],
+    "provider": "vivo",
+    "model": "Volc-DeepSeek-V3.2",
+    "generated_at": "2026-07-03 18:15:07",
+    "review_status": "模型二次复核"
+  },
+  {
+    "id": "poem_127",
+    "title": "行宫",
+    "translation": "荒凉冷落的旧行宫，宫中的花儿独自寂寞地开着。头发花白的老宫女还在，她们闲坐着谈论当年的唐玄宗。",
+    "tags": [
+      "生活",
+      "变化"
+    ],
+    "theme_tags": [
+      "生活",
+      "变化"
+    ],
+    "knowledge_tags": [
+      "背诵积累",
+      "情感理解",
+      "生活画面"
+    ],
+    "new_tags": [],
+    "provider": "vivo",
+    "model": "Volc-DeepSeek-V3.2",
+    "generated_at": "2026-07-03 18:15:07",
+    "review_status": "模型二次复核"
+  },
+  {
+    "id": "poem_128",
+    "title": "即景",
+    "translation": "竹影摇动，清幽的影子笼罩着幽静的窗。成双成对的鸟儿在夕阳下喧闹。海棠花已经凋谢，柳絮也飘飞尽了。这让人困倦的天气，白昼开始变长了。",
+    "tags": [
+      "夏天",
+      "景色",
+      "自然"
+    ],
+    "theme_tags": [
+      "夏天",
+      "景色",
+      "自然"
+    ],
+    "knowledge_tags": [
+      "背诵积累",
+      "季节意象",
+      "自然意象"
+    ],
+    "new_tags": [],
+    "provider": "vivo",
+    "model": "Volc-DeepSeek-V3.2",
+    "generated_at": "2026-07-03 18:15:07",
+    "review_status": "模型二次复核"
+  },
+  {
+    "id": "poem_129",
+    "title": "梅",
+    "translation": "梅花不愿沾染半点尘埃，心甘情愿地生长在竹篱茅舍边。只因为曾经结识了诗人林和靖，惹得诗人们一直谈论到现在。",
+    "tags": [
+      "自然",
+      "景色"
+    ],
+    "theme_tags": [
+      "自然",
+      "景色"
+    ],
+    "knowledge_tags": [
+      "背诵积累",
+      "价值启蒙",
+      "自然认知"
+    ],
+    "new_tags": [],
+    "provider": "vivo",
+    "model": "Volc-DeepSeek-V3.2",
+    "generated_at": "2026-07-03 18:15:07",
+    "review_status": "模型二次复核"
+  },
+  {
+    "id": "poem_130",
+    "title": "玄都观桃花",
+    "translation": "京城道路上尘土飞扬扑面而来，没有一个人不说是看花回来的。玄都观里有上千棵桃树，全都是我刘郎离开以后才栽种的。",
+    "tags": [
+      "春天",
+      "景色",
+      "变化"
+    ],
+    "theme_tags": [
+      "春天",
+      "景色",
+      "变化"
+    ],
+    "knowledge_tags": [
+      "背诵积累",
+      "季节意象",
+      "文化常识"
+    ],
+    "new_tags": [],
+    "provider": "vivo",
+    "model": "Volc-DeepSeek-V3.2",
+    "generated_at": "2026-07-03 18:15:07",
+    "review_status": "模型二次复核"
+  },
+  {
+    "id": "poem_131",
+    "title": "立秋",
+    "translation": "小乌鸦啼叫着散去，华美的屏风内显得空寂。枕边感到一阵新凉，就像扇子扇来的风。睡醒后想寻找秋天的声音却无处可觅，只见洒满台阶的梧桐叶，在明亮的月光之中。",
+    "tags": [
+      "秋天",
+      "夜晚",
+      "自然"
+    ],
+    "theme_tags": [
+      "秋天",
+      "夜晚",
+      "自然"
+    ],
+    "knowledge_tags": [
+      "背诵积累",
+      "季节意象",
+      "自然意象"
+    ],
+    "new_tags": [],
+    "provider": "vivo",
+    "model": "Volc-DeepSeek-V3.2",
+    "generated_at": "2026-07-03 18:15:07",
+    "review_status": "模型二次复核"
+  },
+  {
+    "id": "poem_132",
+    "title": "竹楼",
+    "translation": "这位傲岸的官吏一身清闲，笑看那些权贵。他在西江取来竹子，建起了高高的楼阁。南风习习，用不着蒲扇。他闲适地戴着纱帽安眠，面对着水边的鸥鸟。",
+    "tags": [
+      "生活",
+      "自然"
+    ],
+    "theme_tags": [
+      "生活",
+      "自然"
+    ],
+    "knowledge_tags": [
+      "背诵积累",
+      "生活观察",
+      "自然意象"
+    ],
+    "new_tags": [],
+    "provider": "vivo",
+    "model": "Volc-DeepSeek-V3.2",
+    "generated_at": "2026-07-03 18:15:07",
+    "review_status": "模型二次复核"
+  },
+  {
+    "id": "poem_133",
+    "title": "清平调·一枝红艳露凝香",
+    "translation": "一枝红艳的花朵带着露水，凝结着芳香。那楚王与神女相会的云雨故事，只是徒然令人感伤。请问汉宫的美人谁能和她相比？可爱的赵飞燕也要倚仗新妆才能勉强相似。",
+    "tags": [
+      "景色",
+      "想象"
+    ],
+    "theme_tags": [
+      "景色",
+      "想象"
+    ],
+    "knowledge_tags": [
+      "背诵积累",
+      "想象能力",
+      "比喻理解"
+    ],
+    "new_tags": [],
+    "provider": "vivo",
+    "model": "Volc-DeepSeek-V3.2",
+    "generated_at": "2026-07-03 18:15:07",
+    "review_status": "模型二次复核"
+  },
+  {
+    "id": "poem_134",
+    "title": "宫中词",
+    "translation": "在百花盛开却寂静无声的时候，庭院的大门紧闭着。美丽的宫女们并肩站在华美的长廊下。她们满怀情意想要说说宫中的事情，但在鹦鹉面前却不敢开口。",
+    "tags": [
+      "生活",
+      "观察"
+    ],
+    "theme_tags": [
+      "生活",
+      "观察"
+    ],
+    "knowledge_tags": [
+      "背诵积累",
+      "情感理解",
+      "生活观察"
+    ],
+    "new_tags": [],
+    "provider": "vivo",
+    "model": "Volc-DeepSeek-V3.2",
+    "generated_at": "2026-07-03 18:15:07",
+    "review_status": "模型二次复核"
+  },
+  {
+    "id": "poem_135",
+    "title": "春夜喜雨",
+    "translation": "好雨知道下雨的时节，正当春天就降临了。它随着风悄悄在夜里飘洒，滋润万物却寂静无声。田野小路和天上云朵都一片漆黑，只有江上船只的灯火独自明亮。天亮时看那被雨水润湿的红艳处，沉甸甸的花朵开满了锦官城。",
+    "tags": [
+      "春天",
+      "自然",
+      "景色"
+    ],
+    "theme_tags": [
+      "春天",
+      "自然",
+      "景色"
+    ],
+    "knowledge_tags": [
+      "背诵积累",
+      "季节意象",
+      "自然认知"
+    ],
+    "new_tags": [],
+    "provider": "vivo",
+    "model": "Volc-DeepSeek-V3.2",
+    "generated_at": "2026-07-03 18:15:41",
+    "review_status": "模型二次复核"
+  },
+  {
+    "id": "poem_136",
+    "title": "闺怨",
+    "translation": "闺房中的年轻妇人原本不知道忧愁，在春天里精心打扮登上翠楼。忽然望见路旁杨柳的青青颜色，后悔当初让丈夫去追求功名。",
+    "tags": [
+      "春天",
+      "思亲",
+      "生活"
+    ],
+    "theme_tags": [
+      "春天",
+      "思亲",
+      "生活"
+    ],
+    "knowledge_tags": [
+      "背诵积累",
+      "情感理解",
+      "季节意象"
+    ],
+    "new_tags": [],
+    "provider": "vivo",
+    "model": "Volc-DeepSeek-V3.2",
+    "generated_at": "2026-07-03 18:15:41",
+    "review_status": "模型二次复核"
+  },
+  {
+    "id": "poem_137",
+    "title": "送李端",
+    "translation": "古老的关塞到处是枯萎的野草，离别时自然感到十分悲伤。道路延伸向寒云之外，你归来时已是日暮飞雪之时。我年少孤苦很早就漂泊作客，历经磨难与你相识又太晚。掩面流泪望着你离去的方向，在这风尘世间何处才能再相见？",
+    "tags": [
+      "送别",
+      "友情",
+      "旅途"
+    ],
+    "theme_tags": [
+      "送别",
+      "友情",
+      "旅途"
+    ],
+    "knowledge_tags": [
+      "背诵积累",
+      "情感理解",
+      "自然意象"
+    ],
+    "new_tags": [],
+    "provider": "vivo",
+    "model": "Volc-DeepSeek-V3.2",
+    "generated_at": "2026-07-03 18:15:41",
+    "review_status": "模型二次复核"
+  },
+  {
+    "id": "poem_138",
+    "title": "醉后赠张九旭",
+    "translation": "世上的人大多随意结交相识，这位老先生却特别不一样。兴致来时书法自然精妙入圣，酒醉之后言语尤其狂放。白发苍苍以闲适为乐事，高远的志向仿佛就在眼前。床头总放着一壶酒，还能有多少回醉眠呢？",
+    "tags": [
+      "友情",
+      "生活"
+    ],
+    "theme_tags": [
+      "友情",
+      "生活"
+    ],
+    "knowledge_tags": [
+      "背诵积累",
+      "生活观察",
+      "情感理解"
+    ],
+    "new_tags": [],
+    "provider": "vivo",
+    "model": "Volc-DeepSeek-V3.2",
+    "generated_at": "2026-07-03 18:15:41",
+    "review_status": "模型二次复核"
+  },
+  {
+    "id": "poem_139",
+    "title": "贼平后送人北归",
+    "translation": "世道混乱时我们一同逃往南方，时局清平了你却独自北归。在他乡漂泊已生出了白发，回到故土只能见到依旧的青山。拂晓的月光下经过残破的营垒，繁星的夜晚投宿在旧日的关隘。寒冷的飞鸟与枯萎的野草，处处都伴随着忧愁的面容。",
+    "tags": [
+      "送别",
+      "思乡",
+      "旅途"
+    ],
+    "theme_tags": [
+      "送别",
+      "思乡",
+      "旅途"
+    ],
+    "knowledge_tags": [
+      "背诵积累",
+      "情感理解",
+      "自然意象"
+    ],
+    "new_tags": [],
+    "provider": "vivo",
+    "model": "Volc-DeepSeek-V3.2",
+    "generated_at": "2026-07-03 18:15:41",
+    "review_status": "模型二次复核"
+  },
+  {
+    "id": "poem_140",
+    "title": "送李中丞归汉阳别业",
+    "translation": "这位流落失意的南征将领，曾经统率过十万大军。罢官归来没有旧日的产业，年老时依然怀念政治清明的时代。他当年独立镇守边疆使战事平息，舍生忘死的精神只有随身宝剑知晓。在这茫茫的江汉水面上，太阳西沉时他将要去往何方？",
+    "tags": [
+      "送别",
+      "生活"
+    ],
+    "theme_tags": [
+      "送别",
+      "生活"
+    ],
+    "knowledge_tags": [
+      "背诵积累",
+      "情感理解",
+      "生活画面"
+    ],
+    "new_tags": [],
+    "provider": "vivo",
+    "model": "Volc-DeepSeek-V3.2",
+    "generated_at": "2026-07-03 18:15:41",
+    "review_status": "模型二次复核"
+  },
+  {
+    "id": "poem_141",
+    "title": "赠卫八处士",
+    "translation": "人生中一旦分别就难以相见，往往像参星和商星一样此出彼没。今夜又是怎样的一个夜晚啊，我们竟能共同分享这烛光。年轻力壮的时光能有多少，如今鬓发都已斑白。寻访旧友发现大半已成亡魂，不由得惊呼叹息内心悲痛。",
+    "tags": [
+      "友情",
+      "生活",
+      "变化"
+    ],
+    "theme_tags": [
+      "友情",
+      "生活",
+      "变化"
+    ],
+    "knowledge_tags": [
+      "背诵积累",
+      "情感理解",
+      "生活观察"
+    ],
+    "new_tags": [],
+    "provider": "vivo",
+    "model": "Volc-DeepSeek-V3.2",
+    "generated_at": "2026-07-03 18:15:41",
+    "review_status": "模型二次复核"
+  },
+  {
+    "id": "poem_142",
+    "title": "阙题",
+    "translation": "山路被白云隔断仿佛到了尽头，春色却与青青溪水一样悠长。不时有落花飘来，远远地随着流水带来芳香。清静的门户正对着山路，柳荫深处藏着读书的厅堂。阳光透过幽深的树荫，清亮的光辉洒在衣裳上。",
+    "tags": [
+      "春天",
+      "山林",
+      "景色"
+    ],
+    "theme_tags": [
+      "春天",
+      "山林",
+      "景色"
+    ],
+    "knowledge_tags": [
+      "背诵积累",
+      "自然意象",
+      "生活画面"
+    ],
+    "new_tags": [],
+    "provider": "vivo",
+    "model": "Volc-DeepSeek-V3.2",
+    "generated_at": "2026-07-03 18:15:41",
+    "review_status": "模型二次复核"
+  },
+  {
+    "id": "poem_143",
+    "title": "旅宿",
+    "translation": "旅馆中没有好的同伴，我凝神沉思独自静默。面对寒灯思念着往事，孤雁的叫声惊扰了忧愁的睡眠。遥远的归梦一直延续到拂晓，家信要隔年才能送到。沧江上美好的烟霭月色，门外系着钓鱼的小船。",
+    "tags": [
+      "旅途",
+      "思乡",
+      "夜晚"
+    ],
+    "theme_tags": [
+      "旅途",
+      "思乡",
+      "夜晚"
+    ],
+    "knowledge_tags": [
+      "背诵积累",
+      "情感理解",
+      "情绪感知"
+    ],
+    "new_tags": [],
+    "provider": "vivo",
+    "model": "Volc-DeepSeek-V3.2",
+    "generated_at": "2026-07-03 18:15:41",
+    "review_status": "模型二次复核"
+  },
+  {
+    "id": "poem_144",
+    "title": "次北固山下",
+    "translation": "旅途延伸在青山之外，行船于绿水之前。潮水涨平两岸显得格外宽阔，顺风正好高悬着船帆。海上的旭日从残夜中诞生，江上的春意闯入旧年。家信要送到什么地方去呢？希望北归的大雁能捎到洛阳那边。",
+    "tags": [
+      "旅途",
+      "思乡",
+      "景色"
+    ],
+    "theme_tags": [
+      "旅途",
+      "思乡",
+      "景色"
+    ],
+    "knowledge_tags": [
+      "背诵积累",
+      "自然意象",
+      "情感理解"
+    ],
+    "new_tags": [],
+    "provider": "vivo",
+    "model": "Volc-DeepSeek-V3.2",
+    "generated_at": "2026-07-03 18:15:41",
+    "review_status": "模型二次复核"
+  },
+  {
+    "id": "poem_145",
+    "title": "渡荆门送别",
+    "translation": "乘船远行来到荆门山外，来到这古代的楚国漫游。高山随着平坦的原野渐渐消失，江水奔涌入广阔无边的荒野。月亮倒映水中，好像天上飞下的明镜，云彩变幻，仿佛结成了海市蜃楼。我依然怜爱这来自故乡的江水，它不远万里送着我的行舟。",
+    "tags": [
+      "旅途",
+      "山水",
+      "思乡"
+    ],
+    "theme_tags": [
+      "旅途",
+      "山水",
+      "思乡"
+    ],
+    "knowledge_tags": [
+      "背诵积累",
+      "自然意象",
+      "比喻感知"
+    ],
+    "new_tags": [],
+    "provider": "vivo",
+    "model": "Volc-DeepSeek-V3.2",
+    "generated_at": "2026-07-03 18:16:02",
+    "review_status": "模型二次复核"
+  },
+  {
+    "id": "poem_146",
+    "title": "章台夜思",
+    "translation": "清越的瑟声在长夜里充满哀怨，琴弦上仿佛缠绕着风雨的悲鸣。孤灯下听见楚地军营的号角，一弯残月正落下章台。芬芳的草木已经到了凋零的时节，老朋友却迟迟没有到来。家信无法寄出，秋天的鸿雁又向南飞回去了。",
+    "tags": [
+      "夜晚",
+      "思亲",
+      "秋天"
+    ],
+    "theme_tags": [
+      "夜晚",
+      "思亲",
+      "秋天"
+    ],
+    "knowledge_tags": [
+      "背诵积累",
+      "季节意象",
+      "情感理解"
+    ],
+    "new_tags": [],
+    "provider": "vivo",
+    "model": "Volc-DeepSeek-V3.2",
+    "generated_at": "2026-07-03 18:16:02",
+    "review_status": "模型二次复核"
+  },
+  {
+    "id": "poem_147",
+    "title": "酬张少府",
+    "translation": "到了晚年只喜欢清静，对世间万事都不再关心。自己知道没有高明的谋略，只懂得返回旧日隐居的山林。松林间的清风吹拂着我解开的衣带，山间的明月照亮着我弹琴。你问我关于命运穷通的道理，请听那渔夫的歌声深入河浦的深处。",
+    "tags": [
+      "山林",
+      "生活",
+      "自然"
+    ],
+    "theme_tags": [
+      "山林",
+      "生活",
+      "自然"
+    ],
+    "knowledge_tags": [
+      "背诵积累",
+      "生活画面",
+      "简单哲理"
+    ],
+    "new_tags": [],
+    "provider": "vivo",
+    "model": "Volc-DeepSeek-V3.2",
+    "generated_at": "2026-07-03 18:16:02",
+    "review_status": "模型二次复核"
+  },
+  {
+    "id": "poem_148",
+    "title": "宴梅道士山房",
+    "translation": "在林中闲卧，忧愁春天将尽，打开窗户观赏外面的景物。忽然遇到送信的使者，邀请我去道士的山房。炼丹的炉灶刚刚生起火，仙家的桃树正开着花。如果童颜可以长驻，又何必吝惜畅饮这美酒呢。",
+    "tags": [
+      "春天",
+      "生活",
+      "想象"
+    ],
+    "theme_tags": [
+      "春天",
+      "生活",
+      "想象"
+    ],
+    "knowledge_tags": [
+      "背诵积累",
+      "季节意象",
+      "想象能力"
+    ],
+    "new_tags": [],
+    "provider": "vivo",
+    "model": "Volc-DeepSeek-V3.2",
+    "generated_at": "2026-07-03 18:16:02",
+    "review_status": "模型二次复核"
+  },
+  {
+    "id": "poem_149",
+    "title": "与诸子登岘山",
+    "translation": "人间的事情有更替有消亡，古往今来构成了时光。江山留下了名胜古迹，我们这一代人又来登临。江水退落，鱼梁洲显得很浅，天气寒冷，云梦泽显得深远。羊公碑还矗立在那里，读完碑文泪水沾湿了衣襟。",
+    "tags": [
+      "登高",
+      "景色",
+      "思乡"
+    ],
+    "theme_tags": [
+      "登高",
+      "景色",
+      "思乡"
+    ],
+    "knowledge_tags": [
+      "背诵积累",
+      "简单哲理",
+      "情感理解"
+    ],
+    "new_tags": [],
+    "provider": "vivo",
+    "model": "Volc-DeepSeek-V3.2",
+    "generated_at": "2026-07-03 18:16:02",
+    "review_status": "模型二次复核"
+  },
+  {
+    "id": "poem_150",
+    "title": "喜见外弟又言别",
+    "translation": "在长达十年的战乱分离之后，长大成人后意外相逢。询问姓氏，惊讶是初次见面，说出名字，才回忆起旧时的容貌。分别以来经历了沧海桑田般的变化，一直谈到傍晚寺庙的钟声响起。明天你又要踏上前往巴陵的道路，我们之间又将隔着重重秋山。",
+    "tags": [
+      "亲情",
+      "送别",
+      "秋天"
+    ],
+    "theme_tags": [
+      "亲情",
+      "送别",
+      "秋天"
+    ],
+    "knowledge_tags": [
+      "背诵积累",
+      "情感理解",
+      "生活观察"
+    ],
+    "new_tags": [],
+    "provider": "vivo",
+    "model": "Volc-DeepSeek-V3.2",
+    "generated_at": "2026-07-03 18:16:02",
+    "review_status": "模型二次复核"
+  }
+]

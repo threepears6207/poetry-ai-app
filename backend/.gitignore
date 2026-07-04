@@ -5,4 +5,17 @@ __pycache__/
 *.pyc
 *.pyo
 static/audio/chat/
+static/audio/tts_*.mp3
+static/videos/
+static/video_tasks_cache.json
 server*.log
+data/*.db
+data/*.db-shm
+data/*.db-wal
+
+# Local backup scripts kept outside version control
+/asr旧.py
+/generate2.py
+
+# Generated test reports; keep test source files only
+/test_result/test_result*txt

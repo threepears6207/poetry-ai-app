@@ -1,266 +1,198 @@
 import json
 from datetime import datetime
-from pathlib import Path
 from typing import Optional
 
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 from consolidation import create_consolidation_if_missing
+from database import get_connection
+
 
 router = APIRouter()
 
-DATA_DIR = Path(__file__).parent / "data"
-RECORD_PATH = DATA_DIR / "records.json"
-POEMS_PATH = DATA_DIR / "poems.json"
-
 
 class RecordIn(BaseModel):
-    """
-    前端进入古诗详情页时，传给后端的数据
-    """
     poem_id: str
     user_id: Optional[str] = "test_user"
     duration_seconds: Optional[int] = 0
 
 
-def ensure_record_file():
-    """
-    确保 data 文件夹和 records.json 文件存在
-    """
-    DATA_DIR.mkdir(exist_ok=True)
-
-    if not RECORD_PATH.exists():
-        with open(RECORD_PATH, "w", encoding="utf-8") as f:
-            json.dump([], f, ensure_ascii=False, indent=2)
+def now_text():
+    return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
 
-def load_records():
-    """
-    读取学习记录
-    """
-    ensure_record_file()
-
-    with open(RECORD_PATH, "r", encoding="utf-8") as f:
-        return json.load(f)
-
-
-def load_json(path, default):
-    if not path.exists():
-        return default
-
-    with open(path, "r", encoding="utf-8") as f:
-        return json.load(f)
-
-
-def save_records(records):
-    """
-    保存学习记录
-    """
-    ensure_record_file()
-
-    with open(RECORD_PATH, "w", encoding="utf-8") as f:
-        json.dump(records, f, ensure_ascii=False, indent=2)
+def normalize_user_id(user_id):
+    return str(user_id or "test_user").strip() or "test_user"
 
 
 def safe_int(value, default=0):
-    """
-    安全转整数，避免 None、空字符串导致报错
-    """
     try:
-        return int(value or default)
-    except Exception:
+        return max(0, int(value or default))
+    except (TypeError, ValueError):
         return default
 
 
-def parse_time(time_text):
-    """
-    将 created_at 转为可比较的时间。
-    如果老记录没有时间或格式异常，就给一个最小时间，避免报错。
-    """
-    if not time_text:
+def parse_time(value):
+    try:
+        return datetime.strptime(value or "", "%Y-%m-%d %H:%M:%S")
+    except (TypeError, ValueError):
         return datetime.min
 
-    try:
-        return datetime.strptime(time_text, "%Y-%m-%d %H:%M:%S")
-    except Exception:
-        return datetime.min
+
+def record_from_row(row):
+    return {
+        "id": row["id"],
+        "user_id": row["user_id"],
+        "poem_id": row["poem_id"],
+        "duration_seconds": int(row["duration_seconds"] or 0),
+        "created_at": row["created_at"],
+    }
 
 
 @router.post("/record")
 def add_record(record: RecordIn):
-    """
-    添加学习记录
-
-    前端进入古诗详情页，或者孩子点击“看完了”时调用：
-    POST /record
-
-    请求体示例：
-    {
-      "poem_id": "poem_001",
-      "user_id": "test_user",
-      "duration_seconds": 30
-    }
-
-    额外逻辑：
-    1. 正常保存学习记录；
-    2. 自动给这首诗创建巩固记录；
-    3. 如果这首诗已经有巩固记录，不覆盖已有巩固进度。
-    """
-    records = load_records()
-
-    new_record = {
-        "id": len(records) + 1,
-        "user_id": record.user_id,
-        "poem_id": record.poem_id,
-        "duration_seconds": safe_int(record.duration_seconds, 0),
-        "created_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    }
-
-    records.append(new_record)
-    save_records(records)
-
-    consolidation_record = create_consolidation_if_missing(
-        poem_id=record.poem_id,
-        user_id=record.user_id
-    )
+    user_id = normalize_user_id(record.user_id)
+    duration = safe_int(record.duration_seconds)
+    created_at = now_text()
+    connection = get_connection()
+    try:
+        with connection:
+            poem = connection.execute(
+                "SELECT 1 FROM poems WHERE id = ?", (record.poem_id,)
+            ).fetchone()
+            if not poem:
+                raise HTTPException(
+                    status_code=404,
+                    detail=f"未找到古诗：{record.poem_id}",
+                )
+            connection.execute(
+                """
+                INSERT OR IGNORE INTO users(user_id, age_level, age_range)
+                VALUES (?, 'age_3_4', '3-4岁')
+                """,
+                (user_id,),
+            )
+            cursor = connection.execute(
+                """
+                INSERT INTO learning_records(
+                    user_id, poem_id, duration_seconds, created_at
+                ) VALUES (?, ?, ?, ?)
+                """,
+                (user_id, record.poem_id, duration, created_at),
+            )
+            row = connection.execute(
+                "SELECT * FROM learning_records WHERE id = ?",
+                (cursor.lastrowid,),
+            ).fetchone()
+            consolidation = create_consolidation_if_missing(
+                record.poem_id,
+                user_id,
+                connection=connection,
+            )
+            connection.execute(
+                "UPDATE users SET updated_at = ? WHERE user_id = ?",
+                (created_at, user_id),
+            )
+            new_record = record_from_row(row)
+    finally:
+        connection.close()
 
     return {
         "success": True,
         "message": "记录成功",
         "data": new_record,
-        "consolidation": consolidation_record
+        "consolidation": consolidation,
     }
 
 
 @router.get("/record")
 def get_records(user_id: Optional[str] = "test_user"):
-    """
-    查询某个用户的学习记录
-
-    示例：
-    GET /record?user_id=test_user
-    """
-    records = load_records()
-
-    user_records = [
-        item for item in records
-        if item.get("user_id") == user_id
-    ]
-
-    return {
-        "success": True,
-        "total": len(user_records),
-        "data": user_records
-    }
+    user_id = normalize_user_id(user_id)
+    connection = get_connection()
+    try:
+        rows = connection.execute(
+            """
+            SELECT * FROM learning_records
+            WHERE user_id = ?
+            ORDER BY id
+            """,
+            (user_id,),
+        ).fetchall()
+    finally:
+        connection.close()
+    data = [record_from_row(row) for row in rows]
+    return {"success": True, "total": len(data), "data": data}
 
 
 @router.get("/record/summary")
 def get_learning_summary(user_id: str = "test_user"):
-    """
-    获取用户学习统计信息。
+    user_id = normalize_user_id(user_id)
+    connection = get_connection()
+    try:
+        rows = connection.execute(
+            """
+            SELECT r.*, p.title, p.author, p.dynasty, p.tags_json
+            FROM learning_records AS r
+            JOIN poems AS p ON p.id = r.poem_id
+            WHERE r.user_id = ?
+            ORDER BY r.id
+            """,
+            (user_id,),
+        ).fetchall()
+    finally:
+        connection.close()
 
-    家长端重点使用：
-    1. 每首古诗的最新学习时长 latest_duration_seconds
-    2. 每首古诗的总计学习时长 total_duration_seconds
-    """
-    records = load_json(RECORD_PATH, [])
-    poems = load_json(POEMS_PATH, [])
-
-    user_records = [
-        record for record in records
-        if record.get("user_id") == user_id
-    ]
-
-    poem_map = {
-        poem.get("id"): poem
-        for poem in poems
-    }
-
-    # 按 poem_id 汇总同一首诗的学习情况
-    poem_summary_map = {}
-
-    for record in user_records:
-        poem_id = record.get("poem_id")
-
-        if not poem_id:
-            continue
-
-        duration = safe_int(record.get("duration_seconds"), 0)
-        created_at = record.get("created_at", "")
+    records = [record_from_row(row) for row in rows]
+    poem_summary = {}
+    for row in rows:
+        poem_id = row["poem_id"]
+        duration = int(row["duration_seconds"] or 0)
+        created_at = row["created_at"]
         created_time = parse_time(created_at)
-
-        poem = poem_map.get(poem_id, {})
-
-        if poem_id not in poem_summary_map:
-            poem_summary_map[poem_id] = {
+        if poem_id not in poem_summary:
+            poem_summary[poem_id] = {
                 "id": poem_id,
                 "poem_id": poem_id,
-                "title": poem.get("title", "未知古诗"),
-                "author": poem.get("author", ""),
-                "dynasty": poem.get("dynasty", ""),
-                "tags": poem.get("tags", []),
-
-                # 家长端需要的两个核心指标
+                "title": row["title"],
+                "author": row["author"],
+                "dynasty": row["dynasty"],
+                "tags": json.loads(row["tags_json"] or "[]"),
                 "latest_duration_seconds": duration,
                 "total_duration_seconds": duration,
-
-                # 额外保留：方便展示和排序
                 "study_count": 1,
                 "latest_time": created_at,
-                "_latest_datetime": created_time
+                "_latest_datetime": created_time,
             }
-        else:
-            item = poem_summary_map[poem_id]
+            continue
 
-            item["total_duration_seconds"] += duration
-            item["study_count"] += 1
+        item = poem_summary[poem_id]
+        item["total_duration_seconds"] += duration
+        item["study_count"] += 1
+        if created_time >= item["_latest_datetime"]:
+            item["latest_duration_seconds"] = duration
+            item["latest_time"] = created_at
+            item["_latest_datetime"] = created_time
 
-            # 如果当前记录时间更新，就更新“最新学习时长”
-            if created_time >= item["_latest_datetime"]:
-                item["latest_duration_seconds"] = duration
-                item["latest_time"] = created_at
-                item["_latest_datetime"] = created_time
-
-    learned_poems = list(poem_summary_map.values())
-
-    # 按最近学习时间倒序排列
-    learned_poems.sort(
-        key=lambda item: item.get("_latest_datetime", datetime.min),
-        reverse=True
+    learned_poems = sorted(
+        poem_summary.values(),
+        key=lambda item: item["_latest_datetime"],
+        reverse=True,
     )
-
-    # 删除内部排序字段，避免前端看到多余内容
     for item in learned_poems:
         item.pop("_latest_datetime", None)
 
-    total_duration_seconds = sum(
-        safe_int(record.get("duration_seconds"), 0)
-        for record in user_records
-    )
-
     recent_records = sorted(
-        user_records,
-        key=lambda item: parse_time(item.get("created_at", "")),
-        reverse=True
+        records,
+        key=lambda item: parse_time(item["created_at"]),
+        reverse=True,
     )[:5]
-
     return {
         "success": True,
         "user_id": user_id,
-
-        # 学过几首不同的诗
         "learned_count": len(learned_poems),
-
-        # 总学习记录条数
-        "record_count": len(user_records),
-
-        # 所有诗的总学习时长
-        "total_duration_seconds": total_duration_seconds,
-
-        # 家长端主要用这个字段
+        "record_count": len(records),
+        "total_duration_seconds": sum(item["duration_seconds"] for item in records),
         "learned_poems": learned_poems,
-
-        # 最近 5 条原始学习记录
-        "recent_records": recent_records
+        "recent_records": recent_records,
     }

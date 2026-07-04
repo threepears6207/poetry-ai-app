@@ -1,25 +1,46 @@
 import json
-from pathlib import Path
 
 from fastapi import APIRouter, HTTPException, Query
 
+from database import get_connection
+
 router = APIRouter()
 
-# 当前文件 poems.py 所在目录：backend
-# 所以数据文件路径是 backend/data/poems.json
-DATA_PATH = Path(__file__).parent / "data" / "poems.json"
+def json_array(value):
+    try:
+        data = json.loads(value or "[]")
+    except (TypeError, json.JSONDecodeError):
+        return []
+    return data if isinstance(data, list) else []
+
+
+def row_to_poem(row):
+    """将 SQLite 行转换成与原 poems.json 相同的响应结构。"""
+    return {
+        "id": row["id"],
+        "title": row["title"],
+        "author": row["author"],
+        "dynasty": row["dynasty"],
+        "content": json_array(row["content_json"]),
+        "translation": row["translation"],
+        "tags": json_array(row["tags_json"]),
+        "age_level": row["age_level"],
+        "age_range": row["age_range"],
+        "difficulty": row["difficulty"],
+        "theme_tags": json_array(row["theme_tags_json"]),
+        "knowledge_tags": json_array(row["knowledge_tags_json"]),
+        "recommend_reason": row["recommend_reason"],
+    }
 
 
 def load_poems():
-    """
-    从 poems.json 中读取古诗数据。
-    第一周先用 JSON 文件，后面再升级成数据库。
-    """
-    if not DATA_PATH.exists():
-        return []
-
-    with open(DATA_PATH, "r", encoding="utf-8") as f:
-        return json.load(f)
+    """从 SQLite 读取全部古诗，按稳定 ID 排序。"""
+    connection = get_connection()
+    try:
+        rows = connection.execute("SELECT * FROM poems ORDER BY id").fetchall()
+        return [row_to_poem(row) for row in rows]
+    finally:
+        connection.close()
 
 @router.get("/poems/search")
 def search_poems(
@@ -120,13 +141,19 @@ def get_poem_detail(poem_id: str):
     /poems/poem_001
     /poems/poem_002
     """
-    poems = load_poems()
+    connection = get_connection()
+    try:
+        row = connection.execute(
+            "SELECT * FROM poems WHERE id = ?",
+            (poem_id,),
+        ).fetchone()
+    finally:
+        connection.close()
 
-    for poem in poems:
-        if poem.get("id") == poem_id:
-            return {
-                "success": True,
-                "data": poem
-            }
+    if row:
+        return {
+            "success": True,
+            "data": row_to_poem(row)
+        }
 
     raise HTTPException(status_code=404, detail="诗词不存在")

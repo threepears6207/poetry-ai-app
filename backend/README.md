@@ -1,835 +1,226 @@
-# Backend - FastAPI 后端
+# 诗芽小学堂后端
 
-负责人：陈俪姗、陈誉文
+后端使用 FastAPI，负责古诗数据、学习记录、巩固计划、个性化推荐、OCR、语音识别、诗人对话、语音合成、AI 配图和视频生成实验。
 
----
+## 当前数据状态
 
-## 环境要求
+- 正式读写已切换到 SQLite，默认文件为 `data/poetry_ai.db`。
+- 古诗库共 150 首：`age_3_4` 50 首，`age_5_7` 100 首。
+- 数据表：`poems`、`users`、`learning_records`、`consolidations`、`reading_scores`。
+- `data/poems.json`、`records.json`、`consolidations.json` 仅作为历史源数据/迁移输入，正式接口不再直接读写它们。
+- SQLite 运行库已加入 `.gitignore`，新环境需自行初始化。
 
-- **Python 3.11**（必须使用 3.11，不要用 3.12/3.13，否则 FunASR 依赖无法安装）
+## 环境
+
+- Windows
+- Python 3.11（FunASR 及其依赖不建议使用 3.12/3.13）
 - pip
-- FastAPI
-- Uvicorn
-- requests
-- python-dotenv
-- edge-tts
-- websocket-client（连接 vivo WebSocket TTS，已写入 `requirements.txt`）
-- funasr（语音识别，需单独安装，见下方说明）
+- 可访问 vivo 蓝心开放平台、百度 AI 开放平台和 edge-tts 服务的网络
 
----
+## 安装
 
-## 启动方法
-
-```bash
+```powershell
 cd backend
-py -3.11 -m venv venv          # 必须用 Python 3.11 创建虚拟环境
-.\venv\Scripts\activate        # Windows
+py -3.11 -m venv venv
+.\venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
 pip install -r requirements.txt
+```
+
+`requirements.txt` 已包含 FastAPI、Uvicorn、FunASR、PyTorch、edge-tts、websocket-client 等项目依赖。首次安装和首次语音识别会比较慢。
+
+FunASR 默认会将模型缓存到用户目录。如需改位置，在启动前设置：
+
+```powershell
+$env:MODELSCOPE_CACHE="D:\modelscope_cache"
+```
+
+## 环境变量
+
+在 `backend/.env` 中配置：
+
+```env
+# vivo 大模型、生图、TTS 和视频生成
+VIVO_APP_KEY=你的APIKey
+VIVO_APP_ID=你的APPID
+
+# 百度文字 OCR
+BAIDU_OCR_API_KEY=你的OCR_API_Key
+BAIDU_OCR_SECRET_KEY=你的OCR_Secret_Key
+
+# 百度图像识别，用于风景图匹配古诗
+BAIDU_IMAGE_API_KEY=你的图像识别API_Key
+BAIDU_IMAGE_SECRET_KEY=你的图像识别Secret_Key
+
+# 可选：改用其他 SQLite 文件
+POETRY_DB_PATH=data/poetry_ai.db
+```
+
+`VIVO_APP_KEY` 未配置时，古诗查询、学习记录和 SQLite 接口仍可运行，但对话、生图、vivo TTS 和视频能力不可用。
+
+## 初始化数据库
+
+新环境首次运行：
+
+```powershell
+cd backend
+python scripts/init_database.py
+python scripts/import_poems_to_db.py
+```
+
+第一条命令根据 `schema.sql` 建表，第二条命令将 `data_sources/generated/children_poems_candidates.json` 中的 150 首古诗导入 SQLite。
+
+如需用候选文件同步更新已存在的诗：
+
+```powershell
+python scripts/import_poems_to_db.py --sync-existing
+```
+
+历史 JSON 学习记录迁移前可先预检，确认后再写入：
+
+```powershell
+python scripts/migrate_json_data_to_db.py
+python scripts/migrate_json_data_to_db.py --apply
+```
+
+## 启动
+
+```powershell
+cd backend
+$env:PYTHONUTF8="1"
+$env:PYTHONIOENCODING="utf-8"
 uvicorn main:app --reload
 ```
 
-如需进行手机真机或局域网联调，建议使用：
+手机真机联调：
 
-```bash
+```powershell
 uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
-启动后访问 `http://127.0.0.1:8000/docs` 查看接口文档（Swagger UI）。
+启动后：
 
----
+- 健康检查：`http://127.0.0.1:8000/ping`
+- Swagger：`http://127.0.0.1:8000/docs`
+- 静态资源：`http://127.0.0.1:8000/static/...`
 
-## 诗人对话语音安装说明
+## 核心业务流程
 
-诗人对话语音使用 vivo WebSocket TTS。新环境不需要单独安装音频软件，激活虚拟环境后执行下面的命令即可安装所需 Python 依赖：
+### 学习记录
 
-```bash
-pip install -r requirements.txt
-```
+`POST /record` 写入一次学习时长，并为该用户/古诗自动创建巩固记录。家长端通过 `GET /record/summary` 获取已学数量、总时长和最近记录。
 
-其中本功能新增的依赖是 `websocket-client==1.9.0`。PCM 转 WAV 使用 Python 标准库 `wave`，不需要额外安装；vivo TTS 失败时会使用项目已有的 `edge-tts` 作为降级方案。
+### 单句跟读与巩固
 
-运行条件：
+- `POST /asr/score` 只评当前单句，返回 `score`、`stars`、`message`、`passed`。
+- `passed=false` 不代表整次巩固失败，前端应立即重读当前句。
+- 整首全部通过后，前端调用一次 `POST /consolidation/result`。
+- 第 1 次通过：已巩固，1 天后复习；第 2 次：已巩固，3 天后复习；第 3 次及以后：已掌握，7 天后复习。
+- 兼容旧前端的 `passed=false`：不增加次数、不改变状态，并允许当天继续尝试。
 
-- Python 3.11；
-- 可访问 vivo 蓝心开放平台的网络；
-- `backend/.env` 中正确配置 `VIVO_APP_KEY` 和 `VIVO_APP_ID`；
-- 蓝心账号已开通对应的 TTS 能力。
+### 个性化推荐
 
-前端不需要新增第三方播放依赖，可使用 uni-app 自带的音频播放能力处理后端返回的 `audio_url`。
+1. 根据 `age_3_4` / `age_5_7` 筛选年龄匹配的古诗。
+2. 排除该用户已学过的诗。
+3. 根据 `reading_scores` 计算标签平均分和 `strong_tags`。
+4. 优先返回与强项标签重合的古诗，再参考难度排序。
 
----
+### 诗人对话与语音
 
-## FunASR 安装说明
+- `/chat` 使用年龄分层提示词和诗人性格设定生成回复。
+- 回复会清理思考标签、括号动作描写等不适合直接呈现给儿童的内容。
+- 新前端使用 `include_audio=false` 先获取文字，再调用 `/chat/voice-preview` 生成语音，降低回答等待感。
+- vivo WebSocket TTS 失败时使用 edge-tts 降级；语音失败不影响文字回复。
 
-FunASR 用于语音识别（跟读评分、诗人对话语音输入），体积较大，**首次安装需要较长时间**。
+### AI 配图
 
-```bash
-# 激活虚拟环境后执行
-pip install funasr modelscope torch torchaudio
-```
+- `POST /generate/image` 是兼容旧前端的同步接口。
+- 正式前端使用 `POST /generate/image/start` 开启任务，再通过 `GET /generate/image/status/{task_id}` 获取进度和已完成分镜。
+- 图片保持原有高质量 prompt，最多 4 帧并行调用，单帧完成后可立即返回。
+- 成功结果保存到 `static/images/poems/{poem_id}/` 和 `static/poem_images_cache.json`。
 
-安装完成后验证：
+### 视频生成实验
 
-```bash
-python -c "from funasr import AutoModel; print('OK')"
-```
+`POST /generate/video` 提交整首诗的文生视频任务，`GET /generate/video/{task_id}` 查询进度并在成功后下载 MP4。
 
-**模型文件说明：**
+调试 prompt 时应使用 `dry_run=true`，此时只返回分镜和 prompt，不提交真实生成任务，不消耗视频额度。该功能目前为独立实验，前端正式学习流程仍使用图片分镜。
 
-- 首次调用 `/asr` 或 `/asr/score` 接口时，会自动下载 Paraformer-zh 模型（约 944MB）
-- 模型默认缓存路径：`C:\Users\你的用户名\.cache\modelscope\hub\`
-- 如需改到其他盘：启动前在终端执行 `$env:MODELSCOPE_CACHE = "D:\modelscope_cache"`
-- 模型只下载一次，后续启动直接读缓存，无需重新下载
-- ffmpeg 未安装时会显示提示，**不影响正常使用**，torchaudio 会接管音频读取
+## 接口总览
 
----
-
-## 环境变量配置
-
-在 `backend/` 目录下新建 `.env` 文件：
-
-```env
-VIVO_APP_KEY=你的蓝心APIKey
-VIVO_APP_ID=你的蓝心APPID
-OCR_PROVIDER=baidu
-BAIDU_OCR_API_KEY=你的百度OCR API Key
-BAIDU_OCR_SECRET_KEY=你的百度OCR Secret Key
-BAIDU_IMAGE_API_KEY=你的百度图像识别 API Key
-BAIDU_IMAGE_SECRET_KEY=你的百度图像识别 Secret Key
-```
-
-说明：
-
-- `VIVO_APP_KEY`：用于 AI 诗人对话、AI 配图和 vivo 诗人对话语音合成。
-- `VIVO_APP_ID`：用于 vivo TTS 请求标识和 `/ping` 健康检查。
-- `BAIDU_OCR_API_KEY` / `BAIDU_OCR_SECRET_KEY`：用于有文字图片的 OCR 识别。
-- `BAIDU_IMAGE_API_KEY` / `BAIDU_IMAGE_SECRET_KEY`：用于无文字风景图的场景识别。
-- 如果未配置 `VIVO_APP_KEY`，基础业务接口仍可运行，但 `/chat`、`/chat/voice-preview`、`/generate/image` 等 AI 能力无法正常调用。
-
----
-
-## 文件说明
-
-| 文件 | 说明 |
-|---|---|
-| main.py | 主入口，注册所有路由，配置 CORS，提供 `/` 和 `/ping` |
-| chat.py | AI 诗人对话接口 `POST /chat`，返回文字回复和对应诗人的语音地址 |
-| poet_voice.py | 九位诗人的声音档案、语音文本清理、音频缓存和 Edge TTS 降级逻辑 |
-| vivo_tts.py | vivo WebSocket TTS 客户端，将返回的 PCM 音频封装为 WAV |
-| poems.py | 古诗搜索与详情接口，支持关键词、作者、朝代、标签筛选 |
-| generate.py | AI 配图接口 `POST /generate/image`，按诗句生成连续插画分镜，含本地缓存机制 |
-| tts.py | 语音朗读接口 `POST /tts`，使用 edge-tts 生成中文朗读音频，返回本地音频 URL |
-| ocr.py | 拍照识诗接口 `POST /ocr`，支持文字图片调用百度 OCR 识别、风景图调用百度图像识别匹配古诗 |
-| record.py | 学习记录接口，包含记录写入、查询和学习统计 |
-| recommend.py | 推荐接口 `GET /recommend`，基于学习记录推荐未学习古诗 |
-| asr.py | 语音识别接口 `POST /asr` 和跟读评分接口 `POST /asr/score`，基于 FunASR Paraformer-zh 模型 |
-| test_api.py | 后端接口稳定性测试脚本，用于快速检查主要接口是否可用 |
-| test_chat.py | AI 对话接口测试脚本 |
-| data/poems.json | 本地古诗数据文件 |
-| data/records.json | 本地学习记录数据文件，测试时会变化，提交前注意不要误提交测试数据 |
-| static/poem_images_cache.json | AI 配图本地缓存文件，存储已生成过的诗句图片路径，避免重复调用模型 |
-| API.md | 完整接口文档（入参/出参格式） |
-
----
-
-## 当前功能进度概览
-
-| 项目功能目标 | 当前实现情况 | 对应后端能力 |
+| 方法 | 路径 | 说明 |
 |---|---|---|
-| 古诗识别与输入 | 已实现 | 支持文字图片百度 OCR 识别 + 风景图场景识别匹配古诗 |
-| 古诗搜索与详情 | 已实现 | 支持搜索、详情查询、作者/朝代/标签筛选 |
-| 智能讲解与交互 | 已实现，支持年龄分层和语音 | AI 诗人对话按年龄调整语言难度，内置9位诗人性格和声音档案，回复同时返回文字与语音地址 |
-| 多模态内容生成 | 已实现 | 已实现 AI 配图接口，含分镜规划和本地缓存，已生成古诗秒回 |
-| 语音朗读 | 已实现 | `/tts` 使用 edge-tts 生成中文朗读音频，返回可播放音频 URL |
-| 趣味学习与巩固 | 已实现跟读评分 | `/asr/score` 接收录音+原诗文本，返回星级评分和是否通过 |
-| 学习记录与推荐 | 已实现 | 支持记录学习、查询记录、学习统计、推荐未学习古诗 |
-| 家长管理与共育 | 部分实现 | 已提供学习统计接口，前端家长端已可接入真实学习数据 |
-| 接口稳定性保障 | 已实现基础脚本 | `test_api.py` 可快速测试主要后端接口 |
-
----
-
-## 接口状态
-
-| 接口 | 方法 | 说明 | 状态 |
-|---|---|---|---|
-| `/` | GET | 后端根路径，返回 API 运行状态 | ✅ 已完成 |
-| `/ping` | GET | 健康检查，返回 vivo 配置状态 | ✅ 已完成 |
-| `/chat` | POST | AI 诗人对话，支持年龄分层和诗人语音，返回 `reply` 与 `audio_url` | ✅ 已完成，需配置 vivo 环境变量 |
-| `/chat/voice-preview` | POST | 根据诗人姓名和试听文本生成语音，不调用对话模型 | ✅ 已完成 |
-| `/chat/voice-profile/{poet_name}` | GET | 查询诗人的音色、语速、音量和声音特点 | ✅ 已完成 |
-| `/poems/search` | GET | 古诗搜索，支持关键词、作者、朝代、标签、分页 | ✅ 已完成 |
-| `/poems/{poem_id}` | GET | 古诗详情 | ✅ 已完成 |
-| `/record` | POST | 添加学习记录 | ✅ 已完成 |
-| `/record` | GET | 查询用户学习记录 | ✅ 已完成 |
-| `/record/summary` | GET | 用户学习统计，供家长端展示 | ✅ 已完成 |
-| `/recommend` | GET | 推荐未学习古诗 | ✅ 已完成 |
-| `/ocr` | POST | 拍照识诗，支持文字图片 OCR 识别和风景图场景识别 | ✅ 已完成 |
-| `/generate/image` | POST | AI 配图生成，含本地缓存 | ✅ 已完成 |
-| `/tts` | POST | 语音朗读，使用 edge-tts 生成音频 | ✅ 已完成 |
-| `/asr` | POST | 语音识别，返回识别文字，供诗人对话语音输入使用 | ✅ 已完成 |
-| `/asr/score` | POST | 跟读评分，接收录音和原诗文本，返回星级、是否通过、鼓励文案 | ✅ 已完成 |
-
----
-
-## 主要接口说明
-
-### 1. 健康检查
-
-`GET /ping`
-
-用于检查后端服务和环境变量配置状态。
-
-返回示例：
-
-```json
-{
-  "message": "pong",
-  "vivo_app_id": "your_app_id",
-  "has_api_key": true
-}
-```
-
----
-
-### 2. 古诗搜索
-
-`GET /poems/search`
-
-支持综合关键词搜索，以及作者、朝代、标签筛选。
-
-请求示例：
-
-```http
-GET /poems/search?keyword=春&page=1&page_size=10
-GET /poems/search?author=李白
-GET /poems/search?dynasty=唐
-GET /poems/search?tag=思乡
-GET /poems/search?keyword=月&author=李白&dynasty=唐
-```
-
-参数说明：
-
-| 参数 | 类型 | 必填 | 说明 |
-|---|---|---|---|
-| keyword | string | 否 | 综合搜索标题、作者、朝代、诗句、标签 |
-| author | string | 否 | 作者筛选，例如"李白" |
-| dynasty | string | 否 | 朝代筛选，例如"唐" |
-| tag | string | 否 | 标签筛选，例如"思乡" |
-| page | int | 否 | 页码，默认 1 |
-| page_size | int | 否 | 每页数量，默认 10，最大 50 |
-
-返回示例：
-
-```json
-{
-  "success": true,
-  "total": 1,
-  "page": 1,
-  "page_size": 10,
-  "filters": {
-    "keyword": "春",
-    "author": "",
-    "dynasty": "",
-    "tag": ""
-  },
-  "data": [
-    {
-      "id": "poem_001",
-      "title": "春晓",
-      "author": "孟浩然",
-      "dynasty": "唐",
-      "content_preview": "春眠不觉晓，处处闻啼鸟。",
-      "tags": ["春天", "自然", "儿童启蒙"]
-    }
-  ]
-}
-```
-
----
-
-### 3. 古诗详情
-
-`GET /poems/{poem_id}`
-
-请求示例：
-
-```http
-GET /poems/poem_001
-```
-
-返回示例：
-
-```json
-{
-  "success": true,
-  "data": {
-    "id": "poem_001",
-    "title": "春晓",
-    "author": "孟浩然",
-    "dynasty": "唐",
-    "content": ["春眠不觉晓", "处处闻啼鸟", "夜来风雨声", "花落知多少"],
-    "tags": ["春天", "自然", "儿童启蒙"]
-  }
-}
-```
-
----
-
-### 4. 学习记录
-
-#### 添加学习记录
-
-`POST /record`
-
-请求体示例：
-
-```json
-{
-  "user_id": "test_user",
-  "poem_id": "poem_001",
-  "duration_seconds": 30
-}
-```
-
-返回示例：
-
-```json
-{
-  "success": true,
-  "message": "记录成功"
-}
-```
-
-#### 查询学习记录
-
-`GET /record?user_id=test_user`
-
-返回示例：
-
-```json
-{
-  "success": true,
-  "total": 1,
-  "data": [
-    {
-      "id": 1,
-      "user_id": "test_user",
-      "poem_id": "poem_001",
-      "duration_seconds": 30,
-      "created_at": "2026-05-25 20:30:00"
-    }
-  ]
-}
-```
-
-#### 学习统计
-
-`GET /record/summary?user_id=test_user`
-
-用于家长端展示学习情况。
-
-返回示例：
-
-```json
-{
-  "success": true,
-  "user_id": "test_user",
-  "learned_count": 2,
-  "record_count": 3,
-  "total_duration_seconds": 120,
-  "learned_poems": [
-    {
-      "id": "poem_001",
-      "title": "春晓",
-      "author": "孟浩然",
-      "dynasty": "唐",
-      "tags": ["春天", "自然", "儿童启蒙"]
-    }
-  ],
-  "recent_records": []
-}
-```
-
----
-
-### 5. 推荐古诗
-
-`GET /recommend`
-
-根据用户学习记录，优先推荐用户未学习过的古诗。
-
-请求示例：
-
-```http
-GET /recommend?user_id=test_user&limit=5
-```
-
-返回示例：
-
-```json
-{
-  "success": true,
-  "user_id": "test_user",
-  "total": 5,
-  "data": [
-    {
-      "id": "poem_002",
-      "title": "静夜思",
-      "author": "李白",
-      "dynasty": "唐",
-      "content_preview": "床前明月光，疑是地上霜。",
-      "tags": ["月亮", "思乡", "儿童启蒙"]
-    }
-  ]
-}
-```
-
----
-
-### 6. 拍照识诗
-
-`POST /ocr`
-
-支持两种模式：
-
-- **文字图片模式**：调用百度 OCR 识别图片中的诗句文字，再匹配古诗；
-- **风景图模式**：调用百度图像识别，识别场景标签后匹配古诗；
-- 需配置 `BAIDU_OCR_API_KEY`、`BAIDU_OCR_SECRET_KEY`、`BAIDU_IMAGE_API_KEY`、`BAIDU_IMAGE_SECRET_KEY`。
-
-请求体示例（图片 base64 模式）：
-
-```json
-{
-  "image_base64": "图片的base64字符串"
-}
-```
-
-返回示例（文字图片）：
-
-```json
-{
-  "success": true,
-  "mode": "image_base64",
-  "recognized_text": "床前明月光疑是地上霜",
-  "matched_poem": {
-    "id": "poem_002",
-    "title": "静夜思",
-    "author": "李白",
-    "dynasty": "唐",
-    "content": ["床前明月光", "疑是地上霜", "举头望明月", "低头思故乡"],
-    "tags": ["月亮", "思乡", "李白"]
-  }
-}
-```
-
----
-
-### 7. AI 对话接口说明
-
-`POST /chat` 请求体：
-
-```json
-{
-  "message": "小鸟在哪里",
-  "poet_name": "孟浩然",
-  "dynasty": "唐",
-  "poem_title": "春晓",
-  "poem_content": "春眠不觉晓，处处闻啼鸟，夜来风雨声，花落知多少。",
-  "age": 4,
-  "history": [
-    {"role": "assistant", "content": "小朋友你好，我是孟浩然。小鸟叫声很好听。"}
-  ]
-}
-```
-
-参数说明：
-
-| 参数 | 类型 | 必填 | 说明 |
-|---|---|---|---|
-| message | string | 是 | 孩子发送的内容；第一轮传空字符串，诗人会主动开口 |
-| poet_name | string | 是 | 诗人姓名 |
-| dynasty | string | 是 | 朝代 |
-| poem_title | string | 否 | 诗名 |
-| poem_content | string | 否 | 诗的正文 |
-| age | int | 否 | 孩子的实际年龄（岁），默认 5，决定回复风格和语言难度 |
-| history | array | 否 | 完整历史对话，格式为 `[{"role": "user/assistant", "content": "..."}]` |
-
-**年龄分层说明：**
-
-| 年龄 | 档位 | 回复特点 |
-|---|---|---|
-| 3-4岁 | 小班/中班档 | 每次2句，不超过20字，只用感官词，不解释抽象情感 |
-| 5-7岁 | 大班/学前班档 | 每次2-3句，不超过35字，可以讲简单故事，可以出现1个难词并立刻解释 |
-
-**诗人性格库：**
-
-内置精细性格描述的诗人（直接使用，无需额外 API 调用）：李白、杜甫、苏轼、白居易、王维、孟浩然、骆宾王、王之涣、李绅。
-
-其他诗人：首次遇到时自动调用 AI 动态生成性格描述并缓存，后续复用，不影响对话流程。
-
-**其他说明：**
-- `history` 由前端维护，每轮对话结束后把本轮的 user 和 assistant 消息追加后完整传入；
-- 第一轮 `message` 传空字符串，诗人会根据年龄档自动主动开口；
-- 使用模型：Volc-DeepSeek-V3.2；
-- 该接口依赖 `VIVO_APP_KEY` 和 `VIVO_APP_ID`；
-- 语音生成失败不会影响文字对话，前端仍可使用 `reply` 正常展示回复。
-
-成功响应示例：
-
-```json
-{
-  "success": true,
-  "reply": "小朋友你好，我是李白。",
-  "audio_url": "/static/audio/chat/poet_xxx.wav",
-  "audio": {
-    "url": "/static/audio/chat/poet_xxx.wav",
-    "format": "wav",
-    "provider": "vivo",
-    "voice_id": "M24",
-    "engineid": "tts_humanoid_lam",
-    "fallback_used": false
-  },
-  "audio_error": ""
-}
-```
-
-新增字段说明：
-
-| 字段 | 类型 | 说明 |
-|---|---|---|
-| audio_url | string | 音频相对地址，前端需要拼接后端基础地址后播放 |
-| audio | object/null | 完整音频信息；语音生成失败时为 `null` |
-| audio_error | string | 语音生成失败原因；正常时为空字符串 |
-
-前端不要写死音频扩展名。正常情况下 vivo TTS 返回 WAV；如果自动降级到 Edge TTS，可能返回 MP3。
-
-#### 诗人声音试听
-
-`POST /chat/voice-preview`
-
-```json
-{
-  "poet_name": "李白",
-  "text": "小朋友你好，我是李白，我们一起读诗吧！"
-}
-```
-
-该接口不调用对话模型，只根据指定诗人和文本生成试听音频，响应中的 `audio` 和 `audio_url` 与 `/chat` 相同。
-
-#### 查询诗人声音档案
-
-`GET /chat/voice-profile/{poet_name}`
-
-返回指定诗人的 `engineid`、`vcn`、`speed`、`volume` 和声音特点。当前内置李白、杜甫、苏轼、白居易、王维、孟浩然、骆宾王、王之涣、李绅九位诗人的声音档案；其他诗人使用默认声音档案。
-
----
-
-### 8. AI 配图接口说明
-
-`POST /generate/image`
-
-为古诗每句话生成一张横版配图，图片之间保持连续分镜效果。已生成过的古诗自动缓存，下次请求直接返回，不重复调用模型。
-
-**参数说明：**
-
-注意 poems.json 与接口参数的字段名对应关系：
-
-| poems.json 字段 | 接口参数名 |
+| GET | `/` | 服务状态 |
+| GET | `/ping` | 健康检查和 vivo 配置状态 |
+| GET | `/poems/search` | 标题、作者、朝代、诗句、标签搜索与分页 |
+| GET | `/poems/{poem_id}` | 古诗详情 |
+| POST | `/record` | 写入学习记录并建立巩固记录 |
+| GET | `/record` | 用户学习记录 |
+| GET | `/record/summary` | 家长端学习统计 |
+| POST | `/profile/reading-score` | 保存整首跟读平均分 |
+| GET | `/profile/{user_id}` | 用户标签分数和强项标签 |
+| GET | `/recommend` | 年龄 + 未学 + 强项标签推荐 |
+| GET | `/consolidation/list` | 巩固列表和统计 |
+| GET | `/consolidation/status/{poem_id}` | 单首巩固状态 |
+| POST | `/consolidation/result` | 整首通过后更新复习计划 |
+| POST | `/ocr` | 文字 OCR 识诗或风景匹配 |
+| POST | `/asr` | 语音转文字 |
+| POST | `/asr/score` | 当前单句跟读评分 |
+| POST | `/tts` | 古诗范读 MP3 |
+| POST | `/chat` | AI 诗人对话 |
+| POST | `/chat/voice-preview` | 按诗人声音生成语音 |
+| GET | `/chat/voice-profile/{poet_name}` | 查询诗人声音档案 |
+| POST | `/generate/image` | 兼容用同步配图 |
+| POST | `/generate/image/start` | 开启渐进式配图 |
+| GET | `/generate/image/status/{task_id}` | 配图任务进度 |
+| POST | `/generate/poet_avatar` | 诗人形象生成 |
+| POST | `/generate/video` | 提交视频生成实验任务 |
+| GET | `/generate/video/{task_id}` | 查询视频任务 |
+
+具体入参和实时返回结构以 Swagger `/docs` 为准。
+
+## 主要文件
+
+| 文件/目录 | 说明 |
 |---|---|
-| `id` | `poem_id` |
-| `title` | `poem_title` |
-| `content` | `poem_content` |
-| `author` | `poet_name` |
-| `dynasty` | `dynasty` |
-| `tags` | `tags` |
+| `main.py` | FastAPI 入口、CORS、静态目录和路由注册 |
+| `database.py` / `schema.sql` | SQLite 连接、WAL 配置和表结构 |
+| `poems.py` | 古诗搜索与详情 |
+| `record.py` | 学习记录与家长统计 |
+| `consolidation.py` | 巩固记录和 1/3/7 天复习节奏 |
+| `recommend.py` | 跟读画像与个性化推荐 |
+| `ocr.py` | 百度 OCR、图像识别和 SQLite 古诗匹配 |
+| `asr.py` | FunASR 语音识别和单句评分 |
+| `chat.py` / `poet_voice.py` / `vivo_tts.py` | 诗人对话、声音档案、vivo TTS 和降级 |
+| `generate.py` | 分镜规划、并行生图、渐进任务和图片缓存 |
+| `video_generate.py` | 整首古诗文生视频实验 |
+| `data_sources/` | 150 首古诗源数据、译文和标签质检报告 |
+| `scripts/` | 建库、导入、迁移、元数据生成与审核脚本 |
+| `static/` | 已生成的诗歌图片、诗人头像、音频和缓存 |
+| `test_result/` | 后端测试脚本；运行结果文本已忽略 |
 
-请求体示例：
+## 测试
 
-```json
-{
-  "poem_id": "poem_002",
-  "poem_title": "静夜思",
-  "poem_content": ["床前明月光", "疑是地上霜", "举头望明月", "低头思故乡"],
-  "poet_name": "李白",
-  "dynasty": "唐",
-  "tags": ["月亮", "思乡", "李白"]
-}
+先启动后端，再在另一个终端运行：
+
+```powershell
+cd backend
+python test_result/test_api.py
+python test_result/test_chat.py
+python test_result/test_generate.py
 ```
 
-**缓存机制：**
+`test_api.py` 会调用部分写入接口，测试后的记录会保存在本地 SQLite 中。
 
-- 同一首诗（按 `poem_id` 识别）生成成功后自动写入 `static/poem_images_cache.json`；
-- 下次请求同一首诗时直接返回缓存，`from_cache: true`，秒回，不再调用模型；
-- 当前已预生成：《静夜思》（poem_002）；
-- 如需强制重新生成，请求体加 `"force_regenerate": true`。
+## Git 与运行文件
 
-**响应结构：**
+以下内容不应提交：
 
-```json
-{
-  "success": true,
-  "from_cache": true,
-  "poem_title": "静夜思",
-  "has_character": true,
-  "character_desc": "人物形象描述",
-  "recurring_elements": "固定建筑元素描述",
-  "total_lines": 4,
-  "frames": [
-    {
-      "index": 0,
-      "line": "床前明月光",
-      "scene": "规划的场景描述",
-      "shot_type": "中景",
-      "image_url": "/static/images/poems/poem_002/frame_0.jpg",
-      "duration_ms": 3000
-    }
-  ],
-  "errors": []
-}
-```
+- `.env`
+- `venv/`、`poetai/`
+- `data/*.db`、`*.db-wal`、`*.db-shm`
+- `static/audio/chat/`和运行时生成的 `tts_*.mp3`
+- `static/videos/`和 `static/video_tasks_cache.json`
+- `server*.log`
+- `test_result/test_result*txt`
 
-**前端接入注意事项：**
-
-- `image_url` 为本地静态路径，拼接 `http://127.0.0.1:8000` 前缀即可访问；
-- 已缓存的诗秒回；未缓存的诗首次生成约需 1-2 分钟，前端**必须显示 loading 动画**；
-- 建议进入详情页时立即发起请求，不要等用户点击；
-- 请求超时时间必须设置为 **120 秒以上**；
-- `success: false` 时 `frames` 为空数组，页面显示"配图生成中，请稍后重试"，不要白屏。
-
----
-
-### 9. 语音朗读接口说明
-
-`POST /tts`
-
-使用 edge-tts 生成中文朗读音频，返回本地可访问的 mp3 音频 URL。
-
-请求体示例：
-
-```json
-{
-  "text": "床前明月光，疑是地上霜。",
-  "voice": "child"
-}
-```
-
-支持的 voice 参数：
-
-| voice 值 | 对应音色 |
-|---|---|
-| child / female / default | 晓晓（女声，适合儿童） |
-| male | 云希（男声） |
-| xiaoyi | 晓伊 |
-| yunjian | 云健 |
-
-返回示例：
-
-```json
-{
-  "success": true,
-  "message": "语音生成成功",
-  "provider": "edge-tts",
-  "audio_url": "/static/audio/tts_1234567890.mp3"
-}
-```
-
-- `audio_url` 为本地静态路径，拼接 `http://127.0.0.1:8000` 前缀即可播放；
-- edge-tts 需要访问微软服务器，网络异常时可能失败；
-- 失败时返回 `"success": false` 和错误信息。
-
----
-
-## 数据存储说明
-
-当前后端暂时使用 JSON 文件存储数据：
-
-| 文件 | 说明 |
-|---|---|
-| `data/poems.json` | 古诗基础数据 |
-| `data/records.json` | 用户学习记录 |
-| `static/poem_images_cache.json` | AI 配图缓存，存储已生成图片的本地路径 |
-| `static/images/poems/{poem_id}/` | 各首古诗的生成图片，按 poem_id 分文件夹存放 |
-| `static/audio/` | 普通诗歌朗读接口生成的音频文件 |
-| `static/audio/chat/` | 诗人对话语音缓存，运行时自动创建 |
-
-注意：
-
-- 当前阶段未接入 MySQL 或 SQLite；
-- `records.json` 会在调用 `POST /record` 或运行测试脚本时发生变化，提交前注意检查；
-- `static/audio/` 下的音频文件为运行时生成，无需提交到 GitHub；其中 `static/audio/chat/` 已加入 `.gitignore`；
-- `static/images/` 和 `static/poem_images_cache.json` 建议提交，前端联调时可直接使用已缓存的图片。
-
----
-
-## 接口测试脚本
-
-`test_api.py` 用于快速检查后端主要接口是否正常。
-
-使用前先启动后端：
-
-```bash
-uvicorn main:app --host 0.0.0.0 --port 8000 --reload
-```
-
-另开终端运行：
-
-```bash
-python test_api.py
-```
-
-当前测试覆盖：
-
-- `GET /ping`
-- `GET /poems/search`
-- `GET /poems/poem_001`
-- `GET /recommend`
-- `POST /record`
-- `GET /record/summary`
-- `POST /ocr`
-
-说明：
-
-- 测试脚本主要用于冒烟测试，检查接口是否可访问；
-- 脚本会调用 `POST /record`，因此运行后可能修改 `data/records.json`；
-- 测试完成后如不需要保留测试记录，应恢复 `records.json`。
-
----
-
-## 前端联调说明
-
-### 浏览器本机联调
-
-前端请求地址可使用：
-
-```js
-const BASE_URL = 'http://127.0.0.1:8000'
-```
-
-### 手机真机联调
-
-如果使用手机或模拟器访问后端，需要将 `BASE_URL` 改为电脑局域网 IP，例如：
-
-```js
-const BASE_URL = 'http://192.168.x.x:8000'
-```
-
-同时后端启动命令需要使用：
-
-```bash
-uvicorn main:app --host 0.0.0.0 --port 8000 --reload
-```
-
-注意：不要把个人电脑的局域网 IP 提交到 GitHub。
-
----
-
-## 当前已完成开发记录
-
-- 完成 FastAPI 项目基础结构；
-- 完成 CORS 配置，支持前端跨域联调；
-- 完成古诗搜索和详情接口；
-- 搜索接口已支持 keyword、author、dynasty、tag 和分页；
-- 完成学习记录写入和查询接口；
-- 完成学习统计接口 `/record/summary`，可供家长端展示；
-- 完成推荐接口 `/recommend`，可推荐用户未学习过的古诗；
-- 完成 OCR 接口 `/ocr`，支持文字图片百度 OCR 识别和风景图场景识别；
-- 完成 AI 诗人对话接口 `/chat` 的核心逻辑；
-- 新增年龄分层功能：基于皮亚杰认知发展理论，以5岁为分界线分为两档，分别制定语言规则和回复策略；
-- 扩充诗人性格库至9位（李白、杜甫、苏轼、白居易、王维、孟浩然、骆宾王、王之涣、李绅），其余诗人动态生成并缓存；
-- 接入 vivo WebSocket TTS，为9位诗人配置不同的音色、语速和音量；
-- `/chat` 同时返回文字回复和音频地址，并提供声音试听、声音档案查询和 Edge TTS 自动降级；
-- 完成 AI 配图接口 `/generate/image`，含两阶段分镜规划和本地缓存机制；
-- 完成语音朗读接口 `/tts`，使用 edge-tts 生成中文朗读音频；
-- 完成后端接口测试脚本 `test_api.py`；
-- 预生成《静夜思》配图并写入缓存，前端可直接使用；
-- 接入 FunASR Paraformer-zh 模型，完成语音识别接口 `/asr`；
-- 完成跟读评分接口 `/asr/score`，支持录音识别 + 相似度评分 + 星级反馈。
-
----
-
-## 10. 语音识别接口说明
-
-`POST /asr`
-
-接收前端录音的 base64 编码，返回识别出的文字，用于诗人对话语音输入。
-
-请求体示例：
-
-```json
-{
-  "audio_base64": "音频文件的base64字符串",
-  "audio_format": "mp3"
-}
-```
-
-参数说明：
-
-| 参数 | 类型 | 必填 | 说明 |
-|---|---|---|---|
-| audio_base64 | string | 是 | 录音文件的 base64 编码 |
-| audio_format | string | 否 | 音频格式，默认 `mp3`，支持 wav/mp3/m4a |
-
-返回示例：
-
-```json
-{
-  "success": true,
-  "text": "鹅鹅鹅曲项向天歌"
-}
-```
-
----
-
-## 11. 跟读评分接口说明
-
-`POST /asr/score`
-
-接收孩子跟读录音和原诗文本，识别后对比计算相似度，返回星级评分和是否通过。
-
-请求体示例：
-
-```json
-{
-  "audio_base64": "音频文件的base64字符串",
-  "poem_content": "鹅鹅鹅曲项向天歌白毛浮绿水红掌拨清波",
-  "audio_format": "mp3"
-}
-```
-
-参数说明：
-
-| 参数 | 类型 | 必填 | 说明 |
-|---|---|---|---|
-| audio_base64 | string | 是 | 录音文件的 base64 编码 |
-| poem_content | string | 是 | 完整诗文，去掉标点直接拼接，例如 `"鹅鹅鹅曲项向天歌白毛浮绿水红掌拨清波"` |
-| audio_format | string | 否 | 音频格式，默认 `mp3` |
-
-返回示例：
-
-```json
-{
-  "success": true,
-  "score": 92,
-  "stars": 3,
-  "passed": true,
-  "message": "太棒了！读得非常准确！🌟",
-  "recognized": "鹅 鹅 鹅 曲 项 向 天 歌 白 毛 浮 绿 水 红 掌 拨 清 波"
-}
-```
-
-评分说明：
-
-| 分数 | 星级 | passed | 说明 |
-|---|---|---|---|
-| 90-100 | ⭐⭐⭐ | true | 太棒了 |
-| 70-89 | ⭐⭐ | true | 读得很好 |
-| 50-69 | ⭐ | false | 继续加油 |
-| 0-49 | 0 | false | 再试一次 |
-
-前端接入注意事项：
-
-- 录音格式建议 `mp3`，在 UniApp RecorderManager 中设置 `format: 'mp3'`；
-- 录完音后用 `uni.getFileSystemManager().readFile()` 以 `encoding: 'base64'` 读取；
-- `poem_content` 传完整诗文（多句拼在一起），标点可以保留，后端会自动去除；
-- `passed: true` 时前端再调 `POST /consolidation/result`，传 `passed: true` 更新巩固进度；
-- `recognized` 字段是调试用，可以在开发阶段打印出来确认识别效果，上线后可忽略。
+已确认需要共享的正式图片和对应缓存 JSON 可正常提交。

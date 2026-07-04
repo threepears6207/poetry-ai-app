@@ -58,27 +58,27 @@
         </view>
 
         <view class="right-panel">
-          <view class="today-card" @tap="goStudy('poem_001')">
+          <view class="today-card" @tap="goStudy(dailyPoem.id)">
             <view class="yellow-side-line"></view>
 
             <view class="today-left">
               <view class="today-tags">
-                <view class="small-tag spring-tag">
-                  <text class="tag-icon">☀️</text>
-                  <text>春天</text>
-                </view>
-
-                <view class="small-tag bird-tag">
-                  <text class="tag-icon">🐦</text>
-                  <text>小鸟</text>
+                <view
+                  v-for="(tag, index) in dailyPoemTags"
+                  :key="tag"
+                  class="small-tag"
+                  :class="index === 0 ? 'spring-tag' : 'bird-tag'"
+                >
+                  <text class="tag-icon">{{ getDailyTagIcon(tag) }}</text>
+                  <text>{{ tag }}</text>
                 </view>
 
                 <text class="today-hint">今天学这个</text>
               </view>
 
               <view class="today-title-row">
-                <text class="poem-title">春晓</text>
-                <text class="poem-author">孟浩然</text>
+                <text class="poem-title">{{ dailyPoem.title }}</text>
+                <text class="poem-author">{{ dailyPoem.author }}</text>
               </view>
             </view>
 
@@ -262,6 +262,28 @@ const searchResults = ref(searchLocalPoems(''))
 
 const POEM_ICONS = ['🌸', '🌙', '🦢', '🌾', '🏯', '🌿', '🍃', '⭐']
 const homeReviewPoems = ref([])
+const dailyPoem = ref({ id: '', title: '正在推荐', author: '', tags: [] })
+const dailyPoemTags = computed(() => {
+  const tags = Array.isArray(dailyPoem.value?.tags) ? dailyPoem.value.tags : []
+  return tags.slice(0, 2)
+})
+
+const getDailyTagIcon = (tag = '') => {
+  if (String(tag).includes('春') || String(tag).includes('花')) return '☀️'
+  if (String(tag).includes('鸟') || String(tag).includes('动物')) return '🐦'
+  if (String(tag).includes('月') || String(tag).includes('夜')) return '🌙'
+  if (String(tag).includes('山') || String(tag).includes('自然')) return '🌿'
+  return '✨'
+}
+
+const loadDailyRecommendation = async () => {
+  try {
+    const poem = await API.getDailyRecommendation(getAgeNumber(selectedAge.value))
+    if (poem?.id) dailyPoem.value = poem
+  } catch (err) {
+    console.log('每日推荐加载失败，继续显示本地推荐', err)
+  }
+}
 
 const extractArrayPayload = (payload) => {
   const candidates = [
@@ -477,12 +499,14 @@ onMounted(() => {
 
   uni.setStorageSync(CHILD_AGE_TEXT_KEY, selectedAge.value)
   uni.setStorageSync(CHILD_AGE_KEY, getAgeNumber(selectedAge.value))
+  loadDailyRecommendation()
 
 })
 
 onShow(() => {
   // 从巩固页返回首页时重新拉取，避免首页继续显示旧状态。
   loadHomeReviewPoems()
+  loadDailyRecommendation()
 })
 
 const chooseAge = (age) => {
@@ -491,6 +515,7 @@ const chooseAge = (age) => {
 
   uni.setStorageSync(CHILD_AGE_TEXT_KEY, age)
   uni.setStorageSync(CHILD_AGE_KEY, getAgeNumber(age))
+  loadDailyRecommendation()
 
   uni.showToast({
     title: `已选择${age}`,
@@ -510,6 +535,10 @@ const goPage = (url) => {
 }
 
 const goStudy = (poemId) => {
+  if (!poemId) {
+    uni.showToast({ title: '每日推荐加载中', icon: 'none' })
+    return
+  }
   goPage(`/pages/study/study?poem_id=${poemId}`)
 }
 

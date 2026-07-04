@@ -288,6 +288,8 @@ const isReading = ref(false)
 const isScoring = ref(false)
 const readFeedback = ref('💡 小朋友要一句一句听范读，再一句一句录音跟读哦！')
 const completedReadLines = ref([])
+const passedLineScores = ref({})
+const readingScoreSubmitted = ref(false)
 
 const isLoadingList = ref(false)
 const listError = ref('')
@@ -357,7 +359,16 @@ const splitPoemText = (text = '') => {
 }
 
 const extractPoemLines = (poem = {}) => {
-  const source = poem.lines || poem.content || poem.poem_content || poem.poemContent
+  const candidates = [
+    poem.lines,
+    poem.content,
+    poem.poem_content,
+    poem.poemContent
+  ]
+  const source = candidates.find(item => {
+    if (Array.isArray(item)) return item.length > 0
+    return String(item || '').trim().length > 0
+  })
 
   if (Array.isArray(source)) {
     return source
@@ -1059,6 +1070,8 @@ const resetReviewState = () => {
   currentScore.value = null
   lastScorePassed.value = null
   completedReadLines.value = []
+  passedLineScores.value = {}
+  readingScoreSubmitted.value = false
   isRecording.value = false
   isScoring.value = false
   readFeedback.value = '💡 小朋友要一句一句听范读，再一句一句录音跟读哦！'
@@ -1270,6 +1283,37 @@ const submitConsolidationOutcome = async (passed) => {
   }
 }
 
+const submitWholePoemReadingScore = async () => {
+  if (readingScoreSubmitted.value) return null
+
+  const poem = currentReviewPoem.value
+  const lines = getReadingLines()
+  const scores = lines
+    .map((_, index) => Number(passedLineScores.value[index]))
+    .filter(score => Number.isFinite(score))
+
+  if (!poem?.poem_id || !lines.length || scores.length !== lines.length) {
+    throw new Error('整首诗的通过分数不完整，暂时无法保存平均分')
+  }
+
+  const averageScore = Math.round(
+    (scores.reduce((sum, score) => sum + score, 0) / scores.length) * 100
+  ) / 100
+
+  const result = await API.submitReadingScore({
+    poem_id: poem.poem_id,
+    score: averageScore,
+    source: 'asr'
+  })
+
+  if (result?.success === false) {
+    throw new Error(result?.message || '跟读平均分保存失败')
+  }
+
+  readingScoreSubmitted.value = true
+  return result
+}
+
 const handleReadingScoreResult = async (res, lineIndex) => {
   const stars = normalizeStarValue(res)
   const score = normalizeScoreValue(res, stars)
@@ -1296,11 +1340,24 @@ const handleReadingScoreResult = async (res, lineIndex) => {
   if (!completedReadLines.value.includes(lineIndex)) {
     completedReadLines.value = [...completedReadLines.value, lineIndex].sort((a, b) => a - b)
   }
+  passedLineScores.value = {
+    ...passedLineScores.value,
+    [lineIndex]: score
+  }
 
   const lines = getReadingLines()
   const allPassed = lines.length > 0 && completedReadLines.value.length >= lines.length
 
   if (allPassed) {
+    let scoreSaved = true
+
+    try {
+      await submitWholePoemReadingScore()
+    } catch (err) {
+      scoreSaved = false
+      console.log('保存整首跟读平均分失败：', err)
+    }
+
     try {
       const updatedPoem = await submitConsolidationOutcome(true)
       const count = Number(updatedPoem?.practice_count || 0)
@@ -1308,6 +1365,10 @@ const handleReadingScoreResult = async (res, lineIndex) => {
       readFeedback.value = updatedPoem?.status === '已掌握'
         ? '🎉 全部诗句都通过啦！这是第 3 次巩固，已经掌握这首诗！'
         : `🎉 全部诗句都通过啦！第 ${count || 1} 次巩固结果已保存，可以继续连连看。`
+
+      if (!scoreSaved) {
+        readFeedback.value += ' 跟读平均分暂未保存，请稍后重试。'
+      }
     } catch (err) {
       console.log('提交通过结果失败：', err)
       readFeedback.value = '🎉 全部诗句都通过了，但巩固结果保存失败，请稍后重试。'
@@ -1705,6 +1766,15 @@ const selectLeft = (id) => {
 }
 
 const submitConsolidationPassed = async () => {
+  // 如果跟读全部通过时成绩保存失败，连连看完成后再自动重试一次。
+  if (!readingScoreSubmitted.value && allReadLinesPassed.value) {
+    try {
+      await submitWholePoemReadingScore()
+    } catch (err) {
+      console.log('连连看完成后重试保存跟读平均分失败：', err)
+    }
+  }
+
   // 正常情况下，跟读全部通过时已经按 ASR 的 passed 结论提交过一次。
   // 这里仅做异常兜底，避免连连看再次累计练习次数。
   if (resultSubmitted.value) {
@@ -1778,6 +1848,8 @@ const backToMain = () => {
   currentScore.value = null
   lastScorePassed.value = null
   completedReadLines.value = []
+  passedLineScores.value = {}
+  readingScoreSubmitted.value = false
   isRecording.value = false
   isScoring.value = false
   readFeedback.value = '💡 小朋友要一句一句听范读，再一句一句录音跟读哦！'

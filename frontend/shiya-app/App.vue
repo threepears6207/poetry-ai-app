@@ -14,12 +14,24 @@
 		methods: {
 			lockLandscape() {
 				// #ifdef APP-PLUS
-				try {
-					if (typeof plus !== 'undefined' && plus.screen) {
-						plus.screen.lockOrientation('landscape-primary')
-					}
-				} catch (e) {
-					console.log('锁定横屏失败：', e)
+					try {
+						if (typeof plus !== 'undefined' && plus.screen) {
+							plus.screen.lockOrientation('landscape-primary')
+						}
+
+						if (typeof plus !== 'undefined' && plus.navigator) {
+							const enterImmersive = () => {
+								plus.navigator.setFullscreen(true)
+								if (typeof plus.navigator.hideSystemNavigation === 'function') {
+									plus.navigator.hideSystemNavigation()
+								}
+							}
+
+							enterImmersive()
+							setTimeout(enterImmersive, 300)
+						}
+					} catch (e) {
+						console.log('设置横屏沉浸模式失败：', e)
 				}
 				// #endif
 			}
@@ -28,5 +40,20 @@
 </script>
 
 <style>
-	/*每个页面公共css */
+	/* 避免 App/H5 真机横屏缩放时根节点的默认白底露出一条边。 */
+	html,
+	body,
+	#app,
+	uni-app,
+	uni-page,
+	uni-page-wrapper,
+	uni-page-body,
+	page {
+		width: 100%;
+		height: 100%;
+		margin: 0;
+		padding: 0;
+		overflow: hidden;
+		background: #1a1a1a;
+	}
 </style>

@@ -24,7 +24,7 @@
                   :key="item.value"
                   class="filter-chip"
                   :class="{ active: activeFilter === item.value }"
-                  @tap="activeFilter = item.value"
+                  @tap="selectFilter(item.value)"
                 >
                   {{ item.label }}
                 </view>
@@ -77,11 +77,11 @@
               <view class="daily-star">🌟</view>
               <view class="daily-title">每日一首</view>
               <view class="daily-text">
-                今日推荐《悯农》<br />
-                一起珍惜粮食吧！
+                今日推荐《{{ dailyPoem.title }}》<br />
+                {{ dailyPoemText }}
               </view>
 
-              <button class="daily-btn" @tap="goStudy('poem_004')">
+              <button class="daily-btn" @tap="goStudy(dailyPoem.id)">
                 去看看
               </button>
             </view>
@@ -137,6 +137,23 @@ onUnmounted(() => {
 const currentPoemId = ref('poem_001')
 const activeFilter = ref('all')
 const recommendList = ref([])
+const dailyPoem = ref({ id: '', title: '正在推荐', author: '', tags: [] })
+const dailyPoemText = computed(() => {
+  const tags = Array.isArray(dailyPoem.value?.tags) ? dailyPoem.value.tags : []
+  return tags.length ? `一起读读${tags[0]}主题吧！` : '一起读一首好诗吧！'
+})
+const getSelectedAge = () => {
+  return uni.getStorageSync('shiYaChildAge') || 4
+}
+
+const loadDailyRecommendation = async () => {
+  try {
+    const poem = await API.getDailyRecommendation(getSelectedAge())
+    if (poem?.id) dailyPoem.value = poem
+  } catch (err) {
+    console.log('每日推荐加载失败，继续显示本地推荐', err)
+  }
+}
 
 const filters = [
   { label: '全部', value: 'all' },
@@ -157,6 +174,27 @@ const categoryMap = {
   登高: 'nature',
   黄河: 'nature',
   励志: 'nature'
+}
+
+const categoryKeywords = {
+  spring: ['春天', '春日', '春景', '春风', '花', '柳', '燕'],
+  animal: ['动物', '鸟', '鹅', '鸡', '鸭', '蝉', '虫', '鱼', '蜂', '蝶', '雁', '鹭'],
+  nature: ['自然', '山水', '田园', '江河', '湖', '月亮', '花', '树', '草', '雪', '雨', '风', '云']
+}
+
+const getPoemCategories = (poem = {}) => {
+  const tags = Array.isArray(poem.tags) ? poem.tags : []
+  const content = Array.isArray(poem.content) ? poem.content.join('') : String(poem.content || '')
+  const text = `${poem.title || ''}${tags.join('')}${content}`
+  const categories = tags.map(tag => categoryMap[tag]).filter(Boolean)
+
+  Object.entries(categoryKeywords).forEach(([category, keywords]) => {
+    if (keywords.some(keyword => text.includes(keyword))) {
+      categories.push(category)
+    }
+  })
+
+  return [...new Set(categories)]
 }
 
 const getPoemIcon = (title) => {
@@ -180,58 +218,75 @@ const buildLocalRecommend = () => {
   return LOCAL_POEMS
     .filter(item => item.id !== currentPoemId.value)
     .map(item => {
-      const categories = item.tags
-        .map(tag => categoryMap[tag])
-        .filter(Boolean)
-
       return {
         ...item,
         icon: getPoemIcon(item.title),
-        categories,
+        categories: getPoemCategories(item),
         badge: item.id === 'poem_002' ? '✨ 推荐' : '',
         reason: getReason(item.title)
       }
     })
 }
 
-onLoad(async (options) => {
-  currentPoemId.value = options.poem_id || 'poem_001'
-  recommendList.value = buildLocalRecommend()
+const mapRecommendItems = (items = []) => {
+  return items.map(item => {
+    const local = LOCAL_POEMS.find(poem => poem.id === item.id || poem.id === item.poem_id)
+    const poem = {
+      ...(local || item),
+      ...item,
+      id: item.id || item.poem_id || local?.id,
+      title: item.title || local?.title,
+      author: item.author || local?.author,
+      dynasty: item.dynasty || local?.dynasty || '唐',
+      tags: item.tags || local?.tags || [],
+      icon: getPoemIcon(item.title || local?.title),
+      badge: item.badge || '✨ 推荐',
+      reason: item.recommend_reason || item.reason || getReason(item.title || local?.title)
+    }
 
+    return {
+      ...poem,
+      categories: getPoemCategories(poem)
+    }
+  })
+}
+
+const loadRecommendations = async (category = 'all') => {
   try {
-    const res = await API.getRecommend(5)
+    const res = await API.getRecommend(20, category, getSelectedAge())
 
-    if (res && res.success && Array.isArray(res.data) && res.data.length > 0) {
-      recommendList.value = res.data.map(item => {
-        const local = LOCAL_POEMS.find(poem => poem.id === item.id || poem.id === item.poem_id)
-
-        return {
-          ...(local || item),
-          id: item.id || item.poem_id || local?.id,
-          title: item.title || local?.title,
-          author: item.author || local?.author,
-          dynasty: item.dynasty || local?.dynasty || '唐',
-          tags: item.tags || local?.tags || [],
-          icon: getPoemIcon(item.title || local?.title),
-          categories: (item.tags || local?.tags || [])
-            .map(tag => categoryMap[tag])
-            .filter(Boolean),
-          badge: item.badge || '✨ 推荐',
-          reason: item.reason || getReason(item.title || local?.title)
-        }
-      })
+    if (res && res.success && Array.isArray(res.data)) {
+      recommendList.value = mapRecommendItems(res.data)
+      return
     }
   } catch (err) {
     console.log('推荐接口暂不可用，使用本地推荐', err)
   }
+
+  const localItems = buildLocalRecommend()
+  recommendList.value = category === 'all'
+    ? localItems
+    : localItems.filter(poem => poem.categories.includes(category))
+}
+
+const selectFilter = async (category) => {
+  if (activeFilter.value === category) return
+
+  activeFilter.value = category
+  await loadRecommendations(category)
+}
+
+onLoad(async (options) => {
+  currentPoemId.value = options.poem_id || 'poem_001'
+  recommendList.value = buildLocalRecommend()
+  await Promise.all([
+    loadRecommendations('all'),
+    loadDailyRecommendation()
+  ])
 })
 
 const filteredPoems = computed(() => {
-  if (activeFilter.value === 'all') return recommendList.value
-
-  return recommendList.value.filter(poem => {
-    return Array.isArray(poem.categories) && poem.categories.includes(activeFilter.value)
-  })
+  return recommendList.value
 })
 
 const goHome = () => {
@@ -249,6 +304,10 @@ const goHome = () => {
 }
 
 const goStudy = (poemId) => {
+  if (!poemId) {
+    uni.showToast({ title: '每日推荐加载中', icon: 'none' })
+    return
+  }
   uni.navigateTo({
     url: `/pages/study/study?poem_id=${poemId}`,
     fail: () => {

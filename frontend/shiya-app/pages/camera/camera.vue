@@ -82,18 +82,25 @@
 
         <view class="result-card">
           <view class="poem-zone">
-            <view class="poem-result">
-              <view class="result-title">{{ matchedPoem.title }}</view>
-              <view class="author">{{ matchedPoem.dynasty }} · {{ matchedPoem.author }}</view>
-              <view class="poem-lines">
-                <text
-                  v-for="line in matchedPoem.content"
-                  :key="line"
-                >
-                  {{ line }}
-                </text>
+            <scroll-view
+              class="poem-result"
+              :class="{ 'long-poem': matchedPoem.content.length > 4 }"
+              scroll-y
+              :show-scrollbar="false"
+            >
+              <view class="poem-result-inner">
+                <view class="result-title">{{ matchedPoem.title }}</view>
+                <view class="author">{{ matchedPoem.dynasty }} · {{ matchedPoem.author }}</view>
+                <view class="poem-lines">
+                  <text
+                    v-for="line in matchedPoem.content"
+                    :key="line"
+                  >
+                    {{ line }}
+                  </text>
+                </view>
               </view>
-            </view>
+            </scroll-view>
 
             <view class="tag-panel">
               <view
@@ -177,15 +184,8 @@ const sceneTags = ref([])
 const matchType = ref('text')
 
 const displayTags = computed(() => {
-  if (sceneTags.value.length > 0) {
-    return sceneTags.value.slice(0, 3).map((tag) => `✨ ${tag}`)
-  }
-
-  if (matchType.value === 'scene') {
-    return ['🌿 风景', '📷 图片', '✨ 匹配']
-  }
-
-  return ['🌸 古诗', '📷 图片', '✨ 识别']
+  const poemTags = Array.isArray(matchedPoem.value?.tags) ? matchedPoem.value.tags : []
+  return poemTags.slice(0, 3).map((tag) => `✨ ${tag}`)
 })
 
 const goBack = () => {
@@ -942,9 +942,35 @@ button::after {
   box-shadow: 0 9px 20px rgba(70, 45, 20, 0.12);
   padding: 14px 24px 14px 18px;
   text-align: center;
-  display: grid;
-  align-content: center;
+  display: block;
   color: #4e4775;
+  overflow: hidden;
+}
+
+.poem-result-inner {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.poem-result.long-poem .poem-result-inner {
+  justify-content: flex-start;
+}
+
+.poem-result.long-poem .result-title {
+  font-size: 18px;
+  letter-spacing: 3px;
+}
+
+.poem-result.long-poem .author {
+  margin: 2px 0 4px;
+  font-size: 12px;
+}
+
+.poem-result.long-poem .poem-lines {
+  font-size: 14px;
+  line-height: 1.42;
 }
 
 .result-title {

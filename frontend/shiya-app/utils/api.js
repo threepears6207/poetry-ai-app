@@ -4,13 +4,35 @@
 // 1. 后端基础地址
 // =====================================================
 // 电脑浏览器本机联调：使用 127.0.0.1
-const BASE_URL = 'http://127.0.0.1:8000'
+const BASE_URL = 'http://172.20.10.4:8000'
 
 // 手机真机联调时，不要用 127.0.0.1。
 // 要改成你电脑的局域网 IP，例如：
 //const BASE_URL = 'http://192.168.43.235:8000'
 
 export const DEFAULT_USER_ID = 'test_user'
+const DAILY_RECOMMENDATION_KEY = 'shiYaDailyRecommendation'
+
+const normalizeAgeLevel = (ageValue = '') => {
+  const match = String(ageValue || '').match(/\d+/)
+  const age = match ? Number(match[0]) : 4
+  return age <= 4 ? 'age_3_4' : 'age_5_7'
+}
+
+const getTodayKey = () => {
+  const now = new Date()
+  const year = now.getFullYear()
+  const month = String(now.getMonth() + 1).padStart(2, '0')
+  const day = String(now.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+const getLocalDailyRecommendation = (date, ageLevel) => {
+  const seed = `${date}:${ageLevel}`
+    .split('')
+    .reduce((total, char) => total + char.charCodeAt(0), 0)
+  return LOCAL_POEMS[seed % LOCAL_POEMS.length] || LOCAL_POEMS[0] || null
+}
 
 
 // =====================================================
@@ -18,7 +40,34 @@ export const DEFAULT_USER_ID = 'test_user'
 // 说明：详情页预请求、播放页再次请求时，可复用同一个 Promise，避免重复触发生成。
 // =====================================================
 const imageGeneratePromiseCache = new Map()
+const imageGenerateProgressListeners = new Map()
+const imageGenerateLastProgress = new Map()
 const poetAvatarPromiseCache = new Map()
+
+const wait = (milliseconds) => new Promise(resolve => setTimeout(resolve, milliseconds))
+
+const addImageProgressListener = (cacheKey, listener) => {
+  if (typeof listener !== 'function') return
+  if (!imageGenerateProgressListeners.has(cacheKey)) {
+    imageGenerateProgressListeners.set(cacheKey, new Set())
+  }
+  imageGenerateProgressListeners.get(cacheKey).add(listener)
+  const lastProgress = imageGenerateLastProgress.get(cacheKey)
+  if (lastProgress) listener(lastProgress)
+}
+
+const emitImageProgress = (cacheKey, progress) => {
+  imageGenerateLastProgress.set(cacheKey, progress)
+  const listeners = imageGenerateProgressListeners.get(cacheKey)
+  if (!listeners) return
+  listeners.forEach((listener) => {
+    try {
+      listener(progress)
+    } catch (err) {
+      console.log('配图进度回调执行失败：', err)
+    }
+  })
+}
 
 
 // =====================================================
@@ -295,11 +344,57 @@ export const API = {
   // 推荐古诗
   // GET /recommend?user_id=test_user&limit=5
   // -----------------------------------------------------
-  getRecommend(limit = 5) {
+  getRecommend(limit = 5, category = '', ageValue = '') {
+    const categoryQuery = category && category !== 'all'
+      ? `&category=${encodeURIComponent(category)}`
+      : ''
+    const ageQuery = ageValue
+      ? `&age_level=${encodeURIComponent(normalizeAgeLevel(ageValue))}`
+      : ''
+
     return request({
-      url: `/recommend?user_id=${DEFAULT_USER_ID}&limit=${limit}`,
+      url: `/recommend?user_id=${DEFAULT_USER_ID}&limit=${limit}${categoryQuery}${ageQuery}`,
       method: 'GET'
     })
+  },
+
+  async getDailyRecommendation(ageValue = '') {
+    const ageLevel = normalizeAgeLevel(ageValue)
+    const today = getTodayKey()
+
+    try {
+      const saved = uni.getStorageSync(DAILY_RECOMMENDATION_KEY)
+      if (
+        saved?.date === today &&
+        saved?.age_level === ageLevel &&
+        saved?.poem?.id
+      ) {
+        return saved.poem
+      }
+    } catch (err) {
+      console.log('读取每日推荐缓存失败：', err)
+    }
+
+    let poem = null
+    try {
+      const res = await API.getRecommend(1, '', ageValue)
+      poem = Array.isArray(res?.data) ? res.data[0] : null
+    } catch (err) {
+      console.log('每日推荐接口失败，使用当日本地推荐：', err)
+    }
+    if (!poem?.id) poem = getLocalDailyRecommendation(today, ageLevel)
+    if (!poem?.id) return null
+
+    try {
+      uni.setStorageSync(DAILY_RECOMMENDATION_KEY, {
+        date: today,
+        age_level: ageLevel,
+        poem
+      })
+    } catch (err) {
+      console.log('保存每日推荐缓存失败：', err)
+    }
+    return poem
   },
 
 
@@ -321,7 +416,8 @@ export const API = {
         poem_title: data.poem_title || '',
         poem_content: data.poem_content || '',
         history: Array.isArray(data.history) ? data.history : [],
-        age
+        age,
+        include_audio: data.include_audio !== false
       },
       timeout: 60000
     })
@@ -382,15 +478,13 @@ export const API = {
     const content = buildPoemContent(poem)
     const cacheKey = getPoemImageCacheKey(poem, content)
     const forceRegenerate = Boolean(poem.force_regenerate || options.forceRegenerate)
+    addImageProgressListener(cacheKey, options.onProgress)
 
     if (!forceRegenerate && imageGeneratePromiseCache.has(cacheKey)) {
       return imageGeneratePromiseCache.get(cacheKey)
     }
 
-    const requestPromise = request({
-      url: '/generate/image',
-      method: 'POST',
-      data: {
+    const requestData = {
         poem_id: poem.id || poem.poem_id || '',
         poem_title: poem.title || poem.poem_title || '',
         poem_content: content,
@@ -398,12 +492,59 @@ export const API = {
         dynasty: poem.dynasty || '',
         tags: Array.isArray(poem.tags) ? poem.tags : [],
         ...(forceRegenerate ? { force_regenerate: true } : {})
-      },
-      timeout: 300000
-    }).catch((err) => {
-      imageGeneratePromiseCache.delete(cacheKey)
-      throw err
-    })
+      }
+
+    const requestPromise = (async () => {
+      const startResult = await request({
+        url: '/generate/image/start',
+        method: 'POST',
+        data: requestData,
+        timeout: 30000
+      })
+
+      if (!startResult?.success) {
+        throw new Error(startResult?.error || '启动配图生成失败')
+      }
+      if (startResult.status === 'completed' && startResult.result) {
+        emitImageProgress(cacheKey, {
+          status: 'completed',
+          phase: 'completed',
+          frames: startResult.result.frames || [],
+          completed: startResult.result.frames?.length || 0,
+          total: content.length,
+          from_cache: true
+        })
+        return startResult.result
+      }
+
+      const taskId = startResult.task_id
+      if (!taskId) throw new Error('后端没有返回配图任务号')
+      const deadline = Date.now() + 300000
+
+      while (Date.now() < deadline) {
+        await wait(700)
+        const statusResult = await request({
+          url: `/generate/image/status/${encodeURIComponent(taskId)}`,
+          method: 'GET',
+          timeout: 30000
+        })
+        emitImageProgress(cacheKey, statusResult)
+
+        if (statusResult.status === 'completed') {
+          return statusResult.result || statusResult
+        }
+        if (statusResult.status === 'failed' || statusResult.status === 'not_found') {
+          throw new Error(statusResult.error || statusResult.result?.error || '配图生成失败')
+        }
+      }
+      throw new Error('配图生成超时，请稍后重试')
+    })().catch((err) => {
+        imageGeneratePromiseCache.delete(cacheKey)
+        throw err
+      }).finally(() => {
+        imageGenerateProgressListeners.delete(cacheKey)
+        imageGenerateLastProgress.delete(cacheKey)
+      })
 
     if (!forceRegenerate) {
       imageGeneratePromiseCache.set(cacheKey, requestPromise)
@@ -559,6 +700,45 @@ export const API = {
         audio_format: audioFormat || 'mp3'
       },
       timeout: 120000
+    })
+  },
+
+  generatePoetSpeech(poetName, text) {
+    return request({
+      url: '/chat/voice-preview',
+      method: 'POST',
+      data: {
+        poet_name: poetName || '古代诗人',
+        text: text || ''
+      },
+      timeout: 60000
+    })
+  },
+
+
+  // -----------------------------------------------------
+  // 保存整首古诗的跟读平均分
+  // POST /profile/reading-score
+  // -----------------------------------------------------
+  submitReadingScore(poemIdOrData, score = 0, userId = DEFAULT_USER_ID) {
+    const data = typeof poemIdOrData === 'object' && poemIdOrData !== null
+      ? poemIdOrData
+      : {
+          poem_id: poemIdOrData,
+          user_id: userId,
+          score,
+          source: 'asr'
+        }
+
+    return request({
+      url: '/profile/reading-score',
+      method: 'POST',
+      data: {
+        poem_id: data.poem_id || data.poemId || data.id || '',
+        user_id: data.user_id || data.userId || userId || DEFAULT_USER_ID,
+        score: Number(data.score),
+        source: data.source || 'asr'
+      }
     })
   },
 

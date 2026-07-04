@@ -1,19 +1,16 @@
 import base64
-import json
 import os
 import re
-from pathlib import Path
+from difflib import SequenceMatcher
 from typing import Optional
 
 import requests
 from fastapi import APIRouter
 from pydantic import BaseModel
 
+from poems import load_poems
+
 router = APIRouter()
-
-BASE_DIR = Path(__file__).parent
-DATA_PATH = BASE_DIR / "data" / "poems.json"
-
 
 class PhotoRequest(BaseModel):
     """
@@ -26,18 +23,6 @@ class PhotoRequest(BaseModel):
     image: Optional[str] = ""
     text: Optional[str] = ""
     mode: Optional[str] = "text"
-
-
-def load_poems():
-    """
-    读取古诗数据。
-    """
-    if not DATA_PATH.exists():
-        return []
-
-    with open(DATA_PATH, "r", encoding="utf-8") as f:
-        return json.load(f)
-
 
 def normalize_text(text: str) -> str:
     """
@@ -236,6 +221,17 @@ def match_poem_by_text(recognized_text: str):
     best_match = None
     best_score = 0
 
+    def best_line_similarity(line: str) -> float:
+        if not line or not cleaned_input:
+            return 0.0
+        if len(cleaned_input) <= len(line):
+            return SequenceMatcher(None, line, cleaned_input).ratio()
+        window_size = len(line)
+        return max(
+            SequenceMatcher(None, line, cleaned_input[index:index + window_size]).ratio()
+            for index in range(len(cleaned_input) - window_size + 1)
+        )
+
     for poem in poems:
         title = poem.get("title", "")
         author = poem.get("author", "")
@@ -247,12 +243,14 @@ def match_poem_by_text(recognized_text: str):
         clean_author = normalize_text(author)
         clean_dynasty = normalize_text(dynasty)
         clean_content = normalize_text("".join(content_list))
-        clean_tags = normalize_text("".join(tags))
-
         score = 0
+        exact_line_count = 0
+        fuzzy_line_count = 0
+        has_strong_evidence = False
 
         if clean_title and clean_title in cleaned_input:
-            score += 10
+            score += 12
+            has_strong_evidence = True
 
         if clean_author and clean_author in cleaned_input:
             score += 3
@@ -261,10 +259,8 @@ def match_poem_by_text(recognized_text: str):
             score += 1
 
         if clean_content and clean_content in cleaned_input:
-            score += 20
-
-        if clean_tags and clean_tags in cleaned_input:
-            score += 3
+            score += 30
+            has_strong_evidence = True
 
         for line in content_list:
             clean_line = normalize_text(line)
@@ -273,20 +269,22 @@ def match_poem_by_text(recognized_text: str):
                 continue
 
             if clean_line in cleaned_input:
-                score += 6
+                score += 8
+                exact_line_count += 1
+                has_strong_evidence = True
+                continue
 
-            if cleaned_input in clean_line:
-                score += 4
+            similarity = best_line_similarity(clean_line)
+            if similarity >= 0.82:
+                score += 5
+                fuzzy_line_count += 1
 
-            common_count = 0
-            for char in cleaned_input:
-                if char in clean_line:
-                    common_count += 1
+        # 只共享“春、风、月”等零散汉字不能证明图片中是这首诗。
+        # 至少需要标题/完整诗句，或两句都与原诗高度相似，才允许返回匹配结果。
+        if fuzzy_line_count >= 2:
+            has_strong_evidence = True
 
-            if len(clean_line) > 0 and common_count >= max(2, len(clean_line) // 2):
-                score += 2
-
-        if score > best_score:
+        if has_strong_evidence and score > best_score:
             best_score = score
             best_match = poem
 
@@ -299,17 +297,26 @@ def expand_scene_keywords(tags: list[str]) -> list[str]:
     """
     tag_text = "".join(tags)
 
-    keywords = list(tags)
+    # “自然景观、商品、室内”等宽泛的原始识图标签不能直接匹配诗歌，
+    # 否则容易落到诗库中靠前的《春晓》。只使用规则映射出的明确关键词。
+    keywords = []
+
+    festival_terms = ("灯笼", "春联", "对联", "年货", "红包", "春节", "过年", "新年")
+    if any(term in tag_text for term in festival_terms):
+        # 明确识别到春节场景时优先匹配节日诗，避免后面的“花/春天”
+        # 之类宽泛线索又把结果带回《春晓》。
+        return ["节日", "春节", "新年", "春天", "生活"]
 
     scene_map = {
         "月": ["月亮", "夜晚", "思乡"],
         "夜": ["月亮", "夜晚", "思乡"],
         "天空": ["月亮", "自然"],
-        "春": ["春天", "自然", "鸟", "花"],
+        "春景": ["春天", "自然", "鸟", "花"],
+        "春天": ["春天", "自然", "鸟", "花"],
         "花": ["春天", "自然"],
-        "鸟": ["春天", "自然"],
+        "鸟": ["鸟", "动物", "自然"],
         "鹅": ["鹅", "动物", "水"],
-        "鸟类": ["鹅", "动物"],
+        "鸟类": ["鸟", "动物", "自然"],
         "水": ["水", "自然", "鹅"],
         "河": ["水", "自然"],
         "湖": ["水", "自然"],
@@ -328,10 +335,23 @@ def expand_scene_keywords(tags: list[str]) -> list[str]:
     }
 
     for key, values in scene_map.items():
-        if key in tag_text:
+        if any(key in tag for tag in tags):
             keywords.extend(values)
 
     return list(dict.fromkeys(keywords))
+
+
+def infer_scene_tags_from_text(recognized_text: str) -> list[str]:
+    """从照片文字中提取不会直接对应诗句、但能说明场景的节日线索。"""
+    text = normalize_text(recognized_text)
+    strong_terms = ("春节", "新春", "过年", "春联", "年货", "红包", "福字", "恭喜发财")
+    if any(term in text for term in strong_terms):
+        return ["春节"]
+
+    weak_terms = ("新年", "迎春", "吉祥", "平安", "发财")
+    if sum(1 for term in weak_terms if term in text) >= 2:
+        return ["春节"]
+    return []
 
 
 def match_poem_by_scene_tags(scene_tags: list[str]):
@@ -353,21 +373,30 @@ def match_poem_by_scene_tags(scene_tags: list[str]):
         content_list = poem.get("content", [])
         tags = poem.get("tags", [])
 
-        poem_text = normalize_text(
-            title + "".join(content_list) + "".join(tags)
-        )
+        theme_tags = poem.get("theme_tags", [])
+        title_text = normalize_text(title)
+        content_text = normalize_text("".join(content_list))
+        tag_text = normalize_text("".join(tags) + "".join(theme_tags))
 
         score = 0
 
         for keyword in keywords:
             clean_keyword = normalize_text(keyword)
 
-            if clean_keyword and clean_keyword in poem_text:
-                score += 3
+            if not clean_keyword:
+                continue
+            if clean_keyword in tag_text or clean_keyword in title_text:
+                score += 4
+            elif len(clean_keyword) >= 2 and clean_keyword in content_text:
+                score += 1
 
         if score > best_score:
             best_score = score
             best_match = poem
+
+    # 场景识诗至少需要两个有效主题命中；不足时宁可提示未识别。
+    if best_score < 8:
+        return None, best_score, keywords
 
     return best_match, best_score, keywords
 
@@ -384,7 +413,8 @@ def build_poem_response(poem):
         "author": poem.get("author"),
         "dynasty": poem.get("dynasty"),
         "content": poem.get("content", []),
-        "tags": poem.get("tags", [])
+        "tags": poem.get("tags", []),
+        "theme_tags": poem.get("theme_tags", [])
     }
 
     return poem_data
@@ -460,6 +490,9 @@ def recognize_photo(request: PhotoRequest):
                 }
 
             scene_tags = baidu_scene_tags(request.image)
+            scene_tags = list(dict.fromkeys(
+                scene_tags + infer_scene_tags_from_text(recognized_text)
+            ))
             scene_poem, scene_score, expanded_keywords = match_poem_by_scene_tags(scene_tags)
 
             if not scene_poem:

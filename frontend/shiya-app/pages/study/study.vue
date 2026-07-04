@@ -538,7 +538,8 @@ const startFramePlayback = (options = {}) => {
   startTimedFramePlaybackFallback(playbackToken)
 }
 
-const normalizeFrameList = (rawFrames = []) => {
+const normalizeFrameList = (rawFrames = [], options = {}) => {
+  const fillMissing = options.fillMissing !== false
   const frameMap = new Map()
 
   rawFrames.forEach((item = {}, fallbackIndex) => {
@@ -580,22 +581,24 @@ const normalizeFrameList = (rawFrames = []) => {
 
   // 以诗句数量为准补齐缺失图片。
   // 解决“春晓后端 static 已有 4 张，但接口/缓存只返回 2 张时前端只能播 2 张”的问题。
-  poemLines.value.forEach((line, index) => {
-    if (!frameMap.has(index)) {
-      const fallbackUrls = getFrameFallbackUrls(index)
-      const imageUrlForDisplay = fallbackUrls[0] || ''
+  if (fillMissing) {
+    poemLines.value.forEach((line, index) => {
+      if (!frameMap.has(index)) {
+        const fallbackUrls = getFrameFallbackUrls(index)
+        const imageUrlForDisplay = fallbackUrls[0] || ''
 
-      frameMap.set(index, {
-        index,
-        frame_key: `${index}-${imageUrlForDisplay}`,
-        line,
-        image_url: imageUrlForDisplay,
-        fallback_urls: fallbackUrls,
-        duration_ms: 3000,
-        from_static_fallback: true
-      })
-    }
-  })
+        frameMap.set(index, {
+          index,
+          frame_key: `${index}-${imageUrlForDisplay}`,
+          line,
+          image_url: imageUrlForDisplay,
+          fallback_urls: fallbackUrls,
+          duration_ms: 3000,
+          from_static_fallback: true
+        })
+      }
+    })
+  }
 
   return Array.from(frameMap.values())
     .filter((item) => item.image_url)
@@ -628,9 +631,41 @@ const loadPoetAvatar = async () => {
 
 const loadAiFrames = async () => {
   startImageLoadingProgress()
+  let playbackStarted = false
+
+  const handleGenerationProgress = (progress = {}) => {
+    const progressFrames = Array.isArray(progress.frames) ? progress.frames : []
+    const completed = Number(progress.completed || progressFrames.length || 0)
+    const total = Number(progress.total || poemLines.value.length || 1)
+
+    if (progress.phase === 'planning') {
+      loadingMessage.value = '正在理解诗意并设计分镜'
+    } else if (progress.phase === 'generating') {
+      loadingMessage.value = `正在并行作画，已完成 ${completed}/${total} 张`
+      loadingPercent.value = Math.max(
+        loadingPercent.value,
+        Math.min(94, 28 + Math.round((completed / Math.max(1, total)) * 66))
+      )
+    }
+
+    const hasFirstFrame = progressFrames.some(frame => Number(frame?.index) === 0 && frame?.image_url)
+    if (!hasFirstFrame || playbackStarted) return
+
+    const partialFrames = normalizeFrameList(progressFrames, { fillMissing: false })
+    if (!partialFrames.length) return
+
+    aiFrames.value = partialFrames
+    playbackStarted = true
+    loadingMessage.value = '第一幅画已完成，其余画面继续生成中'
+    finishImageLoading(() => {
+      startFramePlayback({ autoRead: true })
+    })
+  }
 
   try {
-    const res = await API.generateImage(poemData.value)
+    const res = await API.generateImage(poemData.value, {
+      onProgress: handleGenerationProgress
+    })
 
     const rawFrames = res?.frames || res?.data?.frames || []
 
@@ -652,11 +687,14 @@ const loadAiFrames = async () => {
       return
     }
 
-    finishImageLoading(() => {
-      startFramePlayback({
-        autoRead: true
+    if (!playbackStarted) {
+      playbackStarted = true
+      finishImageLoading(() => {
+        startFramePlayback({
+          autoRead: true
+        })
       })
-    })
+    }
   } catch (err) {
     console.log('AI 配图接口暂不可用，使用默认动画', err)
     progressPercent.value = 0

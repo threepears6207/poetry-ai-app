@@ -168,10 +168,12 @@ onUnmounted(() => {
     uni.offWindowResize(handleAppResize)
   }
 
+  poetAudioRequestToken += 1
   stopChatReplyAudio(false)
 })
 
 onUnload(() => {
+  poetAudioRequestToken += 1
   stopChatReplyAudio(false)
 })
 
@@ -193,6 +195,7 @@ const poetAvatarUrl = ref('')
 const replyAudioContext = ref(null)
 const playingAudioMessageIndex = ref(-1)
 const currentReplyAudioUrl = ref('')
+let poetAudioRequestToken = 0
 
 const isVoiceRecording = ref(false)
 const isRecognizingVoice = ref(false)
@@ -319,16 +322,26 @@ const stopChatReplyAudio = (resetMessageState = true) => {
 }
 
 const playByUniInnerAudioContext = (audioUrl, messageIndex, showFailToast = false) => {
-  const audioContext = uni.createInnerAudioContext()
+  let audioContext = null
+
+  try {
+    audioContext = uni.createInnerAudioContext()
+  } catch (err) {
+    console.log('创建诗人语音播放器失败：', err)
+    updateAudioMessageState(messageIndex, 'error')
+    return
+  }
 
   replyAudioContext.value = audioContext
   playingAudioMessageIndex.value = messageIndex
   currentReplyAudioUrl.value = audioUrl
   updateAudioMessageState(messageIndex, 'loading')
 
+  // 部分 Android/uni-app 运行环境只暴露 obeyMuteSwitch 的只读 getter，
+  // 直接赋值会抛异常并让已经成功的 /chat 请求被外层 catch 误判为失败。
+  // 自动播放不依赖该属性，因此这里不再修改它。
   audioContext.autoplay = false
   audioContext.src = audioUrl
-  audioContext.obeyMuteSwitch = false
 
   audioContext.onPlay(() => {
     if (replyAudioContext.value !== audioContext) return
@@ -435,17 +448,24 @@ const playPoetAudio = (audioPath, messageIndex, showFailToast = false) => {
 
   stopChatReplyAudio()
 
-  if (typeof uni.createInnerAudioContext === 'function') {
-    playByUniInnerAudioContext(audioUrl, messageIndex, showFailToast)
-    return
-  }
+  try {
+    if (typeof uni.createInnerAudioContext === 'function') {
+      playByUniInnerAudioContext(audioUrl, messageIndex, showFailToast)
+      return
+    }
 
-  if (typeof Audio !== 'undefined') {
-    playByBrowserAudio(audioUrl, messageIndex, showFailToast)
-    return
-  }
+    if (typeof Audio !== 'undefined') {
+      playByBrowserAudio(audioUrl, messageIndex, showFailToast)
+      return
+    }
 
-  updateAudioMessageState(messageIndex, 'error')
+    updateAudioMessageState(messageIndex, 'error')
+  } catch (err) {
+    // 播放失败只影响语音，不能把已经成功取得的诗人文字回复变成本地假回复。
+    console.log('播放诗人语音时发生兼容错误：', err)
+    updateAudioMessageState(messageIndex, 'error')
+    stopChatReplyAudio(false)
+  }
 }
 
 const replayPoetAudio = (messageIndex) => {
@@ -469,6 +489,30 @@ const appendPoetMessage = (text, res = {}) => {
 
   if (audioUrl) {
     playPoetAudio(audioUrl, messageIndex)
+  }
+
+  return messageIndex
+}
+
+const requestPoetMessageAudio = async (text, messageIndex) => {
+  const requestToken = ++poetAudioRequestToken
+
+  try {
+    const res = await API.generatePoetSpeech(getPoetName(), text)
+    if (requestToken !== poetAudioRequestToken) return
+
+    const audioUrl = normalizeChatAudioUrl(getChatReplyAudioPath(res))
+    if (!res?.success || !audioUrl || !messages.value[messageIndex]) return
+
+    messages.value[messageIndex] = {
+      ...messages.value[messageIndex],
+      audioUrl,
+      audioState: 'ready'
+    }
+    playPoetAudio(audioUrl, messageIndex)
+  } catch (err) {
+    if (requestToken !== poetAudioRequestToken) return
+    console.log('诗人文字已显示，语音稍后生成失败：', err)
   }
 }
 
@@ -565,11 +609,15 @@ const initPoetChat = async () => {
       poem_title: poemData.value.title || '',
       poem_content: getPoemContentText(),
       history: [],
-      age: childAge.value
+      age: childAge.value,
+      include_audio: false
     })
 
     if (res && res.success && res.reply) {
-      appendPoetMessage(res.reply, res)
+      const messageIndex = appendPoetMessage(res.reply, res)
+      if (!getChatReplyAudioPath(res)) {
+        requestPoetMessageAudio(res.reply, messageIndex)
+      }
 
       history.value = [
         {
@@ -1117,6 +1165,7 @@ const sendMessage = async () => {
   const text = userInput.value.trim()
   if (!text || isReplying.value) return
 
+  poetAudioRequestToken += 1
   stopChatReplyAudio()
 
   messages.value.push({
@@ -1136,11 +1185,15 @@ const sendMessage = async () => {
       poem_title: poemData.value.title || '',
       poem_content: getPoemContentText(),
       history: history.value,
-      age: childAge.value
+      age: childAge.value,
+      include_audio: false
     })
 
     if (res && res.success && res.reply) {
-      appendPoetMessage(res.reply, res)
+      const messageIndex = appendPoetMessage(res.reply, res)
+      if (!getChatReplyAudioPath(res)) {
+        requestPoetMessageAudio(res.reply, messageIndex)
+      }
 
       history.value.push({
         role: 'user',

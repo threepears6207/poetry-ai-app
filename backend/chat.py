@@ -28,6 +28,7 @@ class ChatRequest(BaseModel):
     poem_content: str = ""
     history: List[Message] = []   # 前端维护的历史对话，每轮追加后传入
     age: int = 5                  # 新增：孩子的实际年龄（岁），前端从用户画像传入，默认5岁
+    include_audio: bool = True    # 兼容旧前端；新版前端先取文字，再单独请求语音
 
 
 class PoetVoicePreviewRequest(BaseModel):
@@ -526,6 +527,31 @@ def strip_think_tags(text: str) -> str:
     return text.strip()
 
 
+def sanitize_chat_reply(text: str) -> str:
+    """强制删除模型偶尔输出的括号动作描写，不能只依赖提示词约束。"""
+    cleaned = strip_think_tags(str(text or ""))
+    paired_patterns = (
+        r"（[^（）]*）",
+        r"\([^()]*\)",
+        r"\[[^\[\]]*\]",
+        r"【[^【】]*】",
+    )
+
+    # 循环处理少量嵌套括号；括号中的舞台动作整体删除，而不是只删符号。
+    while True:
+        previous = cleaned
+        for pattern in paired_patterns:
+            cleaned = re.sub(pattern, "", cleaned)
+        if cleaned == previous:
+            break
+
+    cleaned = re.sub(r"[（）()\[\]【】]", "", cleaned)
+    cleaned = re.sub(r"[ \t]+", " ", cleaned)
+    cleaned = re.sub(r"\s*([，。！？；：])\s*", r"\1", cleaned)
+    cleaned = re.sub(r"\n{3,}", "\n\n", cleaned)
+    return cleaned.strip()
+
+
 # ── 对话接口 ──────────────────────────────────────────────────────────────────
 
 @router.post("/chat/voice-preview")
@@ -601,16 +627,17 @@ def chat(request: ChatRequest):
         print("vivo API 返回：", result)
 
         ai_reply = result["choices"][0]["message"]["content"]
-        ai_reply = strip_think_tags(ai_reply)
+        ai_reply = sanitize_chat_reply(ai_reply) or "小朋友，我在听呢。"
 
         audio = None
         audio_error = ""
-        try:
-            audio = synthesize_poet_speech(request.poet_name, ai_reply)
-        except Exception as speech_error:
-            # 语音失败不能让整轮对话失败，前端仍可正常显示文字。
-            audio_error = str(speech_error)
-            print(f"[诗人语音] {request.poet_name} 生成失败：{speech_error}")
+        if request.include_audio:
+            try:
+                audio = synthesize_poet_speech(request.poet_name, ai_reply)
+            except Exception as speech_error:
+                # 语音失败不能让整轮对话失败，前端仍可正常显示文字。
+                audio_error = str(speech_error)
+                print(f"[诗人语音] {request.poet_name} 生成失败：{speech_error}")
 
         return {
             "success": True,
@@ -618,6 +645,7 @@ def chat(request: ChatRequest):
             "audio": audio,
             "audio_url": audio["url"] if audio else "",
             "audio_error": audio_error,
+            "audio_pending": not request.include_audio,
         }
 
     except Exception as e:

@@ -4,8 +4,10 @@ import os
 import uuid
 import time
 import hashlib
+import threading
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
-from typing import List
+from typing import Callable, List, Optional
 
 import requests
 from fastapi import APIRouter
@@ -21,6 +23,11 @@ IMAGES_DIR = STATIC_DIR / "images" / "poems"
 CACHE_FILE = STATIC_DIR / "poem_images_cache.json"
 
 IMAGES_DIR.mkdir(parents=True, exist_ok=True)
+
+_cache_lock = threading.RLock()
+_generation_tasks_lock = threading.RLock()
+_generation_tasks: dict[str, dict] = {}
+_active_task_by_cache_key: dict[str, str] = {}
 
 
 # ── 请求模型 ──────────────────────────────────────────────────────────────────
@@ -57,21 +64,33 @@ def get_cache_key(poem_id: str, poem_title: str) -> str:
 
 
 def load_cache() -> dict:
-    if CACHE_FILE.exists():
-        try:
-            with open(CACHE_FILE, "r", encoding="utf-8") as f:
-                return json.load(f)
-        except Exception:
-            return {}
-    return {}
+    with _cache_lock:
+        if CACHE_FILE.exists():
+            try:
+                with open(CACHE_FILE, "r", encoding="utf-8") as f:
+                    return json.load(f)
+            except Exception:
+                return {}
+        return {}
 
 
 def save_cache(cache: dict) -> None:
-    try:
-        with open(CACHE_FILE, "w", encoding="utf-8") as f:
-            json.dump(cache, f, ensure_ascii=False, indent=2)
-    except Exception as e:
-        print(f"缓存写入失败（不影响功能）：{e}")
+    with _cache_lock:
+        try:
+            temp_file = CACHE_FILE.with_suffix(CACHE_FILE.suffix + ".tmp")
+            with open(temp_file, "w", encoding="utf-8") as f:
+                json.dump(cache, f, ensure_ascii=False, indent=2)
+            os.replace(temp_file, CACHE_FILE)
+        except Exception as e:
+            print(f"缓存写入失败（不影响功能）：{e}")
+
+
+def save_cache_entry(cache_key: str, result_data: dict) -> None:
+    """合并写入单首诗，避免并发生成不同诗时互相覆盖缓存。"""
+    with _cache_lock:
+        cache = load_cache()
+        cache[cache_key] = result_data
+        save_cache(cache)
 
 
 def download_image(url: str, save_path: Path) -> bool:
@@ -418,29 +437,87 @@ def call_image_api(prompt: str) -> dict:
 
 # ── 配图生成接口 ──────────────────────────────────────────────────────────────
 
-@router.post("/generate/image")
-def generate_image(request: GenerateRequest):
-    """
-    为古诗每句话生成一张横版配图。
-    已生成过的诗直接返回本地缓存，不重复调用模型。
-    """
-    if not request.poem_content:
-        return {"success": False, "error": "poem_content 不能为空"}
+def _generate_one_frame(
+    index: int,
+    frame_plan: dict,
+    planned_frames: list,
+    request: GenerateRequest,
+    plan: dict,
+    poem_img_dir: Path,
+    cache_key: str,
+) -> dict:
+    """生成并下载一帧；每一帧互不依赖，可在线程池中并行执行。"""
+    started_at = time.perf_counter()
+    line = frame_plan.get(
+        "line",
+        request.poem_content[index] if index < len(request.poem_content) else "",
+    )
+    scene = frame_plan.get("scene", line)
+    shot_type = frame_plan.get("shot_type", "中景")
+    prev_scene = planned_frames[index - 1].get("scene", "") if index > 0 else ""
+    prompt = build_image_prompt(
+        scene=scene,
+        shot_type=shot_type,
+        poem_title=request.poem_title,
+        dynasty=request.dynasty,
+        character_desc=plan.get("character_desc", ""),
+        has_character=plan.get("has_character", False),
+        recurring_elements=plan.get("recurring_elements", ""),
+        outdoor_elements=plan.get("outdoor_elements", ""),
+        prev_scene=prev_scene,
+    )
+    result = call_image_api(prompt)
+    elapsed_seconds = round(time.perf_counter() - started_at, 3)
 
-    # ── 命中缓存：直接返回，不调模型 ──────────────────────────────────────────
+    if not result["success"]:
+        return {
+            "success": False,
+            "error": {
+                "index": index,
+                "line": line,
+                "error": result["error"],
+                "elapsed_seconds": elapsed_seconds,
+            },
+        }
+
+    local_filename = f"frame_{index}.jpg"
+    local_path = poem_img_dir / local_filename
+    local_url = f"/static/images/poems/{cache_key}/{local_filename}"
+    image_url = local_url if download_image(result["image_url"], local_path) else result["image_url"]
+    return {
+        "success": True,
+        "frame": {
+            "index": index,
+            "line": line,
+            "scene": scene,
+            "shot_type": shot_type,
+            "image_url": image_url,
+            "duration_ms": 3000,
+            "elapsed_seconds": elapsed_seconds,
+        },
+    }
+
+
+def _generate_image_payload(
+    request: GenerateRequest,
+    progress_callback: Optional[Callable[[dict], None]] = None,
+) -> dict:
+    if not request.poem_content:
+        return {"success": False, "error": "poem_content 不能为空", "frames": []}
+
+    total_started_at = time.perf_counter()
     cache_key = get_cache_key(request.poem_id, request.poem_title)
     cache = load_cache()
-
     if cache_key in cache and not request.force_regenerate:
-        print(f"《{request.poem_title}》命中缓存，直接返回")
-        cached = cache[cache_key]
+        cached = dict(cache[cache_key])
         cached["from_cache"] = True
         return cached
 
-    # ── 未命中缓存：正常生成流程 ──────────────────────────────────────────────
-    print(f"\n《{request.poem_title}》开始生成，共 {len(request.poem_content)} 句")
-    print("── 第一阶段：整体规划分镜 ──")
+    total_lines = len(request.poem_content)
+    if progress_callback:
+        progress_callback({"phase": "planning", "completed": 0, "total": total_lines})
 
+    planning_started_at = time.perf_counter()
     plan = plan_poem_sequence(
         poem_title=request.poem_title,
         poem_content=request.poem_content,
@@ -448,80 +525,74 @@ def generate_image(request: GenerateRequest):
         dynasty=request.dynasty,
         tags=request.tags,
     )
-
-    has_character = plan.get("has_character", False)
-    character_desc = plan.get("character_desc", "")
-    recurring_elements = plan.get("recurring_elements", "")
-    outdoor_elements = plan.get("outdoor_elements", "")
+    planning_seconds = round(time.perf_counter() - planning_started_at, 3)
     planned_frames = plan.get("frames", [])
+    if not planned_frames:
+        planned_frames = [
+            {"index": index, "line": line, "scene": line, "shot_type": "中景"}
+            for index, line in enumerate(request.poem_content)
+        ]
 
-    print(f"有人物：{has_character}")
-    print(f"人物形象：{character_desc}")
-    print(f"整体场景：{plan.get('scene_context', '')}")
-    print(f"户外一致性元素：{outdoor_elements}")
-    print(f"固定室内建筑元素：{recurring_elements}")
+    if progress_callback:
+        progress_callback({
+            "phase": "generating",
+            "completed": 0,
+            "total": len(planned_frames),
+            "planning_seconds": planning_seconds,
+        })
 
-    frames = []
-    errors = []
-
-    # 为这首诗创建本地图片目录
     poem_img_dir = IMAGES_DIR / cache_key
     poem_img_dir.mkdir(parents=True, exist_ok=True)
+    frames = []
+    errors = []
+    image_started_at = time.perf_counter()
+    max_workers = max(1, min(4, len(planned_frames)))
 
-    for i, frame_plan in enumerate(planned_frames):
-        line = frame_plan.get(
-            "line",
-            request.poem_content[i] if i < len(request.poem_content) else ""
-        )
-        scene = frame_plan.get("scene", line)
-        shot_type = frame_plan.get("shot_type", "中景")
-        prev_scene = planned_frames[i - 1].get("scene", "") if i > 0 else ""
+    with ThreadPoolExecutor(max_workers=max_workers, thread_name_prefix="poem-frame") as executor:
+        future_map = {
+            executor.submit(
+                _generate_one_frame,
+                index,
+                frame_plan,
+                planned_frames,
+                request,
+                plan,
+                poem_img_dir,
+                cache_key,
+            ): index
+            for index, frame_plan in enumerate(planned_frames)
+        }
 
-        print(f"\n── 第{i+1}句：{line} ──")
-        print(f"镜头：{shot_type} | 场景：{scene}")
+        completed = 0
+        for future in as_completed(future_map):
+            completed += 1
+            try:
+                item = future.result()
+            except Exception as exc:
+                index = future_map[future]
+                item = {
+                    "success": False,
+                    "error": {"index": index, "line": "", "error": str(exc)},
+                }
 
-        prompt = build_image_prompt(
-            scene=scene,
-            shot_type=shot_type,
-            poem_title=request.poem_title,
-            dynasty=request.dynasty,
-            character_desc=character_desc,
-            has_character=has_character,
-            recurring_elements=recurring_elements,
-            outdoor_elements=outdoor_elements,
-            prev_scene=prev_scene,
-        )
-        print(f"Prompt：{prompt}")
-
-        result = call_image_api(prompt)
-
-        if result["success"]:
-            # 把外部 URL 的图片下载到本地，避免外部链接过期
-            local_filename = f"frame_{i}.jpg"
-            local_path = poem_img_dir / local_filename
-            local_url = f"/static/images/poems/{cache_key}/{local_filename}"
-
-            if download_image(result["image_url"], local_path):
-                image_url = local_url
-                print(f"第{i+1}句图片已保存到本地：{local_url}")
+            if item["success"]:
+                frames.append(item["frame"])
             else:
-                # 下载失败则暂时用外部 URL，不阻断流程
-                image_url = result["image_url"]
-                print(f"第{i+1}句图片下载失败，使用外部URL")
+                errors.append(item["error"])
 
-            frames.append({
-                "index": i,
-                "line": line,
-                "scene": scene,
-                "shot_type": shot_type,
-                "image_url": image_url,
-                "duration_ms": 3000,
-            })
-        else:
-            errors.append({"index": i, "line": line, "error": result["error"]})
-            print(f"第{i+1}句生成失败：{result['error']}")
+            frames.sort(key=lambda frame: frame["index"])
+            errors.sort(key=lambda error: error["index"])
+            if progress_callback:
+                progress_callback({
+                    "phase": "generating",
+                    "completed": completed,
+                    "total": len(planned_frames),
+                    "frame": item.get("frame"),
+                    "error": item.get("error"),
+                })
 
-    # ── 兜底：全部失败时返回明确错误，不让前端空白 ────────────────────────────
+    image_seconds = round(time.perf_counter() - image_started_at, 3)
+    total_seconds = round(time.perf_counter() - total_started_at, 3)
     if not frames:
         return {
             "success": False,
@@ -529,27 +600,135 @@ def generate_image(request: GenerateRequest):
             "poem_title": request.poem_title,
             "frames": [],
             "errors": errors,
+            "timings": {
+                "planning_seconds": planning_seconds,
+                "image_seconds": image_seconds,
+                "total_seconds": total_seconds,
+                "parallel_workers": max_workers,
+            },
         }
 
-    # ── 写入缓存 ───────────────────────────────────────────────────────────────
     result_data = {
         "success": True,
         "poem_title": request.poem_title,
-        "has_character": has_character,
-        "character_desc": character_desc,
-        "recurring_elements": recurring_elements,
-        "total_lines": len(request.poem_content),
+        "has_character": plan.get("has_character", False),
+        "character_desc": plan.get("character_desc", ""),
+        "recurring_elements": plan.get("recurring_elements", ""),
+        "total_lines": total_lines,
         "frames": frames,
         "errors": errors,
         "from_cache": False,
+        "timings": {
+            "planning_seconds": planning_seconds,
+            "image_seconds": image_seconds,
+            "total_seconds": total_seconds,
+            "parallel_workers": max_workers,
+        },
     }
-
     if cache_key:
-        cache[cache_key] = result_data
-        save_cache(cache)
-        print(f"《{request.poem_title}》已写入缓存，key={cache_key}")
-
+        save_cache_entry(cache_key, result_data)
     return result_data
+
+
+@router.post("/generate/image")
+def generate_image(request: GenerateRequest):
+    """兼容旧前端的同步接口；内部已改为最多4帧并行生成。"""
+    return _generate_image_payload(request)
+
+
+def _update_generation_task(task_id: str, event: dict) -> None:
+    with _generation_tasks_lock:
+        task = _generation_tasks.get(task_id)
+        if not task:
+            return
+        task["phase"] = event.get("phase", task.get("phase", "planning"))
+        task["completed"] = event.get("completed", task.get("completed", 0))
+        task["total"] = event.get("total", task.get("total", 0))
+        if event.get("planning_seconds") is not None:
+            task["planning_seconds"] = event["planning_seconds"]
+        if event.get("frame"):
+            frame = event["frame"]
+            task["frames"] = [item for item in task["frames"] if item["index"] != frame["index"]]
+            task["frames"].append(frame)
+            task["frames"].sort(key=lambda item: item["index"])
+        if event.get("error"):
+            task["errors"].append(event["error"])
+
+
+def _run_generation_task(task_id: str, cache_key: str, request: GenerateRequest) -> None:
+    try:
+        result = _generate_image_payload(
+            request,
+            progress_callback=lambda event: _update_generation_task(task_id, event),
+        )
+        with _generation_tasks_lock:
+            task = _generation_tasks[task_id]
+            task["status"] = "completed" if result.get("success") else "failed"
+            task["phase"] = task["status"]
+            task["result"] = result
+            task["frames"] = result.get("frames", task["frames"])
+            task["errors"] = result.get("errors", task["errors"])
+    except Exception as exc:
+        with _generation_tasks_lock:
+            task = _generation_tasks.get(task_id)
+            if task:
+                task["status"] = "failed"
+                task["phase"] = "failed"
+                task["error"] = str(exc)
+    finally:
+        with _generation_tasks_lock:
+            if _active_task_by_cache_key.get(cache_key) == task_id:
+                _active_task_by_cache_key.pop(cache_key, None)
+
+
+@router.post("/generate/image/start")
+def start_generate_image(request: GenerateRequest):
+    """启动渐进式生成；立即返回任务号，前端可轮询首帧和最终结果。"""
+    if not request.poem_content:
+        return {"success": False, "error": "poem_content 不能为空"}
+    cache_key = get_cache_key(request.poem_id, request.poem_title)
+    cache = load_cache()
+    if cache_key in cache and not request.force_regenerate:
+        cached = dict(cache[cache_key])
+        cached["from_cache"] = True
+        return {"success": True, "status": "completed", "from_cache": True, "result": cached}
+
+    with _generation_tasks_lock:
+        active_task_id = _active_task_by_cache_key.get(cache_key)
+        if active_task_id and active_task_id in _generation_tasks:
+            return {"success": True, "status": "generating", "task_id": active_task_id}
+
+        task_id = str(uuid.uuid4())
+        _generation_tasks[task_id] = {
+            "success": True,
+            "task_id": task_id,
+            "cache_key": cache_key,
+            "poem_title": request.poem_title,
+            "status": "generating",
+            "phase": "planning",
+            "completed": 0,
+            "total": len(request.poem_content),
+            "frames": [],
+            "errors": [],
+        }
+        _active_task_by_cache_key[cache_key] = task_id
+
+    threading.Thread(
+        target=_run_generation_task,
+        args=(task_id, cache_key, request),
+        daemon=True,
+        name=f"poem-generation-{cache_key}",
+    ).start()
+    return {"success": True, "status": "generating", "task_id": task_id}
+
+
+@router.get("/generate/image/status/{task_id}")
+def get_generate_image_status(task_id: str):
+    with _generation_tasks_lock:
+        task = _generation_tasks.get(task_id)
+        if not task:
+            return {"success": False, "status": "not_found", "error": "生成任务不存在或服务已重启"}
+        return dict(task)
 
 
 # ══════════════════════════════════════════════════════════════════════════════

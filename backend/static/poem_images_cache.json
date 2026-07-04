@@ -438,5 +438,233 @@
     ],
     "errors": [],
     "from_cache": false
+  },
+  "poem_077": {
+    "success": true,
+    "poem_title": "元日",
+    "has_character": true,
+    "character_desc": "① 35岁 ② 男 ③ 浅青色交领长衫，外罩深蓝色褙子，衣料简洁无繁复花纹 ④ 束发戴巾，发髻整齐 ⑤ 中等身材，体型匀称",
+    "recurring_elements": "",
+    "total_lines": 4,
+    "frames": [
+      {
+        "index": 0,
+        "line": "爆竹声中一岁除",
+        "scene": "夜晚，男子站在自家院落的空地上，双手捂着耳朵，身体微微后仰，嘴角上扬，眼神明亮地看着前方地面上正在噼啪炸响、火星四溅的爆竹。背景是深蓝色夜空和民居剪影，远处有零星灯火。",
+        "shot_type": "中景",
+        "image_url": "/static/images/poems/poem_077/frame_0.jpg",
+        "duration_ms": 3000
+      },
+      {
+        "index": 1,
+        "line": "春风送暖入屠苏",
+        "scene": "室内桌旁，男子坐在椅子上，右手持一个盛有屠苏酒的小酒杯，左手轻扶桌面。他面带微笑，眼神温和地注视着酒杯。窗外可见微亮的晨光与轻轻摇曳的柳枝，暗示春风。",
+        "shot_type": "近景",
+        "image_url": "/static/images/poems/poem_077/frame_1.jpg",
+        "duration_ms": 3000
+      },
+      {
+        "index": 2,
+        "line": "千门万户曈曈日",
+        "scene": "男子站在自家院门前，身体微微转向右侧，双手自然垂放或一手扶门框，抬头望向画面右上方。金色的朝阳照亮了他的侧脸和身后的门墙，整个场景笼罩在温暖明亮的晨光中，远处可见其他民居的屋顶。",
+        "shot_type": "中景",
+        "image_url": "/static/images/poems/poem_077/frame_2.jpg",
+        "duration_ms": 3000
+      },
+      {
+        "index": 3,
+        "line": "总把新桃换旧符",
+        "scene": "男子站在大门前，右手正将一块写着“新桃”字样的红色桃木板（新符）贴在门左侧，左手拿着一块已经取下的旧桃符。他的表情专注而满足，大门上另一侧的新符已经贴好。",
+        "shot_type": "近景",
+        "image_url": "/static/images/poems/poem_077/frame_3.jpg",
+        "duration_ms": 3000
+      }
+    ],
+    "errors": [],
+    "from_cache": false
+  },
+  "poem_144": {
+    "success": true,
+    "poem_title": "次北固山下",
+    "has_character": true,
+    "character_desc": "①年龄约35岁 ②男性 ③身穿青灰色圆领窄袖袍服，外罩深蓝色半臂 ④头戴黑色幞头，发髻整齐 ⑤体型清瘦，文人气质",
+    "recurring_elements": "",
+    "total_lines": 8,
+    "frames": [
+      {
+        "index": 0,
+        "line": "客路青山外",
+        "scene": "远景。江面，一艘单桅帆船行驶在碧绿江水中，船头朝向画面深处。远处是连绵起伏的青色山峦，天空微明。人物在船头站立，双手自然垂于身侧，望向远山。",
+        "shot_type": "远景",
+        "image_url": "/static/images/poems/poem_144/frame_0.jpg",
+        "duration_ms": 3000
+      },
+      {
+        "index": 1,
+        "line": "行舟绿水前",
+        "scene": "中景。船头部分，船身破开碧绿的江水前行，船尾留下浅浅的波纹。人物站在船头，双手扶住船舷，身体微微前倾，感受行船。",
+        "shot_type": "中景",
+        "image_url": "/static/images/poems/poem_144/frame_1.jpg",
+        "duration_ms": 3000
+      },
+      {
+        "index": 2,
+        "line": "潮平两岸阔",
+        "scene": "远景。江面开阔平静，几乎与两岸齐平，视野极为宽广。小船在画面中显得很小。人物在船上，双手松开船舷，站直身体，环顾开阔的江景。",
+        "shot_type": "远景",
+        "image_url": "/static/images/poems/poem_144/frame_2.jpg",
+        "duration_ms": 3000
+      },
+      {
+        "index": 3,
+        "line": "风正一帆悬",
+        "scene": "中景。船帆被风吹得饱满，高高悬挂在桅杆上，帆索清晰。人物站在船帆下方，仰头看着鼓起的船帆，右手抬起指向帆，左手自然下垂。",
+        "shot_type": "中景",
+        "image_url": "/static/images/poems/poem_144/frame_3.jpg",
+        "duration_ms": 3000
+      },
+      {
+        "index": 4,
+        "line": "海日生残夜",
+        "scene": "远景。东方天际，一轮红日正从江面（或远山）边缘缓缓升起，天空被染成橙红与深蓝交织的渐变色，残夜未尽。小船剪影朝向日出方向。人物在船头，双手合拢置于身前，静静观看日出。",
+        "shot_type": "远景",
+        "image_url": "/static/images/poems/poem_144/frame_4.jpg",
+        "duration_ms": 3000
+      },
+      {
+        "index": 5,
+        "line": "江春入旧年",
+        "scene": "近景。人物近景，他微微低头，目光柔和地看向船舷外。船舷外特写：江水中漂浮着几片嫩绿的新生柳叶或水草，暗示春意。人物双手轻扶船舷，嘴角有淡淡的微笑。",
+        "shot_type": "近景",
+        "image_url": "/static/images/poems/poem_144/frame_5.jpg",
+        "duration_ms": 3000
+      },
+      {
+        "index": 6,
+        "line": "乡书何处达",
+        "scene": "近景。人物面部特写，表情转为思念与淡淡的忧愁，眼神望向远方。他右手抬起，手中虚握（仿佛拿着一封信），左手轻抚胸口。人物头部旁出现一个白色半透明云朵气泡，气泡内是简化的庭院和家人的模糊身影。",
+        "shot_type": "近景",
+        "image_url": "/static/images/poems/poem_144/frame_6.jpg",
+        "duration_ms": 3000
+      },
+      {
+        "index": 7,
+        "line": "归雁洛阳边",
+        "scene": "主观视角。以人物眼睛为视角，仰望天空。天空中，一行“人”字形北归的大雁正飞过。画面右下角，人物抬起一只手臂，手指指向雁群的方向。色调偏暖，带有希望感。",
+        "shot_type": "主观视角",
+        "image_url": "/static/images/poems/poem_144/frame_7.jpg",
+        "duration_ms": 3000
+      }
+    ],
+    "errors": [],
+    "from_cache": false
+  },
+  "poem_010": {
+    "success": true,
+    "poem_title": "画",
+    "has_character": true,
+    "character_desc": "① 年龄：6岁 ② 性别：男 ③ 服装：浅蓝色交领窄袖短衫，深蓝色长裤，腰间系浅褐色腰带 ④ 发型：头顶扎两个总角髻，用蓝色发带系住 ⑤ 体型：身形娇小，圆脸，充满好奇与活力",
+    "recurring_elements": "书斋内有木地板，一面墙上挂着一幅装裱好的立轴山水画，画前有足够的空间供人物走动观察。",
+    "total_lines": 4,
+    "frames": [
+      {
+        "index": 0,
+        "line": "远看山有色",
+        "scene": "书斋内，一个6岁男孩站在房间中央，双手背在身后，抬头专注地看着墙上挂的山水画。画中远处是青翠的山峦。男孩表情好奇，眼神明亮。",
+        "shot_type": "中景",
+        "image_url": "/static/images/poems/poem_010/frame_0.jpg",
+        "duration_ms": 3000,
+        "elapsed_seconds": 15.244
+      },
+      {
+        "index": 1,
+        "line": "近听水无声",
+        "scene": "男孩向前走了几步，靠近画作。他微微侧身，将右耳凑近画中描绘的溪流位置，左手自然垂放，做出倾听的姿态。表情专注，带着一丝疑惑。",
+        "shot_type": "近景",
+        "image_url": "/static/images/poems/poem_010/frame_1.jpg",
+        "duration_ms": 3000,
+        "elapsed_seconds": 18.393
+      },
+      {
+        "index": 2,
+        "line": "春去花还在",
+        "scene": "男孩的视线从溪流转到画中的一簇盛开的粉色花朵上。他微微弯腰，右手食指轻轻指向画中的花朵，左手扶着膝盖。他头顶飘出一个白色气泡，里面画着窗外真实的落叶树枝（表示现实春天已过）。",
+        "shot_type": "近景",
+        "image_url": "/static/images/poems/poem_010/frame_2.jpg",
+        "duration_ms": 3000,
+        "elapsed_seconds": 18.267
+      },
+      {
+        "index": 3,
+        "line": "人来鸟不惊",
+        "scene": "男孩的视线又移到画中枝头的一只小鸟上。他伸出右手食指，非常缓慢、小心地接近画中的小鸟（但并未触碰画纸）。小鸟在画中静止不动。男孩脸上露出恍然大悟的开心笑容，嘴角上扬。",
+        "shot_type": "特写",
+        "image_url": "/static/images/poems/poem_010/frame_3.jpg",
+        "duration_ms": 3000,
+        "elapsed_seconds": 13.592
+      }
+    ],
+    "errors": [],
+    "from_cache": false,
+    "timings": {
+      "planning_seconds": 29.015,
+      "image_seconds": 20.456,
+      "total_seconds": 49.473,
+      "parallel_workers": 4
+    }
+  },
+  "poem_015": {
+    "success": true,
+    "poem_title": "绝句",
+    "has_character": false,
+    "character_desc": "",
+    "recurring_elements": "",
+    "total_lines": 4,
+    "frames": [
+      {
+        "index": 0,
+        "line": "迟日江山丽",
+        "scene": "远景。画面左侧是蜿蜒的淡蓝色江河，右侧是连绵的绿色山峦，温暖的春日阳光从画面右上角洒下，照亮了整个场景。",
+        "shot_type": "远景",
+        "image_url": "/static/images/poems/poem_015/frame_0.jpg",
+        "duration_ms": 3000,
+        "elapsed_seconds": 17.86
+      },
+      {
+        "index": 1,
+        "line": "春风花草香",
+        "scene": "中景。画面聚焦于江边一片草地，粉色的野花和绿色的草叶在微风中轻轻摇曳，几片花瓣被风吹起，飘在空中。",
+        "shot_type": "中景",
+        "image_url": "/static/images/poems/poem_015/frame_1.jpg",
+        "duration_ms": 3000,
+        "elapsed_seconds": 16.329
+      },
+      {
+        "index": 2,
+        "line": "泥融飞燕子",
+        "scene": "中景。画面近处是湿润、深棕色的泥土滩涂，两只黑色的燕子正从泥滩上低空飞过，其中一只嘴里衔着一小块泥土。",
+        "shot_type": "中景",
+        "image_url": "/static/images/poems/poem_015/frame_2.jpg",
+        "duration_ms": 3000,
+        "elapsed_seconds": 16.301
+      },
+      {
+        "index": 3,
+        "line": "沙暖睡鸳鸯",
+        "scene": "近景。画面聚焦于一片被阳光照成金黄色的温暖沙滩上，一对色彩斑斓的鸳鸯依偎在一起，闭着眼睛安静地睡着。",
+        "shot_type": "近景",
+        "image_url": "/static/images/poems/poem_015/frame_3.jpg",
+        "duration_ms": 3000,
+        "elapsed_seconds": 20.42
+      }
+    ],
+    "errors": [],
+    "from_cache": false,
+    "timings": {
+      "planning_seconds": 22.39,
+      "image_seconds": 22.16,
+      "total_seconds": 44.552,
+      "parallel_workers": 4
+    }
   }
 }

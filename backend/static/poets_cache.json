@@ -6,13 +6,6 @@
     "dynasty": "唐",
     "avatar_url": "/static/images/poets/李白.jpg"
   },
-  "杜甫": {
-    "success": true,
-    "from_cache": false,
-    "poet_name": "杜甫",
-    "dynasty": "唐",
-    "avatar_url": "/static/images/poets/杜甫.jpg"
-  },
   "孟浩然": {
     "success": true,
     "from_cache": false,
@@ -30,6 +23,30 @@
       "desc": "约40岁，男性，身着淡青色素雅交领长衫系米色腰带，黑色长发以竹簪整齐束于头顶，面容清秀白皙，中等身材清瘦",
       "personality": "禅意宁静、温和淡泊，眼神平静深远带着淡淡微笑，像在竹林里打坐的温柔叔叔",
       "signature": "身旁摆着一把古琴，右手轻轻抚摸琴弦，背景隐约有竹影"
+    }
+  },
+  "王安石": {
+    "success": true,
+    "from_cache": false,
+    "poet_name": "王安石",
+    "dynasty": "宋",
+    "avatar_url": "/static/images/poets/王安石.jpg",
+    "profile": {
+      "desc": "外貌：①50岁②男③紫色官袍配深绿腰带④发髻整齐戴儒巾⑤中等身材略圆润",
+      "personality": "神态：嘴角微扬，眼神温和睿智，常抚须思考，神情亲切如长辈",
+      "signature": "手持《泊船瓜洲》诗卷，身旁有梅枝和笔墨，象征改革精神"
+    }
+  },
+  "王湾": {
+    "success": true,
+    "from_cache": false,
+    "poet_name": "王湾",
+    "dynasty": "唐",
+    "avatar_url": "/static/images/poets/王湾.jpg",
+    "profile": {
+      "desc": "外貌：①30岁左右②男性③穿着青绿长衫，腰间系着蓝色腰带④头戴黑色幞头，发髻整齐⑤中等身材，温文尔雅",
+      "personality": "神态：嘴角总是带着温和的微笑，眼神明亮而温暖，透着一股亲切感",
+      "signature": "手持一卷《次北固山下》诗稿，站在船头眺望远方"
     }
   }
 }

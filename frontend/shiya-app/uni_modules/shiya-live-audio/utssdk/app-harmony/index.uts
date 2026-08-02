@@ -1,0 +1,24 @@
+import {
+  IsLiveAudioRecording,
+  LiveAudioErrorCallback,
+  LiveAudioFrameCallback,
+  LiveAudioStatus,
+  OnLiveAudioError,
+  OnLiveAudioFrame,
+  StartLiveAudio,
+  StopLiveAudio,
+} from '../interface.uts'
+
+const unsupportedStatus : LiveAudioStatus = { recording: false, sampleRate: 16000, frameBytes: 1280 }
+let errorCallback : LiveAudioErrorCallback | null = null
+
+@UTSJS.keepAlive
+export function onLiveAudioFrame(_ : LiveAudioFrameCallback) : void {}
+@UTSJS.keepAlive
+export function onLiveAudioError(callback : LiveAudioErrorCallback) : void { errorCallback = callback }
+export const isLiveAudioRecording : IsLiveAudioRecording = function () : boolean { return false }
+export const stopLiveAudio : StopLiveAudio = function () : LiveAudioStatus { return unsupportedStatus }
+export const startLiveAudio : StartLiveAudio = function () : LiveAudioStatus {
+  errorCallback?.('Live PCM recording is currently available only on Android devices.')
+  return unsupportedStatus
+}

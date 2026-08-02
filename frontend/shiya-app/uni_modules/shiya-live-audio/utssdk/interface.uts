@@ -1,0 +1,14 @@
+export type LiveAudioFrameCallback = (pcmBase64 : string) => void
+export type LiveAudioErrorCallback = (message : string) => void
+
+export type LiveAudioStatus = {
+  recording : boolean
+  sampleRate : number
+  frameBytes : number
+}
+
+export type OnLiveAudioFrame = (callback : LiveAudioFrameCallback) => void
+export type OnLiveAudioError = (callback : LiveAudioErrorCallback) => void
+export type StartLiveAudio = () => LiveAudioStatus
+export type StopLiveAudio = () => LiveAudioStatus
+export type IsLiveAudioRecording = () => boolean

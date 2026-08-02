@@ -131,6 +131,7 @@
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { onLoad, onUnload } from '@dcloudio/uni-app'
 import { API, getLocalPoemById, normalizeAssetUrl, getPoetAvatarStaticUrl } from '@/utils/api.js'
+import { isLiveAsrActive, startLiveAsr, stopLiveAsr } from '@/utils/live-asr.js'
 
 const DESIGN_WIDTH = 844
 const DESIGN_HEIGHT = 390
@@ -174,6 +175,7 @@ onUnmounted(() => {
 
 onUnload(() => {
   poetAudioRequestToken += 1
+  stopLiveAsr()
   stopChatReplyAudio(false)
 })
 
@@ -208,6 +210,7 @@ const chatBrowserAudioChunks = ref([])
 const chatBrowserAudioStream = ref(null)
 
 const MAX_CHAT_RECORD_DURATION_MS = 30000
+let chatRequestToken = 0
 
 const poetAvatarImage = computed(() => {
   return poetAvatarUrl.value || getPoetAvatarStaticUrl(getPoetName()) || '/static/孟浩然.png'
@@ -1054,6 +1057,13 @@ const initChatRecorderManager = () => {
 const stopVoiceInput = () => {
   clearChatRecordStopTimer()
 
+  if (isLiveAsrActive()) {
+    isVoiceRecording.value = false
+    isRecognizingVoice.value = true
+    stopLiveAsr()
+    return
+  }
+
   if (chatBrowserMediaRecorder.value) {
     try {
       if (chatBrowserMediaRecorder.value.state !== 'inactive') {
@@ -1084,8 +1094,59 @@ const switchInputMode = () => {
   inputMode.value = inputMode.value === 'voice' ? 'text' : 'voice'
 }
 
+const isAndroidApp = () => {
+  try {
+    return uni.getSystemInfoSync()?.platform === 'android'
+  } catch (err) {
+    return false
+  }
+}
+
+const interruptPoetForLiveVoice = () => {
+  poetAudioRequestToken += 1
+  chatRequestToken += 1
+  isReplying.value = false
+  stopChatReplyAudio()
+}
+
+const startLiveVoiceInput = async () => {
+  await startLiveAsr({
+    onVoiceStart: interruptPoetForLiveVoice,
+    onPartial: () => {},
+    onFinal: async (recognizedText) => {
+      isVoiceRecording.value = false
+      isRecognizingVoice.value = false
+
+      const text = String(recognizedText || '').trim()
+      if (!text) {
+        toast('没有识别到内容，请再说一次')
+        return
+      }
+
+      userInput.value = text
+      await sendMessage()
+    },
+    onError: (error) => {
+      isVoiceRecording.value = false
+      isRecognizingVoice.value = false
+      isVoicePressing.value = false
+      console.log('实时聊天语音识别失败：', error)
+      toast('实时语音识别失败，请重试')
+    }
+  })
+
+  isVoiceRecording.value = true
+  toast('正在聆听，说话即可打断诗人')
+  chatRecordStopTimer.value = setTimeout(() => {
+    if (isVoiceRecording.value) {
+      isVoicePressing.value = false
+      stopVoiceInput()
+    }
+  }, MAX_CHAT_RECORD_DURATION_MS)
+}
+
 const startVoiceInput = async () => {
-  if (isRecognizingVoice.value || isReplying.value || isVoiceRecording.value) return
+  if (isRecognizingVoice.value || isVoiceRecording.value) return
 
   const hasPermission = await requestChatRecordPermission()
 
@@ -1095,6 +1156,11 @@ const startVoiceInput = async () => {
   }
 
   try {
+    if (isAndroidApp()) {
+      await startLiveVoiceInput()
+      return
+    }
+
     if (!canUseUniRecorderManager()) {
       await startChatBrowserRecording()
       return
@@ -1163,8 +1229,9 @@ const handleVoiceLongPress = () => {}
 
 const sendMessage = async () => {
   const text = userInput.value.trim()
-  if (!text || isReplying.value) return
+  if (!text) return
 
+  const requestToken = ++chatRequestToken
   poetAudioRequestToken += 1
   stopChatReplyAudio()
 
@@ -1188,6 +1255,8 @@ const sendMessage = async () => {
       age: childAge.value,
       include_audio: false
     })
+
+    if (requestToken !== chatRequestToken) return
 
     if (res && res.success && res.reply) {
       const messageIndex = appendPoetMessage(res.reply, res)
@@ -1220,6 +1289,7 @@ const sendMessage = async () => {
       })
     }
   } catch (err) {
+    if (requestToken !== chatRequestToken) return
     console.log('AI 对话接口暂不可用，使用本地假回复', err)
 
     const fallbackText = fakeReply(text)
@@ -1237,9 +1307,11 @@ const sendMessage = async () => {
     })
   }
 
-  isReplying.value = false
-  canNext.value = true
-  chatScrollTop.value += 360
+  if (requestToken === chatRequestToken) {
+    isReplying.value = false
+    canNext.value = true
+    chatScrollTop.value += 360
+  }
 }
 
 const askSuggestion = (text) => {

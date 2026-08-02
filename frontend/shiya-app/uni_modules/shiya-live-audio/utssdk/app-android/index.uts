@@ -1,0 +1,134 @@
+import AudioFormat from 'android.media.AudioFormat'
+import AudioRecord from 'android.media.AudioRecord'
+import MediaRecorder from 'android.media.MediaRecorder'
+import Base64 from 'android.util.Base64'
+import ByteBuffer from 'java.nio.ByteBuffer'
+import ByteOrder from 'java.nio.ByteOrder'
+import { UTSAndroid } from 'io.dcloud.uts'
+import {
+  IsLiveAudioRecording,
+  LiveAudioErrorCallback,
+  LiveAudioFrameCallback,
+  LiveAudioStatus,
+  OnLiveAudioError,
+  OnLiveAudioFrame,
+  StartLiveAudio,
+  StopLiveAudio,
+} from '../interface.uts'
+
+const SAMPLE_RATE : Int = 16000
+const SAMPLE_WIDTH_BYTES : Int = 2
+const CHANNEL_CONFIG = AudioFormat.CHANNEL_IN_MONO
+const AUDIO_FORMAT = AudioFormat.ENCODING_PCM_16BIT
+const FRAME_DURATION_MS : Int = 40
+const FRAME_BYTES : Int = SAMPLE_RATE * SAMPLE_WIDTH_BYTES * FRAME_DURATION_MS / 1000
+const FRAME_SAMPLES : Int = FRAME_BYTES / SAMPLE_WIDTH_BYTES
+
+let activeRecorder : AudioRecord | null = null
+let activeFrameCallback : LiveAudioFrameCallback | null = null
+let activeErrorCallback : LiveAudioErrorCallback | null = null
+let recording = false
+
+function currentStatus() : LiveAudioStatus {
+  return { recording: recording, sampleRate: SAMPLE_RATE, frameBytes: FRAME_BYTES }
+}
+
+function reportError(message : string) : void {
+  console.error(`[shiya-live-audio] ${message}`)
+  activeErrorCallback?.(message)
+}
+
+function releaseRecorder(recorder : AudioRecord | null) : void {
+  if (recorder == null) return
+  try { recorder.stop() } catch (_) {}
+  try { recorder.release() } catch (_) {}
+}
+
+@UTSJS.keepAlive
+export function onLiveAudioFrame(callback : LiveAudioFrameCallback) : void {
+  activeFrameCallback = callback
+}
+
+@UTSJS.keepAlive
+export function onLiveAudioError(callback : LiveAudioErrorCallback) : void {
+  activeErrorCallback = callback
+}
+
+export const isLiveAudioRecording : IsLiveAudioRecording = function () : boolean {
+  return recording
+}
+
+export const stopLiveAudio : StopLiveAudio = function () : LiveAudioStatus {
+  const recorder = activeRecorder
+  recording = false
+  activeRecorder = null
+  releaseRecorder(recorder)
+  activeFrameCallback = null
+  activeErrorCallback = null
+  return currentStatus()
+}
+
+export const startLiveAudio : StartLiveAudio = function () : LiveAudioStatus {
+  if (recording) return currentStatus()
+  if (activeFrameCallback == null) {
+    throw new Error('Call onLiveAudioFrame before starting the recorder')
+  }
+
+  const minBufferBytes = AudioRecord.getMinBufferSize(SAMPLE_RATE, CHANNEL_CONFIG, AUDIO_FORMAT)
+  if (minBufferBytes <= 0) {
+    throw new Error(`This device does not support ${SAMPLE_RATE}Hz mono PCM recording`)
+  }
+
+  const requestedBufferBytes : Int = FRAME_BYTES * 4
+  const bufferBytes : Int = minBufferBytes > requestedBufferBytes ? minBufferBytes : requestedBufferBytes
+  const recorder = new AudioRecord(
+    MediaRecorder.AudioSource.VOICE_RECOGNITION,
+    SAMPLE_RATE,
+    CHANNEL_CONFIG,
+    AUDIO_FORMAT,
+    bufferBytes,
+  )
+  if (recorder.state != AudioRecord.STATE_INITIALIZED) {
+    releaseRecorder(recorder)
+    throw new Error('Native recorder initialization failed. Check microphone permission.')
+  }
+
+  activeRecorder = recorder
+  recording = true
+  try {
+    recorder.startRecording()
+  } catch (error) {
+    stopLiveAudio()
+    throw new Error(`Unable to start microphone recording: ${error}`)
+  }
+
+  UTSAndroid.getDispatcher('io').async(function (_) {
+    // Some vivo devices return 0 from AudioRecord's ByteBuffer overload.
+    // Read ShortArray instead, then restore the same 16-bit little-endian PCM bytes.
+    const pcmSamples = new ShortArray(FRAME_SAMPLES)
+    const pcmBytes = ByteBuffer.allocate(FRAME_BYTES)
+    pcmBytes.order(ByteOrder.LITTLE_ENDIAN)
+    try {
+      while (recording && activeRecorder === recorder) {
+        const readSamples = recorder.read(pcmSamples, 0, FRAME_SAMPLES)
+        if (readSamples > 0) {
+          pcmBytes.clear()
+          pcmBytes.asShortBuffer().put(pcmSamples, 0, readSamples)
+          const readBytes : Int = readSamples * SAMPLE_WIDTH_BYTES
+          activeFrameCallback?.(Base64.encodeToString(pcmBytes.array(), 0, readBytes, Base64.NO_WRAP))
+          continue
+        }
+        reportError(`Failed to read microphone PCM, code: ${readSamples}`)
+        break
+      }
+    } catch (error) {
+      if (recording && activeRecorder === recorder) {
+        reportError(`Native live recording error: ${error}`)
+      }
+    } finally {
+      if (activeRecorder === recorder) stopLiveAudio()
+    }
+  }, null)
+
+  return currentStatus()
+}

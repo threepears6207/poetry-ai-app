@@ -13,7 +13,7 @@
 ## 环境
 
 - Windows
-- Python 3.11（FunASR 及其依赖不建议使用 3.12/3.13）
+- Python 3.11
 - pip
 - 可访问 vivo 蓝心开放平台、百度 AI 开放平台和 edge-tts 服务的网络
 
@@ -27,13 +27,7 @@ python -m pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
-`requirements.txt` 已包含 FastAPI、Uvicorn、FunASR、PyTorch、edge-tts、websocket-client 等项目依赖。首次安装和首次语音识别会比较慢。
-
-FunASR 默认会将模型缓存到用户目录。如需改位置，在启动前设置：
-
-```powershell
-$env:MODELSCOPE_CACHE="D:\modelscope_cache"
-```
+`requirements.txt` 已包含 FastAPI、Uvicorn、edge-tts、websocket-client 和 websockets 等运行依赖。实时语音识别通过 vivo WebSocket 服务完成，不再下载或加载本地 FunASR 模型。
 
 ## 环境变量
 
@@ -189,7 +183,7 @@ uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 | `consolidation.py` | 巩固记录和 1/3/7 天复习节奏 |
 | `recommend.py` | 跟读画像与个性化推荐 |
 | `ocr.py` | 百度 OCR、图像识别和 SQLite 古诗匹配 |
-| `asr.py` | FunASR 语音识别和单句评分 |
+| `asr.py` | vivo 实时语音识别、流式 WebSocket 转发和单句评分 |
 | `chat.py` / `poet_voice.py` / `vivo_tts.py` | 诗人对话、声音档案、vivo TTS 和降级 |
 | `generate.py` | 分镜规划、并行生图、渐进任务和图片缓存 |
 | `video_generate.py` | 整首古诗文生视频实验 |

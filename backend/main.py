@@ -32,6 +32,9 @@ from ocr import router as ocr_router
 from consolidation import router as consolidation_router
 from asr import router as asr_router
 from video_generate import router as video_generate_router
+from poem_catalog import router as poem_catalog_router
+from candidate_search import router as candidate_search_router
+from learning_dashboard import router as learning_dashboard_router
 app.include_router(asr_router)
 app.include_router(chat_router)
 app.include_router(poems_router)
@@ -42,6 +45,9 @@ app.include_router(tts_router)
 app.include_router(ocr_router)
 app.include_router(consolidation_router)
 app.include_router(video_generate_router)
+app.include_router(poem_catalog_router)
+app.include_router(candidate_search_router)
+app.include_router(learning_dashboard_router)
 
 
 @app.get("/")

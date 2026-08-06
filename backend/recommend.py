@@ -1,11 +1,12 @@
 import json
-from datetime import datetime
+from collections import Counter
+from datetime import date, datetime
 from typing import Optional
 
 from fastapi import APIRouter, Query
 from pydantic import BaseModel, Field
 
-from database import get_connection
+from database import get_connection, initialize_database
 
 
 router = APIRouter()
@@ -60,9 +61,18 @@ def row_to_poem(row):
 
 
 def load_poems_from_db():
+    initialize_database()
     connection = get_connection()
     try:
-        rows = connection.execute("SELECT * FROM poems ORDER BY id").fetchall()
+        rows = connection.execute(
+            """
+            SELECT * FROM poems
+            WHERE verification_status = 'verified'
+              AND content_complete = 1
+              AND recommend_eligible = 1
+            ORDER BY id
+            """
+        ).fetchall()
         return [row_to_poem(row) for row in rows]
     finally:
         connection.close()
@@ -284,6 +294,149 @@ def format_recommend_poem(poem, age_range, tag_scores, strong_tags):
     }
 
 
+def load_recommend_context(user_id, poems):
+    poem_map = {poem["id"]: poem for poem in poems}
+    connection = get_connection()
+    try:
+        recent_ids = [
+            row["poem_id"]
+            for row in connection.execute(
+                """
+                SELECT poem_id, MAX(created_at) AS latest
+                FROM learning_records
+                WHERE user_id = ?
+                GROUP BY poem_id
+                ORDER BY latest DESC
+                LIMIT 8
+                """,
+                (user_id,),
+            ).fetchall()
+        ]
+        reading_scores = {
+            row["poem_id"]: float(row["score"])
+            for row in connection.execute(
+                "SELECT poem_id, score FROM reading_scores WHERE user_id = ?",
+                (user_id,),
+            ).fetchall()
+        }
+        consolidations = {
+            row["poem_id"]: {
+                "status": row["status"],
+                "next_review_date": row["next_review_date"],
+            }
+            for row in connection.execute(
+                """
+                SELECT poem_id, status, next_review_date
+                FROM consolidations WHERE user_id = ?
+                """,
+                (user_id,),
+            ).fetchall()
+        }
+    finally:
+        connection.close()
+
+    learned_ids = set(recent_ids) | set(reading_scores) | set(consolidations)
+    preference_counts = Counter()
+    for poem_id in recent_ids[1:]:
+        poem = poem_map.get(poem_id)
+        if poem:
+            preference_counts.update(get_poem_learning_tags(poem))
+    learned_difficulties = [
+        int(poem_map[poem_id].get("difficulty", 1))
+        for poem_id in learned_ids if poem_id in poem_map
+    ]
+    target_difficulty = (
+        min(5, sum(learned_difficulties) / len(learned_difficulties) + 0.35)
+        if learned_difficulties else 1.0
+    )
+    return {
+        "learned_ids": learned_ids,
+        "recent_ids": recent_ids,
+        "reading_scores": reading_scores,
+        "consolidations": consolidations,
+        "preference_counts": preference_counts,
+        "target_difficulty": target_difficulty,
+    }
+
+
+def rank_recommendations(
+    poems, context, age_level, category=None, exclude_ids=None, debug=False,
+):
+    exclude_ids = set(exclude_ids or [])
+    poem_map = {poem["id"]: poem for poem in poems}
+    last_poem = poem_map.get(context["recent_ids"][0]) if context["recent_ids"] else None
+    last_tags = set(get_poem_learning_tags(last_poem)) if last_poem else set()
+    last_author = last_poem.get("author") if last_poem else None
+    today = date.today().isoformat()
+    ranked = []
+
+    for poem in poems:
+        poem_id = poem["id"]
+        if (
+            poem.get("age_level") != age_level
+            or poem_id in exclude_ids
+            or not poem_matches_category(poem, category)
+        ):
+            continue
+        learned = poem_id in context["learned_ids"]
+        reading_score = context["reading_scores"].get(poem_id)
+        consolidation = context["consolidations"].get(poem_id, {})
+        next_review = consolidation.get("next_review_date") or ""
+        due_review = bool(
+            learned and (
+                consolidation.get("status") == "待巩固"
+                or (next_review and next_review <= today)
+            )
+        )
+        weak = reading_score is not None and reading_score < 75
+        if learned and not due_review and not weak:
+            continue
+
+        components = {"age_fit": 25.0}
+        if not learned:
+            components["new_content"] = 30.0
+        if due_review:
+            components["due_review"] = 45.0
+        if weak:
+            components["weak_item"] = min(35.0, 12.0 + (75 - reading_score) * 0.7)
+
+        tags = get_poem_learning_tags(poem)
+        preference = min(15.0, sum(context["preference_counts"].get(tag, 0) * 3 for tag in tags))
+        if preference:
+            components["recent_preference"] = preference
+        difficulty = int(poem.get("difficulty", 1) or 1)
+        components["difficulty_progression"] = max(
+            0.0, 15.0 - abs(difficulty - context["target_difficulty"]) * 7.0
+        )
+        overlap = len(last_tags & set(tags))
+        if overlap:
+            components["repeat_theme_penalty"] = -min(24.0, overlap * 12.0)
+        if last_author and poem.get("author") == last_author:
+            components["repeat_author_penalty"] = -8.0
+
+        total = sum(components.values())
+        item = {
+            **poem,
+            "poem_id": poem_id,
+            "content_preview": build_content_preview(poem),
+            "recommend_score": round(total, 2),
+            "recommend_type": "review" if due_review or weak else "new",
+            "review_state": "due" if due_review else ("weak" if weak else "none"),
+        }
+        if debug:
+            item["score_components"] = {
+                key: round(value, 2) for key, value in components.items()
+            }
+        ranked.append(item)
+
+    ranked.sort(key=lambda item: (
+        -float(item["recommend_score"]),
+        int(item.get("difficulty", 5)),
+        item["id"],
+    ))
+    return ranked
+
+
 @router.post("/profile/reading-score")
 def update_reading_score(data: ReadingScoreIn):
     poems = load_poems_from_db()
@@ -342,6 +495,8 @@ def recommend_poems(
     age_level: Optional[str] = Query(None, description="年龄层：age_3_4 或 age_5_7"),
     limit: int = Query(5, ge=1, le=20, description="推荐数量"),
     category: Optional[str] = Query(None, description="可选分类：spring / animal / nature"),
+    exclude_ids: str = Query("", description="换一首时排除的 poem_id，逗号分隔"),
+    debug: bool = Query(False, description="是否返回内部评分明细"),
 ):
     poems = load_poems_from_db()
     user = ensure_user(user_id, age_level if age_level in VALID_AGE_LEVELS else None)
@@ -350,28 +505,12 @@ def recommend_poems(
     )
     current_age_range = VALID_AGE_LEVELS[current_age_level]
     profile = build_profile(user_id, poems)
-    learned_ids = {item["poem_id"] for item in profile["learned_poems"]}
-
-    candidates = [
-        format_recommend_poem(
-            poem,
-            current_age_range,
-            profile["tag_scores"],
-            profile["strong_tags"],
-        )
-        for poem in poems
-        if (
-            poem["age_level"] == current_age_level
-            and poem["id"] not in learned_ids
-            and poem_matches_category(poem, category)
-        )
-    ]
-    candidates.sort(key=lambda item: (
-        -float(item["tag_match_score"]),
-        -int(item["tag_match_count"]),
-        int(item["difficulty"]),
-        item["id"],
-    ))
+    context = load_recommend_context(user_id, poems)
+    learned_ids = context["learned_ids"]
+    excluded = {value.strip() for value in exclude_ids.split(",") if value.strip()}
+    candidates = rank_recommendations(
+        poems, context, current_age_level, category, excluded, debug,
+    )
     selected = candidates[:limit]
     return {
         "success": True,
@@ -384,7 +523,33 @@ def recommend_poems(
         "tag_scores": profile["tag_scores"],
         "strong_tags": profile["strong_tags"],
         "total": len(selected),
+        "poems": selected,
         "data": selected,
         "recommendations": selected,
-        "message": "已根据数据库中的年龄层、已学记录和跟读强项标签返回推荐结果",
+        "message": "已按适龄、待温习/薄弱项、近期偏好、难度递进和内容多样性排序",
+    }
+
+
+@router.get("/recommend/today")
+def recommend_today(
+    user_id: str = Query("test_user", description="用户ID"),
+    age_level: Optional[str] = Query(None, description="年龄层"),
+    exclude_poem_id: str = Query("", description="换一首时排除当前 poem_id"),
+    debug: bool = Query(False, description="是否返回评分明细"),
+):
+    result = recommend_poems(
+        user_id=user_id,
+        age_level=age_level,
+        limit=1,
+        category=None,
+        exclude_ids=exclude_poem_id,
+        debug=debug,
+    )
+    selected = result["poems"]
+    return {
+        "success": bool(selected),
+        "poem": selected[0] if selected else None,
+        "poems": selected,
+        "user_id": result["user_id"],
+        "age_level": result["age_level"],
     }

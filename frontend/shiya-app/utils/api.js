@@ -4,7 +4,7 @@
 // 1. 后端基础地址
 // =====================================================
 // 电脑浏览器本机联调：使用 127.0.0.1
-const BASE_URL = 'http://172.20.10.4:8000'
+const BASE_URL = 'http://192.168.3.18:8000'
 export const LIVE_ASR_STREAM_URL = `${BASE_URL.replace(/^http/, 'ws')}/asr/stream`
 
 // 手机真机联调时，不要用 127.0.0.1。
@@ -359,13 +359,14 @@ export const API = {
     })
   },
 
-  async getDailyRecommendation(ageValue = '') {
+  async getDailyRecommendation(ageValue = '', excludePoemId = '') {
     const ageLevel = normalizeAgeLevel(ageValue)
     const today = getTodayKey()
 
     try {
       const saved = uni.getStorageSync(DAILY_RECOMMENDATION_KEY)
       if (
+        !excludePoemId &&
         saved?.date === today &&
         saved?.age_level === ageLevel &&
         saved?.poem?.id
@@ -378,8 +379,14 @@ export const API = {
 
     let poem = null
     try {
-      const res = await API.getRecommend(1, '', ageValue)
-      poem = Array.isArray(res?.data) ? res.data[0] : null
+      const excludeQuery = excludePoemId
+        ? `&exclude_poem_id=${encodeURIComponent(excludePoemId)}`
+        : ''
+      const res = await request({
+        url: `/recommend/today?user_id=${DEFAULT_USER_ID}&age_level=${encodeURIComponent(ageLevel)}${excludeQuery}`,
+        method: 'GET'
+      })
+      poem = res?.poem || (Array.isArray(res?.poems) ? res.poems[0] : null)
     } catch (err) {
       console.log('每日推荐接口失败，使用当日本地推荐：', err)
     }
@@ -465,6 +472,22 @@ export const API = {
         mode: 'image_base64'
       },
       timeout: 90000
+    })
+  },
+
+  findPoemCandidates(analysis = {}) {
+    return request({
+      url: '/poems/candidates',
+      method: 'POST',
+      data: analysis
+    })
+  },
+
+  resolveVerifiedPoems(data = {}) {
+    return request({
+      url: '/poems/resolve',
+      method: 'POST',
+      data
     })
   },
 
@@ -607,6 +630,48 @@ export const API = {
   getConsolidationList(userId = DEFAULT_USER_ID) {
     return request({
       url: `/consolidation/list?user_id=${encodeURIComponent(userId)}`,
+      method: 'GET'
+    })
+  },
+
+  getCollectionWall(userId = DEFAULT_USER_ID) {
+    return request({
+      url: `/collection/wall?user_id=${encodeURIComponent(userId)}`,
+      method: 'GET'
+    })
+  },
+
+  updateConsolidationProgress(poemId, activity, completed = true, userId = DEFAULT_USER_ID) {
+    return request({
+      url: '/consolidation/progress',
+      method: 'POST',
+      data: {
+        poem_id: poemId,
+        user_id: userId,
+        activity,
+        completed: Boolean(completed)
+      }
+    })
+  },
+
+  getReminderStatus(userId = DEFAULT_USER_ID) {
+    return request({
+      url: `/reminders/status?user_id=${encodeURIComponent(userId)}`,
+      method: 'GET'
+    })
+  },
+
+  suppressPracticeReminderToday(userId = DEFAULT_USER_ID) {
+    return request({
+      url: '/reminders/suppress-today',
+      method: 'POST',
+      data: { user_id: userId }
+    })
+  },
+
+  getParentOverview(userId = DEFAULT_USER_ID) {
+    return request({
+      url: `/parent/overview?user_id=${encodeURIComponent(userId)}`,
       method: 'GET'
     })
   },

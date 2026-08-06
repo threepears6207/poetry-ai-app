@@ -48,5 +48,17 @@
       "personality": "神态：嘴角总是带着温和的微笑，眼神明亮而温暖，透着一股亲切感",
       "signature": "手持一卷《次北固山下》诗稿，站在船头眺望远方"
     }
+  },
+  "王之涣": {
+    "success": true,
+    "from_cache": false,
+    "poet_name": "王之涣",
+    "dynasty": "唐",
+    "avatar_url": "/static/images/poets/王之涣.jpg",
+    "profile": {
+      "desc": "约40岁，男性，身着深蓝色交领长衫系黑色腰带，黑色发髻束于头顶，面容英朗，体型挺拔高大",
+      "personality": "豪迈开阔、志向高远，目光眺望远方，嘴角带着自信微笑，像站在高楼上看黄河入海的勇敢叔叔",
+      "signature": "昂首挺胸双手背于身后，背景隐约有高楼远山剪影，英姿勃发"
+    }
   }
 }

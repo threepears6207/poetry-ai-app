@@ -30,7 +30,7 @@
       </view>
 
       <view class="topbar">
-        <button class="back-btn" @tap="goBack">‹</button>
+        <button class="back-btn art-back-small" @tap="goBack"><image src="/static/final-ui/nav-back.png" mode="aspectFit" /></button>
 
         <view class="title-pill">
           正在播放：{{ poemData.title }}
@@ -1672,4 +1672,30 @@ button::after {
   color: #6a5f97;
   box-shadow: 0 5px 0 rgba(220, 211, 236, 0.9);
 }
+.art-back-small { width: 52px; height: 52px; padding: 0; border: 0; background: transparent; }
+.art-back-small image { width: 100%; height: 100%; }
+
+/* 与新版木质界面统一的棕色学习状态。 */
+.title-pill { background: rgba(255, 244, 216, .96); border-color: #a66a2d; color: #704117; box-shadow: 0 5px 0 rgba(112, 65, 23, .25); }
+.done-btn { background: #a66a2d; color: #fff8e7; box-shadow: 0 7px 16px rgba(112, 65, 23, .3); }
+.done-btn.disabled, .done-btn[disabled] { background: #aa9780; color: #f8efe2; }
+.loading-screen { background: radial-gradient(circle at 18% 18%, rgba(142, 93, 48, .16), transparent 25%), radial-gradient(circle at 84% 22%, rgba(104, 76, 48, .14), transparent 26%), linear-gradient(180deg, #e8d1aa 0%, #d0a873 48%, #9a673b 100%); }
+.loading-cloud { filter: sepia(1) saturate(.4); opacity: .45; }
+.loading-moon { background: #9b683b; color: #fff1d5; box-shadow: 0 0 32px rgba(91, 55, 26, .32); }
+.loading-bamboo { filter: sepia(1) saturate(.55); opacity: .58; }
+.loading-card { background: rgba(255, 244, 216, .96); border-color: #9f672c; box-shadow: 0 24px 48px rgba(58, 37, 17, .3); }
+.loading-title { color: #704117; }
+.loading-desc { color: #86613d; }
+.loading-line { background: #ead1a5; color: #704117; }
+.loading-progress-track { background: #d9c09b; box-shadow: inset 0 2px 5px rgba(79, 49, 24, .18); }
+.loading-progress-bar { background: linear-gradient(90deg, #6f431f, #a66a2d, #d2a05f); }
+.loading-foot { color: #795536; }
+.guide-mask { background: rgba(58, 38, 20, .34); }
+.guide-card { background: #fff0c8; border: 5px solid #a66a2d; border-radius: 20px; box-shadow: 0 25px 60px rgba(58, 37, 17, .38); }
+.guide-avatar-wrap { background: #d5aa6c; }
+.guide-title { color: #704117; }
+.guide-text { color: #795536; }
+.orange-text { color: #9f5e24; }
+.orange-btn { background: #a66a2d; color: #fff8e7; box-shadow: 0 5px 0 #704117; }
+.white-btn { background: #fff9e8; color: #704117; box-shadow: 0 5px 0 #d3aa70; }
 </style>

@@ -1,201 +1,61 @@
 <template>
   <view class="page-root">
-    <view class="app-container" :style="appScaleStyle" @tap="showAgeList = false">
-      <view class="cloud-bg">☁️</view>
+    <view class="town" :style="townScaleStyle" @tap="showAgeList = false">
+      <image class="town-bg" src="/static/final-ui/town-bg.png" mode="scaleToFill" />
 
-      <view class="mountain-bg">
-        <view class="mountain mountain-a"></view>
-        <view class="mountain mountain-b"></view>
-        <view class="mountain mountain-c"></view>
+      <view class="brand" aria-label="诗芽小学堂">
+        <image src="/static/final-ui/brand-logo.png" mode="widthFix" />
       </view>
 
-      <view class="header">
-        <view class="brand-pill">
-          <view class="brand-icon">🌱</view>
-          <text class="brand-title">诗芽小学堂</text>
+      <view class="top-actions" @tap.stop>
+        <view class="age-control" @tap="showAgeList = !showAgeList">
+          <image src="/static/final-ui/age.png" mode="scaleToFill" />
+          <text>{{ selectedAge }}</text>
+          <text class="age-arrow">⌄</text>
         </view>
-
-        <view class="age-area" @tap.stop>
-          <button class="parent-btn" @tap="goPage('/pages/parent/parent')">家长端</button>
-
-          <text class="age-label">选择你的年龄：</text>
-
-          <view class="age-select" @tap.stop="showAgeList = !showAgeList">
-            <text>{{ selectedAge }}</text>
-            <text class="age-arrow">⌄</text>
-          </view>
-
-          <view v-if="showAgeList" class="age-dropdown">
-            <view
-              v-for="age in ageList"
-              :key="age"
-              class="age-option"
-              :class="{ active: selectedAge === age }"
-              @tap.stop="chooseAge(age)"
-            >
-              {{ age }}
-            </view>
-          </view>
+        <view class="parent-control" @tap="goPage('/pages/parent/parent')">
+          <image src="/static/final-ui/parent.png" mode="scaleToFill" />
+          <text>家长端</text>
+        </view>
+        <view v-if="showAgeList" class="age-menu">
+          <view v-for="age in ageList" :key="age" :class="{ active: age === selectedAge }" @tap="chooseAge(age)">{{ age }}</view>
         </view>
       </view>
 
-      <view class="main-layout">
-        <view class="left-panel">
-          <view class="action-button camera-button" @tap="goPage('/pages/camera/camera')">
-            <view class="action-icon-circle">
-              <text class="action-icon">📷</text>
-            </view>
-            <text class="action-title">拍照识别</text>
-          </view>
-
-          <view class="action-button search-button" @tap="openSearch">
-            <view class="action-icon-circle">
-              <text class="action-icon">📜</text>
-            </view>
-            <text class="action-title">搜索古诗</text>
-            <text class="mic-icon">🎙️</text>
-          </view>
-        </view>
-
-        <view class="right-panel">
-          <view class="today-card" @tap="goStudy(dailyPoem.id)">
-            <view class="yellow-side-line"></view>
-
-            <view class="today-left">
-              <view class="today-tags">
-                <view
-                  v-for="(tag, index) in dailyPoemTags"
-                  :key="tag"
-                  class="small-tag"
-                  :class="index === 0 ? 'spring-tag' : 'bird-tag'"
-                >
-                  <text class="tag-icon">{{ getDailyTagIcon(tag) }}</text>
-                  <text>{{ tag }}</text>
-                </view>
-
-                <text class="today-hint">今天学这个</text>
-              </view>
-
-              <view class="today-title-row">
-                <text class="poem-title">{{ dailyPoem.title }}</text>
-                <text class="poem-author">{{ dailyPoem.author }}</text>
-              </view>
-            </view>
-
-            <view class="play-button">
-              <text class="play-icon">▶</text>
-            </view>
-          </view>
-
-          <view class="review-card" @tap="goPage('/pages/review/review')">
-            <view class="review-header">
-              <view class="review-title-row">
-                <text class="review-title">巩固练习</text>
-                <view class="review-arrow">
-                  <text>›</text>
-                </view>
-              </view>
-
-              <view class="review-count">
-                <text>{{ reviewLearningCount }}首待巩固</text>
-              </view>
-            </view>
-
-            <view class="review-list">
-              <view
-                v-for="poem in homeReviewPreview"
-                :key="poem.key"
-                class="review-poem-card"
-                :class="{
-                  'pending-card': poem.status === '待巩固',
-                  'consolidated-card': poem.status === '已巩固',
-                  'mastered-card': poem.status === '已掌握'
-                }"
-              >
-                <view class="review-poem-icon-wrap">
-                  <text class="review-poem-icon">{{ poem.icon }}</text>
-                </view>
-
-                <view class="review-poem-info">
-                  <text class="review-poem-name">{{ poem.title }}</text>
-                  <text
-                    class="review-poem-status"
-                    :class="{
-                      'pending-text': poem.status === '待巩固',
-                      'consolidated-text': poem.status === '已巩固',
-                      'mastered-text': poem.status === '已掌握'
-                    }"
-                  >
-                    {{ poem.status }}
-                  </text>
-                </view>
-              </view>
-
-              <view v-if="homeDueReviewPoems.length > 2" class="more-card">
-                <text>···</text>
-              </view>
-
-              <view v-if="homeReviewPreview.length === 0" class="review-empty">
-                <text>{{ homeReviewEmptyText }}</text>
-              </view>
-            </view>
-          </view>
-        </view>
+      <view class="town-entry camera-entry" :class="{ pressed: pressedEntry === 'camera' }" @tap="openCamera">
+        <image src="/static/final-ui/town-camera.png" mode="scaleToFill" />
       </view>
 
-      <view class="footer-decoration">
-        <text>🌱</text>
-        <text class="seedling-two">🌱</text>
+      <view class="town-entry today-entry" :class="{ pressed: pressedEntry === 'today' }" @tap="openLottery">
+        <image src="/static/final-ui/town-today.png" mode="scaleToFill" />
       </view>
 
-      <view v-if="showSearchPanel" class="search-mask" @tap="closeSearch">
-        <view class="search-panel" @tap.stop>
-          <view class="search-head">
-            <view>
-              <view class="search-title">搜索古诗</view>
-              <view class="search-sub">输入诗名、作者、主题都可以</view>
-            </view>
+      <view class="town-entry search-entry" :class="{ pressed: pressedEntry === 'search' }" @tap="openSearch">
+        <image src="/static/final-ui/town-search.png" mode="scaleToFill" />
+      </view>
 
-            <button class="search-close" @tap="closeSearch">×</button>
+      <view class="town-entry practice-entry" :class="{ pressed: pressedEntry === 'practice' }" @tap="openPractice">
+        <image src="/static/final-ui/town-practice.png" mode="scaleToFill" />
+      </view>
+
+      <view class="town-entry stamps-entry" :class="{ pressed: pressedEntry === 'stamps' }" @tap="openStamps">
+        <image src="/static/final-ui/town-stamps.png" mode="scaleToFill" />
+      </view>
+
+      <view v-if="showLottery" class="modal-mask" @tap="showLottery = false">
+        <view class="lottery-modal" @tap.stop>
+          <image src="/static/final-ui/lottery.png" mode="scaleToFill" />
+          <button class="modal-close" @tap.stop="showLottery = false" aria-label="关闭"></button>
+          <view class="lottery-copy">
+            <text class="lottery-kicker">抽到啦！</text>
+            <text class="lottery-title">{{ dailyPoem.title }}</text>
+            <text class="lottery-author">{{ dailyPoem.dynasty }} · {{ dailyPoem.author }}</text>
+            <text class="lottery-line">{{ dailyLine }}</text>
           </view>
-
-          <view class="search-input-row">
-            <input
-              class="search-input"
-              v-model="keyword"
-              placeholder="例如：春、李白、月亮"
-              confirm-type="search"
-              @confirm="doSearch"
-            />
-
-            <button class="search-btn" @tap="doSearch">搜索</button>
+          <view class="lottery-actions">
+            <button class="scroll-button primary" @tap="goStudy">打开画卷</button>
+            <button class="scroll-button secondary" @tap="drawAgain">再抽一次</button>
           </view>
-
-          <scroll-view class="search-results" scroll-y>
-            <view
-              v-for="item in searchResults"
-              :key="item.id"
-              class="search-item"
-              @tap="selectPoem(item)"
-            >
-              <view class="search-poem-icon">📜</view>
-
-              <view class="search-info">
-                <view class="search-name-row">
-                  <text class="search-name">{{ item.title }}</text>
-                  <text class="search-author">{{ item.dynasty }} · {{ item.author }}</text>
-                </view>
-
-                <view class="search-preview">{{ item.content_preview }}</view>
-              </view>
-
-              <view class="search-arrow">›</view>
-            </view>
-
-            <view v-if="searchResults.length === 0" class="empty-result">
-              没有找到相关古诗
-            </view>
-          </scroll-view>
         </view>
       </view>
     </view>
@@ -205,1113 +65,168 @@
 <script setup>
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
-import { API, LOCAL_POEMS, searchLocalPoems } from '@/utils/api.js'
+import { API, LOCAL_POEMS } from '@/utils/api.js'
 
-const DESIGN_WIDTH = 844
-const DESIGN_HEIGHT = 390
-const appScale = ref(1)
+const DESIGN_WIDTH = 1672
+const DESIGN_HEIGHT = 770
+const townScale = ref(1)
+const townScaleStyle = computed(() => `transform: scale(${townScale.value});`)
 
-const appScaleStyle = computed(() => `transform: scale(${appScale.value});`)
-
-const updateAppScale = () => {
+const updateScale = () => {
   try {
-    const systemInfo = uni.getSystemInfoSync()
-    const width = Number(systemInfo.windowWidth || systemInfo.screenWidth || DESIGN_WIDTH)
-    const height = Number(systemInfo.windowHeight || systemInfo.screenHeight || DESIGN_HEIGHT)
-    const nextScale = Math.min(width / DESIGN_WIDTH, height / DESIGN_HEIGHT)
-
-    appScale.value = nextScale > 0 ? Number(nextScale.toFixed(4)) : 1
+    const info = uni.getSystemInfoSync()
+    const width = Number(info.windowWidth || info.screenWidth || DESIGN_WIDTH)
+    const height = Number(info.windowHeight || info.screenHeight || DESIGN_HEIGHT)
+    townScale.value = Number(Math.min(width / DESIGN_WIDTH, height / DESIGN_HEIGHT).toFixed(4)) || 1
   } catch (err) {
-    appScale.value = 1
+    townScale.value = 1
   }
 }
-
-const handleAppResize = () => {
-  updateAppScale()
-}
-
-onMounted(() => {
-  updateAppScale()
-
-  if (typeof uni.onWindowResize === 'function') {
-    uni.onWindowResize(handleAppResize)
-  }
-})
-
-onUnmounted(() => {
-  if (typeof uni.offWindowResize === 'function') {
-    uni.offWindowResize(handleAppResize)
-  }
-})
 
 const selectedAge = ref('4 岁')
-const showAgeList = ref(false)
 const ageList = ['3 岁', '4 岁', '5 岁', '6 岁', '7 岁']
-
-const CHILD_AGE_TEXT_KEY = 'shiYaChildAgeText'
-const CHILD_AGE_KEY = 'shiYaChildAge'
-
-const getAgeNumber = (ageText) => {
-  const match = String(ageText || '').match(/\d+/)
-  return match ? Number(match[0]) : 4
-}
-
-const showSearchPanel = ref(false)
-const keyword = ref('')
-const searchResults = ref(searchLocalPoems(''))
-
-const POEM_ICONS = ['🌸', '🌙', '🦢', '🌾', '🏯', '🌿', '🍃', '⭐']
-const homeReviewPoems = ref([])
-const dailyPoem = ref({ id: '', title: '正在推荐', author: '', tags: [] })
-const dailyPoemTags = computed(() => {
-  const tags = Array.isArray(dailyPoem.value?.tags) ? dailyPoem.value.tags : []
-  return tags.slice(0, 2)
+const showAgeList = ref(false)
+const showLottery = ref(false)
+const pressedEntry = ref('')
+const dailyPoem = ref(LOCAL_POEMS[0])
+const dailyLine = computed(() => {
+  const content = dailyPoem.value?.content
+  return Array.isArray(content) ? content.slice(0, 2).join('，') : String(content || '')
 })
 
-const getDailyTagIcon = (tag = '') => {
-  if (String(tag).includes('春') || String(tag).includes('花')) return '☀️'
-  if (String(tag).includes('鸟') || String(tag).includes('动物')) return '🐦'
-  if (String(tag).includes('月') || String(tag).includes('夜')) return '🌙'
-  if (String(tag).includes('山') || String(tag).includes('自然')) return '🌿'
-  return '✨'
-}
-
-const loadDailyRecommendation = async () => {
-  try {
-    const poem = await API.getDailyRecommendation(getAgeNumber(selectedAge.value))
-    if (poem?.id) dailyPoem.value = poem
-  } catch (err) {
-    console.log('每日推荐加载失败，继续显示本地推荐', err)
-  }
-}
-
-const extractArrayPayload = (payload) => {
-  const candidates = [
-    payload,
-    payload?.data,
-    payload?.items,
-    payload?.poems,
-    payload?.list,
-    payload?.results,
-    payload?.records,
-    payload?.data?.items,
-    payload?.data?.poems,
-    payload?.data?.list,
-    payload?.data?.results,
-    payload?.data?.records
-  ]
-
-  return candidates.find(item => Array.isArray(item)) || []
-}
-
-const normalizeConsolidationStatus = (payload, defaultStatus = '待巩固') => {
-  const data = payload?.data && !Array.isArray(payload.data) ? payload.data : payload
-  const rawStatus = data?.status ?? payload?.status
-  const practiceCount = Number(
-    data?.practice_count ??
-    data?.practiceCount ??
-    payload?.practice_count ??
-    payload?.practiceCount ??
-    0
-  )
-
-  // 优先相信后端展示状态。到复习日期时，后端可能会把“已巩固”
-  // 临时展示成“待巩固”，因此不能只按 practice_count 强行覆盖。
-  if (typeof rawStatus === 'string') {
-    const value = rawStatus.trim()
-    const lowerValue = value.toLowerCase()
-
-    if (value.includes('已掌握') || lowerValue.includes('mastered')) {
-      return '已掌握'
-    }
-
-    if (
-      value.includes('已巩固') ||
-      value.includes('已通过') ||
-      lowerValue.includes('consolidated') ||
-      lowerValue.includes('reviewed')
-    ) {
-      return '已巩固'
-    }
-
-    if (
-      value.includes('待巩固') ||
-      value.includes('未学习') ||
-      value.includes('未掌握') ||
-      lowerValue.includes('pending') ||
-      lowerValue.includes('learning')
-    ) {
-      return '待巩固'
-    }
-  }
-
-  // 兼容后端未返回 status 的情况：
-  // 0 次待巩固，1～2 次已巩固，3 次及以上已掌握。
-  if (practiceCount >= 3) return '已掌握'
-  if (practiceCount >= 1) return '已巩固'
-
-  if (data?.mastered === true || payload?.mastered === true) {
-    return '已掌握'
-  }
-
-  return defaultStatus
-}
-
-const normalizeDueToday = (payload = {}) => {
-  const rawValue = payload?.due_today ?? payload?.dueToday
-
-  if (typeof rawValue === 'boolean') return rawValue
-  if (typeof rawValue === 'number') return rawValue > 0
-
-  if (typeof rawValue === 'string') {
-    const value = rawValue.trim().toLowerCase()
-
-    if (['true', '1', 'yes'].includes(value)) return true
-    if (['false', '0', 'no'].includes(value)) return false
-  }
-
-  // 兼容后端暂未返回 due_today 的旧数据：
-  // 未掌握记录先展示，避免首页完全漏掉待复习内容。
-  return true
-}
-
-const getLocalPoemByAnyId = (poemId = '') => {
-  return LOCAL_POEMS.find(item => item.id === poemId || item.poem_id === poemId) || null
-}
-
-const normalizeHomeReviewPoem = (rawItem = {}, index = 0) => {
-  const item = typeof rawItem === 'string'
-    ? { poem_id: rawItem }
-    : rawItem?.poem || rawItem?.poem_info || rawItem?.data || rawItem || {}
-
-  const poemId = String(
-    item.poem_id ||
-    item.poemId ||
-    item.id ||
-    item.key ||
-    `poem_${String(index + 1).padStart(3, '0')}`
-  )
-
-  const localPoem = getLocalPoemByAnyId(poemId) || {}
-  const poem = {
-    ...localPoem,
-    ...item
-  }
-
-  const status = normalizeConsolidationStatus(poem, '待巩固')
-
-  return {
-    key: poemId,
-    poem_id: poemId,
-    title: poem.title || poem.poem_title || poem.poemTitle || `古诗 ${index + 1}`,
-    icon: poem.icon || POEM_ICONS[index % POEM_ICONS.length],
-    status,
-    practice_count: Number(poem.practice_count || poem.practiceCount || 0),
-    next_review_date: poem.next_review_date || poem.nextReviewDate || '',
-    due_today: normalizeDueToday(poem)
-  }
-}
-
-const homeReviewSummary = ref({
-  total_count: 0,
-  pending_count: 0,
-  consolidated_count: 0,
-  mastered_count: 0,
-  due_today_count: 0
-})
-
-const homeDueReviewPoems = computed(() => {
-  return homeReviewPoems.value.filter(item => {
-    return item.status !== '已掌握' && item.due_today
-  })
-})
-
-const homeReviewPreview = computed(() => homeDueReviewPoems.value.slice(0, 2))
-
-const reviewLearningCount = computed(() => {
-  const backendCount = Number(homeReviewSummary.value.due_today_count)
-
-  if (Number.isFinite(backendCount)) {
-    return backendCount
-  }
-
-  return homeDueReviewPoems.value.length
-})
-
-const homeReviewEmptyText = computed(() => {
-  if (homeReviewPoems.value.length === 0) {
-    return '学习完成后会出现在这里'
-  }
-
-  return '今天没有到期的巩固任务'
-})
-
-const loadHomeReviewPoems = async () => {
-  try {
-    const res = await API.getConsolidationList()
-    const list = extractArrayPayload(res)
-
-    // 只展示后端巩固记录。后端只会为点过“看完了”的已学习诗歌创建记录。
-    homeReviewPoems.value = list.map((item, index) => normalizeHomeReviewPoem(item, index))
-
-    const summary = res?.data && !Array.isArray(res.data) ? res.data : res
-
-    homeReviewSummary.value = {
-      total_count: Number(summary?.total_count ?? list.length),
-      pending_count: Number(
-        summary?.pending_count ??
-        homeReviewPoems.value.filter(item => item.status === '待巩固').length
-      ),
-      consolidated_count: Number(
-        summary?.consolidated_count ??
-        homeReviewPoems.value.filter(item => item.status === '已巩固').length
-      ),
-      mastered_count: Number(
-        summary?.mastered_count ??
-        homeReviewPoems.value.filter(item => item.status === '已掌握').length
-      ),
-      due_today_count: Number(
-        summary?.due_today_count ??
-        homeDueReviewPoems.value.length
-      )
-    }
-  } catch (err) {
-    console.log('首页巩固列表接口加载失败', err)
-
-    // 不使用 LOCAL_POEMS 兜底，否则未学习诗歌会被误显示为巩固任务。
-    homeReviewPoems.value = []
-    homeReviewSummary.value = {
-      total_count: 0,
-      pending_count: 0,
-      consolidated_count: 0,
-      mastered_count: 0,
-      due_today_count: 0
-    }
-  }
-}
-
-onMounted(() => {
-  const savedAge = uni.getStorageSync(CHILD_AGE_TEXT_KEY)
-
-  if (savedAge && ageList.includes(savedAge)) {
-    selectedAge.value = savedAge
-  }
-
-  uni.setStorageSync(CHILD_AGE_TEXT_KEY, selectedAge.value)
-  uni.setStorageSync(CHILD_AGE_KEY, getAgeNumber(selectedAge.value))
-  loadDailyRecommendation()
-
-})
-
-onShow(() => {
-  // 从巩固页返回首页时重新拉取，避免首页继续显示旧状态。
-  loadHomeReviewPoems()
-  loadDailyRecommendation()
-})
-
-const chooseAge = (age) => {
-  selectedAge.value = age
-  showAgeList.value = false
-
-  uni.setStorageSync(CHILD_AGE_TEXT_KEY, age)
-  uni.setStorageSync(CHILD_AGE_KEY, getAgeNumber(age))
-  loadDailyRecommendation()
-
-  uni.showToast({
-    title: `已选择${age}`,
-    icon: 'none'
-  })
-}
+const ageNumber = () => Number(String(selectedAge.value).match(/\d+/)?.[0] || 4)
 
 const goPage = (url) => {
   uni.navigateTo({
     url,
     fail: () => {
-      if (typeof window !== 'undefined') {
-        window.location.href = `#${url}`
-      }
+      if (typeof window !== 'undefined') window.location.href = `#${url}`
     }
   })
 }
 
-const goStudy = (poemId) => {
-  if (!poemId) {
-    uni.showToast({ title: '每日推荐加载中', icon: 'none' })
-    return
-  }
-  goPage(`/pages/study/study?poem_id=${poemId}`)
+const chooseAge = async (age) => {
+  selectedAge.value = age
+  showAgeList.value = false
+  uni.setStorageSync('shiYaChildAgeText', age)
+  uni.setStorageSync('shiYaChildAge', ageNumber())
+  await loadDailyPoem()
 }
 
-const openSearch = () => {
-  showSearchPanel.value = true
-  keyword.value = ''
-  searchResults.value = searchLocalPoems('')
-}
-
-const closeSearch = () => {
-  showSearchPanel.value = false
-}
-
-const doSearch = async () => {
-  const kw = keyword.value.trim()
-
+const loadDailyPoem = async () => {
   try {
-    const res = await API.searchPoems(kw)
-
-    if (res && res.success && Array.isArray(res.data)) {
-      searchResults.value = res.data
-      return
-    }
+    const poem = await API.getDailyRecommendation(ageNumber())
+    if (poem?.id) dailyPoem.value = poem
   } catch (err) {
-    console.log('搜索接口暂不可用，使用本地数据', err)
+    const index = (new Date().getDate() + ageNumber()) % LOCAL_POEMS.length
+    dailyPoem.value = LOCAL_POEMS[index] || LOCAL_POEMS[0]
   }
-
-  searchResults.value = searchLocalPoems(kw)
 }
 
-const preloadPoemImage = async (poemId) => {
+const drawDailyPoem = async () => {
+  await loadDailyPoem()
+  showLottery.value = true
+}
+
+const activateEntry = (name, action) => {
+  if (pressedEntry.value) return
+  pressedEntry.value = name
+  setTimeout(() => {
+    pressedEntry.value = ''
+    action()
+  }, 150)
+}
+
+const openCamera = () => activateEntry('camera', () => goPage('/pages/camera/camera'))
+const openLottery = () => activateEntry('today', drawDailyPoem)
+const openSearch = () => activateEntry('search', () => goPage('/pages/recommend/recommend?mode=search'))
+const openPractice = () => activateEntry('practice', () => goPage('/pages/review/review'))
+const openStamps = () => activateEntry('stamps', () => goPage('/pages/collection/collection'))
+
+const drawAgain = async () => {
   try {
-    const detailRes = await API.getPoemDetail(poemId)
-
-    if (detailRes?.success && detailRes.data) {
-      API.preloadGenerateImage(detailRes.data)
-    }
+    const poem = await API.getDailyRecommendation(ageNumber(), dailyPoem.value?.id || '')
+    if (poem?.id) dailyPoem.value = poem
   } catch (err) {
-    console.log('预热配图失败，播放页会继续生成', err)
+    const currentIndex = Math.max(0, LOCAL_POEMS.findIndex(item => item.id === dailyPoem.value?.id))
+    dailyPoem.value = LOCAL_POEMS[(currentIndex + 1) % LOCAL_POEMS.length]
   }
 }
 
-const selectPoem = (poem) => {
-  closeSearch()
-
-  if (poem?.id) {
-    preloadPoemImage(poem.id)
-  }
-
-  goStudy(poem.id)
+const goStudy = () => {
+  if (!dailyPoem.value?.id) return
+  showLottery.value = false
+  goPage(`/pages/study/study?poem_id=${dailyPoem.value.id}`)
 }
+
+const handleResize = () => updateScale()
+
+onMounted(() => {
+  updateScale()
+  const saved = uni.getStorageSync('shiYaChildAgeText')
+  if (ageList.includes(saved)) selectedAge.value = saved
+  if (typeof uni.onWindowResize === 'function') uni.onWindowResize(handleResize)
+})
+
+onUnmounted(() => {
+  if (typeof uni.offWindowResize === 'function') uni.offWindowResize(handleResize)
+})
+
+onShow(() => {
+  loadDailyPoem()
+})
 </script>
 
 <style scoped>
-* {
-  box-sizing: border-box;
-}
-
-button::after {
-  border: none;
-}
-
-.page-root {
-  width: 100vw;
-  height: 100vh;
-  background: #1a1a1a;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-  font-family: "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
-}
-
-.app-container {
-  position: relative;
-  width: 844px;
-  height: 390px;
-  max-width: none;
-  max-height: none;
-  transform-origin: center center;
-  will-change: transform;
-  background: linear-gradient(135deg, #fff9f0 0%, #ffe4d6 100%);
-  overflow: hidden;
-  border-radius: 0;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.35);
-  padding: 14px 22px 14px;
-  display: flex;
-  flex-direction: column;
-}
-
-.cloud-bg {
-  position: absolute;
-  top: 42px;
-  left: 240px;
-  font-size: 52px;
-  opacity: 0.15;
-  animation: floatCloud 10s ease-in-out infinite;
-  pointer-events: none;
-}
-
-@keyframes floatCloud {
-  50% {
-    transform: translateX(28px);
-  }
-}
-
-.mountain-bg {
-  position: absolute;
-  left: 0;
-  bottom: 0;
-  width: 100%;
-  height: 120px;
-  opacity: 0.05;
-  pointer-events: none;
-}
-
-.mountain {
-  position: absolute;
-  bottom: 0;
-  background: #5d4e8c;
-  clip-path: polygon(50% 0%, 100% 100%, 0% 100%);
-}
-
-.mountain-a {
-  left: 0;
-  width: 240px;
-  height: 105px;
-}
-
-.mountain-b {
-  left: 210px;
-  width: 300px;
-  height: 150px;
-}
-
-.mountain-c {
-  right: 0;
-  width: 330px;
-  height: 125px;
-}
-
-.header {
-  position: relative;
-  height: 48px;
-  margin-bottom: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  z-index: 900;
-}
-
-.brand-pill {
-  height: 40px;
-  background: rgba(255, 255, 255, 0.8);
-  padding: 7px 18px;
-  border-radius: 999px;
-  border: 2px solid #ffd93d;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.brand-icon {
-  width: 26px;
-  height: 26px;
-  background: #ff8e53;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #ffffff;
-  font-size: 13px;
-}
-
-.brand-title {
-  font-size: 18px;
-  font-weight: 900;
-  color: #5d4e8c;
-  letter-spacing: 1px;
-}
-
-.age-area {
-  position: relative;
-  z-index: 1000;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.parent-btn {
-  height: 32px;
-  border: 0;
-  border-radius: 999px;
-  background: #66cdaa;
-  color: #ffffff;
-  padding: 0 16px;
-  font-size: 13px;
-  font-weight: 900;
-  box-shadow: 0 5px 12px rgba(102, 205, 170, 0.24);
-}
-
-.age-label {
-  font-size: 13px;
-  color: #999999;
-  font-weight: 800;
-}
-
-.age-select {
-  height: 32px;
-  min-width: 80px;
-  padding: 0 12px 0 18px;
-  border-radius: 999px;
-  background: #ff6b6b;
-  color: #ffffff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  font-size: 14px;
-  font-weight: 900;
-  box-shadow: 0 5px 12px rgba(255, 107, 107, 0.24);
-}
-
-.age-arrow {
-  font-size: 15px;
-  margin-top: -4px;
-}
-
-.age-dropdown {
-  position: absolute;
-  right: 0;
-  top: 40px;
-  width: 96px;
-  background: #ffffff;
-  border-radius: 18px;
-  padding: 6px;
-  box-shadow: 0 10px 24px rgba(112, 79, 54, 0.18);
-  z-index: 999;
-}
-
-.age-option {
-  height: 34px;
-  border-radius: 14px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #5d4e8c;
-  font-size: 14px;
-  font-weight: 900;
-}
-
-.age-option.active {
-  background: #ff6b6b;
-  color: #ffffff;
-}
-
-.main-layout {
-  flex: 1;
-  min-height: 0;
-  position: relative;
-  z-index: 10;
-  display: flex;
-  gap: 18px;
-}
-
-.left-panel {
-  width: 28%;
-  display: flex;
-  flex-direction: column;
-  gap: 11px;
-}
-
-.action-button {
-  flex: 1;
-  border-radius: 36px;
-  border: 4px solid #ffffff;
-  box-shadow:
-    0 10px 15px -5px rgba(0, 0, 0, 0.1),
-    inset 0 -6px 12px rgba(0, 0, 0, 0.05),
-    inset 0 6px 12px rgba(255, 255, 255, 0.4);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-}
-
-.action-button:active,
-.today-card:active,
-.review-card:active {
-  transform: scale(0.96);
-}
-
-.camera-button {
-  background: #ff8e53;
-}
-
-.search-button {
-  background: #66cdaa;
-  position: relative;
-}
-
-.action-icon-circle {
-  width: 48px;
-  height: 48px;
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 6px;
-}
-
-.action-icon {
-  font-size: 24px;
-}
-
-.action-title {
-  color: #ffffff;
-  font-size: 16px;
-  font-weight: 900;
-  letter-spacing: 3px;
-}
-
-.mic-icon {
-  position: absolute;
-  right: 18px;
-  bottom: 12px;
-  color: rgba(255, 255, 255, 0.42);
-  font-size: 14px;
-}
-
-.right-panel {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-
-.today-card {
-  flex: 1;
-  position: relative;
-  overflow: hidden;
-  background: #ffffff;
-  border-radius: 30px;
-  border: 2px solid rgba(255, 255, 255, 0.8);
-  padding: 18px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.yellow-side-line {
-  position: absolute;
-  left: 0;
-  top: 0;
-  width: 7px;
-  height: 100%;
-  background: rgba(255, 217, 61, 0.4);
-}
-
-.today-left {
-  height: 100%;
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-}
-
-.today-tags {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 18px;
-}
-
-.small-tag {
-  height: 26px;
-  padding: 0 11px;
-  border-radius: 999px;
-  border: 1px solid;
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 10px;
-  font-weight: 800;
-}
-
-.spring-tag {
-  background: #ecfdf5;
-  color: #10b981;
-  border-color: #d1fae5;
-}
-
-.bird-tag {
-  background: #eff6ff;
-  color: #38bdf8;
-  border-color: #dbeafe;
-}
-
-.today-hint {
-  margin-left: 6px;
-  font-size: 15px;
-  color: #999999;
-  font-weight: 900;
-  letter-spacing: 2px;
-}
-
-.today-title-row {
-  display: flex;
-  align-items: flex-end;
-}
-
-.poem-title {
-  font-size: 50px;
-  font-weight: 900;
-  line-height: 1;
-  color: #5d4e8c;
-  letter-spacing: 2px;
-}
-
-.poem-author {
-  font-size: 20px;
-  font-weight: 900;
-  color: #ff8e53;
-  margin-left: 15px;
-  margin-bottom: 3px;
-}
-
-.play-button {
-  width: 76px;
-  height: 76px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #ff8e53, #e46c2c);
-  border: 6px solid #ffffff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.play-icon {
-  color: #ffffff;
-  font-size: 30px;
-  margin-left: 4px;
-}
-
-.review-card {
-  flex: 1;
-  background: rgba(255, 255, 255, 0.62);
-  border-radius: 30px;
-  border: 2px solid rgba(255, 255, 255, 0.8);
-  padding: 15px;
-  display: flex;
-  flex-direction: column;
-}
-
-.review-header {
-  height: 36px;
-  margin-bottom: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.review-title-row {
-  display: flex;
-  align-items: center;
-}
-
-.review-title {
-  font-size: 20px;
-  font-weight: 900;
-  color: #5d4e8c;
-}
-
-.review-arrow {
-  margin-left: 10px;
-  width: 26px;
-  height: 26px;
-  background: #ff8e53;
-  color: #ffffff;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 22px;
-}
-
-.review-count {
-  height: 24px;
-  padding: 0 14px;
-  border-radius: 999px;
-  background: rgba(255, 142, 83, 0.1);
-  color: rgba(255, 142, 83, 0.75);
-  font-size: 10px;
-  font-weight: 900;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.review-list {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  overflow: hidden;
-}
-
-.review-poem-card {
-  width: 176px;
-  height: 100%;
-  background: #ffffff;
-  border-radius: 26px;
-  padding: 11px;
-  display: flex;
-  align-items: center;
-  gap: 13px;
-  flex-shrink: 0;
-}
-
-.pending-card {
-  border: 2px dashed rgba(255, 142, 83, 0.4);
-}
-
-.consolidated-card {
-  border: 2px solid rgba(76, 164, 255, 0.24);
-}
-
-.mastered-card {
-  border: 2px solid rgba(102, 205, 170, 0.26);
-}
-
-.review-poem-icon-wrap {
-  width: 58px;
-  height: 58px;
-  background: #fffbf4;
-  border-radius: 22px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.review-poem-icon {
-  font-size: 32px;
-}
-
-.review-poem-info {
-  display: flex;
-  flex-direction: column;
-}
-
-.review-poem-name {
-  font-size: 17px;
-  font-weight: 900;
-  color: #5d4e8c;
-}
-
-.review-poem-status {
-  font-size: 11px;
-  font-weight: 900;
-  margin-top: 5px;
-}
-
-.pending-text {
-  color: #ff8e53;
-}
-
-.consolidated-text {
-  color: #4c9fe8;
-}
-
-.mastered-text {
-  color: #37b98d;
-}
-
-
-.review-empty {
-  flex: 1;
-  min-height: 54px;
-  border: 2px dashed rgba(255, 142, 83, 0.24);
-  border-radius: 20px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #a18f84;
-  font-size: 12px;
-  font-weight: 800;
-  text-align: center;
-  padding: 8px 12px;
-}
-
-.more-card {
-  width: 50px;
-  height: 70%;
-  background: rgba(255, 255, 255, 0.25);
-  border: 2px dashed #dddddd;
-  border-radius: 14px;
-  color: #cccccc;
-  font-size: 24px;
-  font-weight: 900;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.footer-decoration {
-  height: 16px;
-  margin-top: 7px;
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-  opacity: 0.22;
-  font-size: 12px;
-}
-
-.seedling-two {
-  transform: rotate(12deg);
-}
-
-.search-mask {
-  position: absolute;
-  inset: 0;
-  background: rgba(93, 78, 140, 0.22);
-  z-index: 9999;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.search-panel {
-  position: relative;
-  width: 600px;
-  height: 300px;
-  background: #ffffff;
-  border-radius: 30px;
-  box-shadow: 0 28px 70px rgba(0, 0, 0, 0.22);
-  padding: 22px;
-  display: flex;
-  flex-direction: column;
-}
-
-.search-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding-right: 50px;
-}
-
-.search-title {
-  font-size: 24px;
-  font-weight: 900;
-  color: #5d4e8c;
-}
-
-.search-sub {
-  margin-top: 4px;
-  font-size: 13px;
-  color: #999999;
-  font-weight: 800;
-}
-
-.search-close {
-  position: absolute;
-  right: 18px;
-  top: 18px;
-  width: 38px;
-  height: 38px;
-  border: 0;
-  border-radius: 50%;
-  background: #f4f1ff;
-  color: #5d4e8c;
-  font-size: 24px;
-  font-weight: 900;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.search-input-row {
-  margin-top: 16px;
-  display: flex;
-  gap: 10px;
-}
-
-.search-input {
-  flex: 1;
-  height: 42px;
-  border-radius: 21px;
-  background: #f7f4ff;
-  color: #5d4e8c;
-  padding: 0 16px;
-  font-size: 14px;
-  font-weight: 800;
-}
-
-.search-btn {
-  width: 90px;
-  height: 42px;
-  border: 0;
-  border-radius: 999px;
-  background: #ff8e53;
-  color: #ffffff;
-  font-size: 15px;
-  font-weight: 900;
-}
-
-.search-results {
-  flex: 1;
-  margin-top: 14px;
-  min-height: 0;
-}
-
-.search-item {
-  height: 62px;
-  border-radius: 18px;
-  background: #fff8ee;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 0 14px;
-  margin-bottom: 8px;
-}
-
-.search-poem-icon {
-  width: 42px;
-  height: 42px;
-  border-radius: 14px;
-  background: #ffffff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 22px;
-}
-
-.search-info {
-  flex: 1;
-}
-
-.search-name-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.search-name {
-  font-size: 16px;
-  color: #5d4e8c;
-  font-weight: 900;
-}
-
-.search-author {
-  font-size: 12px;
-  color: #ff8e53;
-  font-weight: 800;
-}
-
-.search-preview {
-  margin-top: 4px;
-  font-size: 12px;
-  color: #777777;
-  font-weight: 700;
-}
-
-.search-arrow {
-  font-size: 24px;
-  color: #cbc3e8;
-}
-
-.empty-result {
-  text-align: center;
-  color: #999999;
-  font-size: 15px;
-  font-weight: 800;
-  margin-top: 40px;
-}
+* { box-sizing: border-box; }
+button::after { border: 0; }
+.page-root { width: 100vw; height: 100vh; overflow: hidden; display: flex; align-items: center; justify-content: center; background: #172421; font-family: "STKaiti", "KaiTi", "PingFang SC", serif; }
+.town { position: relative; width: 1672px; height: 770px; flex: 0 0 auto; overflow: hidden; transform-origin: center; }
+.town-bg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.brand { position: absolute; left: 18px; top: 0; width: 400px; height: 180px; z-index: 20; filter: drop-shadow(0 6px 5px rgba(84, 54, 24, .2)); }
+.brand image { width: 100%; }
+.top-actions { position: absolute; top: 24px; right: 30px; display: flex; gap: 18px; z-index: 40; font-family: "PingFang SC", sans-serif; }
+.age-control, .parent-control { position: relative; height: 72px; display: flex; align-items: center; justify-content: center; color: #744318; font-weight: 900; font-size: 25px; }
+.age-control { width: 178px; padding-right: 20px; }
+.parent-control { width: 168px; }
+.age-control image, .parent-control image { position: absolute; inset: 0; width: 100%; height: 100%; z-index: -1; }
+.age-arrow { position: absolute; right: 29px; top: 19px; }
+.age-menu { position: absolute; right: 184px; top: 76px; width: 174px; padding: 10px; border: 4px solid #b9792f; border-radius: 20px; background: #fff1cb; box-shadow: 0 10px 25px rgba(61, 40, 18, .25); }
+.age-menu view { height: 50px; border-radius: 13px; display: flex; align-items: center; justify-content: center; color: #795126; font-size: 23px; font-weight: 900; }
+.age-menu view.active { background: #df9a42; color: white; }
+.town-entry { position: absolute; z-index: 5; transition: transform .15s ease, filter .15s ease; transform-origin: center; }
+.town-entry image { position: absolute; max-width: none; max-height: none; pointer-events: none; }
+.town-entry.pressed { transform: scale(.9); filter: brightness(1.08) drop-shadow(0 12px 10px rgba(88, 56, 22, .25)); }
+.camera-entry { left: 109px; top: 149px; width: 440px; height: 330px; }
+.camera-entry image { left: 0; top: 0; width: 440px; height: 330px; }
+.today-entry { left: 606px; top: 83px; width: 447px; height: 463px; z-index: 9; }
+.today-entry image { left: -232px; top: -22px; width: 900px; height: 500px; }
+.today-entry.pressed { transform: none; filter: brightness(1.06) drop-shadow(0 10px 8px rgba(88, 56, 22, .22)); }
+.search-entry { left: 105px; top: 395px; width: 521px; height: 294px; }
+.search-entry image { left: 0; top: 0; width: 521px; height: 294px; }
+.practice-entry { left: 1149px; top: 188px; width: 335px; height: 270px; }
+.practice-entry image { left: 0; top: 0; width: 335px; height: 270px; }
+.stamps-entry { left: 1120px; top: 412px; width: 450px; height: 250px; }
+.stamps-entry image { left: 0; top: 0; width: 450px; height: 250px; }
+.modal-mask { position: absolute; inset: 0; z-index: 100; display: flex; align-items: center; justify-content: center; background: rgba(55, 46, 30, .38); backdrop-filter: blur(5px); }
+.lottery-modal { position: relative; width: 790px; height: 584px; animation: reveal .35s ease-out; }
+.lottery-modal > image { position: absolute; inset: 0; width: 100%; height: 100%; }
+@keyframes reveal { from { transform: scale(.75) rotate(-2deg); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+.modal-close { position: absolute; right: 8px; top: 48px; width: 72px; height: 72px; padding: 0; border: 0; background: transparent; z-index: 8; }
+.lottery-copy { position: absolute; inset: 0; color: #663c19; text-align: center; pointer-events: none; }
+.lottery-kicker { position: absolute; left: 175px; right: 175px; top: 40px; height: 86px; display: flex; align-items: center; justify-content: center; font-size: 42px; font-weight: 900; }
+.lottery-title { position: absolute; left: 145px; right: 145px; top: 180px; font-size: 72px; font-weight: 900; letter-spacing: 12px; }
+.lottery-author { position: absolute; left: 170px; right: 170px; top: 282px; font-size: 30px; font-weight: 800; }
+.lottery-line { position: absolute; left: 120px; right: 180px; top: 345px; font-size: 24px; color: #8d623a; }
+.lottery-actions { position: absolute; left: 126px; right: 126px; bottom: 54px; height: 82px; display: flex; gap: 39px; }
+.scroll-button { flex: 1; height: 82px; padding: 0; border: 0; background: transparent; color: #623a17; font-size: 27px; font-weight: 900; }
+.scroll-button.primary, .scroll-button.secondary { background: transparent; box-shadow: none; }
+/* 手机横屏可读性 */
+.age-control, .parent-control { font-size: 34px; }
+.age-menu view { font-size: 30px; }
+.lottery-kicker { font-size: 52px; }
+.lottery-title { font-size: 78px; }
+.lottery-author { font-size: 38px; }
+.lottery-line { font-size: 34px; }
+.scroll-button { font-size: 36px; }
 </style>

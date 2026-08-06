@@ -1,91 +1,56 @@
 <template>
   <view class="page-root">
-    <view class="recommend-app" :style="appScaleStyle">
-      <view class="page">
-        <view class="topbar">
-          <view class="back" @tap.stop="goHome">‹</view>
+    <view class="search-page" :style="scaleStyle">
+      <image class="page-bg" src="/static/final-ui/search-page.png" mode="scaleToFill" />
+      <button class="back-hotspot art-back" @tap="goHome" aria-label="返回"><image src="/static/final-ui/nav-back.png" mode="aspectFit" /></button>
+      <view class="page-title">找 古 诗</view>
 
-          <view class="title-pill">
-            <view class="logo">🌱</view>
-            <text>诗芽推荐</text>
+      <button class="search-trigger" @tap="openSearchDialog" aria-label="打开搜索">
+        <text>诗名、作者或主题</text>
+      </button>
+
+      <view class="filter-row">
+        <view v-for="item in filters" :key="item.value" :class="{ active: activeFilter === item.value }" @tap="selectFilter(item.value)">{{ item.label }}</view>
+      </view>
+
+      <view v-if="loading" class="message">正在翻阅诗卷……</view>
+      <view v-else-if="visiblePoems.length === 0" class="message">没有找到相关古诗，换个词试试吧</view>
+      <view v-else class="poem-grid">
+        <view v-for="poem in visiblePoems" :key="poem.id" class="poem-card" @tap="selectPoem(poem)">
+          <image src="/static/final-ui/poem-card-transparent.png" mode="scaleToFill" />
+          <view class="poem-content">
+            <view class="poem-title">{{ poem.title }}</view>
+            <view class="poem-author">{{ poem.dynasty }} · {{ poem.author }}</view>
+            <view class="poem-lines">
+              <text v-for="line in poemLines(poem)" :key="line">{{ line }}</text>
+            </view>
+
+            <view class="poem-open">打开画卷</view>
           </view>
-
-          <view class="top-placeholder"></view>
         </view>
+      </view>
 
-        <view class="main-layout">
-          <view class="left-panel">
-            <view class="section-head">
-              <view class="section-title">📖 继续学习下一首</view>
+      <button class="page-arrow left" @tap="goPrevPage"><image src="/static/final-ui/nav-left.png" mode="aspectFit" /></button>
+      <button class="page-arrow right" @tap="goNextPage"><image src="/static/final-ui/nav-right.png" mode="aspectFit" /></button>
+      <view class="result-count">共找到 {{ filteredPoems.length }} 首</view>
 
-              <view class="filter-row">
-                <view
-                  v-for="item in filters"
-                  :key="item.value"
-                  class="filter-chip"
-                  :class="{ active: activeFilter === item.value }"
-                  @tap="selectFilter(item.value)"
-                >
-                  {{ item.label }}
-                </view>
-              </view>
-            </view>
-
-            <scroll-view class="poem-list" scroll-y>
-              <view
-                v-for="poem in filteredPoems"
-                :key="poem.id"
-                class="poem-card"
-                @tap="selectPoem(poem)"
-              >
-                <view class="poem-icon">{{ poem.icon || '📜' }}</view>
-
-                <view class="poem-info">
-                  <view class="poem-name-row">
-                    <text class="poem-name">{{ poem.title }}</text>
-                    <text v-if="poem.badge" class="badge">{{ poem.badge }}</text>
-                  </view>
-
-                  <view class="poem-author">{{ poem.dynasty }} · {{ poem.author }}</view>
-
-                  <view class="poem-tags">
-                    <text
-                      v-for="tag in poem.tags"
-                      :key="tag"
-                      class="poem-tag"
-                    >
-                      {{ tag }}
-                    </text>
-                  </view>
-
-                  <view v-if="poem.reason" class="reason-text">
-                    {{ poem.reason }}
-                  </view>
-                </view>
-
-                <view class="poem-arrow">›</view>
-              </view>
-
-              <view v-if="filteredPoems.length === 0" class="empty-box">
-                暂时没有推荐，稍后再试试
-              </view>
-            </scroll-view>
+      <view v-if="showSearchDialog" class="search-dialog-mask" @tap="showSearchDialog = false">
+        <view class="search-dialog" @tap.stop>
+          <button class="dialog-close" @tap="showSearchDialog = false">×</button>
+          <view class="dialog-title">搜索结果</view>
+          <view class="dialog-search-row">
+            <input v-model="keyword" placeholder="输入诗名、诗人或主题" confirm-type="search" @confirm="doSearch" />
+            <button @tap="doSearch">搜索</button>
           </view>
-
-          <view class="right-panel">
-            <view class="daily-card">
-              <view class="daily-star">🌟</view>
-              <view class="daily-title">每日一首</view>
-              <view class="daily-text">
-                今日推荐《{{ dailyPoem.title }}》<br />
-                {{ dailyPoemText }}
-              </view>
-
-              <button class="daily-btn" @tap="goStudy(dailyPoem.id)">
-                去看看
-              </button>
+          <view v-if="loading" class="dialog-message">正在翻阅诗卷……</view>
+          <view v-else-if="!searchResults.length" class="dialog-message">输入诗名、作者或主题后点击搜索</view>
+          <scroll-view v-else class="dialog-results" scroll-y>
+            <view v-for="poem in searchResults" :key="'search-' + poem.id" class="dialog-poem" @tap="selectPoem(poem)">
+              <view class="dialog-poem-title">{{ poem.title }}</view>
+              <view class="dialog-poem-author">{{ poem.dynasty }} · {{ poem.author }}</view>
+              <view class="dialog-poem-preview">{{ poem.content_preview || poemLines(poem).join('，') }}</view>
             </view>
-          </view>
+          </scroll-view>
         </view>
       </view>
     </view>
@@ -94,565 +59,165 @@
 
 <script setup>
 import { computed, onMounted, onUnmounted, ref } from 'vue'
-import { onLoad } from '@dcloudio/uni-app'
-import { API, LOCAL_POEMS } from '@/utils/api.js'
+import { API, LOCAL_POEMS, searchLocalPoems } from '@/utils/api.js'
 
-const DESIGN_WIDTH = 844
-const DESIGN_HEIGHT = 390
-const appScale = ref(1)
+const DESIGN_WIDTH = 1672
+const DESIGN_HEIGHT = 770
+const scale = ref(1)
+const keyword = ref('')
+const loading = ref(false)
+const showSearchDialog = ref(false)
+const searchResults = ref([])
+const activeFilter = ref('all')
+const pageIndex = ref(0)
+const results = ref([...LOCAL_POEMS])
+const scaleStyle = computed(() => `transform: scale(${scale.value});`)
+const filters = [
+  { label: '全部', value: 'all' },
+  { label: '春日', value: '春' },
+  { label: '月夜', value: '月' },
+  { label: '山水', value: '山' },
+  { label: '动物', value: '动物' }
+]
 
-const appScaleStyle = computed(() => `transform: scale(${appScale.value});`)
-
-const updateAppScale = () => {
+const updateScale = () => {
   try {
-    const systemInfo = uni.getSystemInfoSync()
-    const width = Number(systemInfo.windowWidth || systemInfo.screenWidth || DESIGN_WIDTH)
-    const height = Number(systemInfo.windowHeight || systemInfo.screenHeight || DESIGN_HEIGHT)
-    const nextScale = Math.min(width / DESIGN_WIDTH, height / DESIGN_HEIGHT)
+    const info = uni.getSystemInfoSync()
+    scale.value = Number(Math.min((info.windowWidth || DESIGN_WIDTH) / DESIGN_WIDTH, (info.windowHeight || DESIGN_HEIGHT) / DESIGN_HEIGHT).toFixed(4)) || 1
+  } catch (err) { scale.value = 1 }
+}
 
-    appScale.value = nextScale > 0 ? Number(nextScale.toFixed(4)) : 1
+const poemSearchText = (poem) => `${poem.title || ''}${poem.author || ''}${(poem.tags || []).join('')}${(poem.content || []).join('')}`
+const filteredPoems = computed(() => {
+  if (activeFilter.value === 'all') return results.value
+  if (activeFilter.value === '动物') return results.value.filter(item => /鹅|鸟|动物|鱼|蜂|蝉/.test(poemSearchText(item)))
+  return results.value.filter(item => poemSearchText(item).includes(activeFilter.value))
+})
+const maxPage = computed(() => Math.max(0, Math.ceil(filteredPoems.value.length / 4) - 1))
+const visiblePoems = computed(() => filteredPoems.value.slice(pageIndex.value * 4, pageIndex.value * 4 + 4))
+const poemLines = (poem) => {
+  if (Array.isArray(poem.content)) return poem.content.filter(Boolean).slice(0, 4)
+  return String(poem.content || poem.content_preview || '').split(/[，。\n]/).filter(Boolean).slice(0, 4)
+}
+const selectFilter = (value) => {
+  activeFilter.value = value
+  pageIndex.value = 0
+}
+
+const openSearchDialog = () => {
+  showSearchDialog.value = true
+  searchResults.value = []
+}
+
+const goPrevPage = () => {
+  pageIndex.value = pageIndex.value > 0 ? pageIndex.value - 1 : maxPage.value
+}
+
+const goNextPage = () => {
+  pageIndex.value = pageIndex.value < maxPage.value ? pageIndex.value + 1 : 0
+}
+
+const doSearch = async () => {
+  const value = keyword.value.trim()
+  showSearchDialog.value = true
+  loading.value = true
+  pageIndex.value = 0
+  activeFilter.value = 'all'
+  try {
+    const response = await API.searchPoems(value)
+    if (response?.success && Array.isArray(response.data)) searchResults.value = response.data
+    else searchResults.value = searchLocalPoems(value)
   } catch (err) {
-    appScale.value = 1
+    searchResults.value = searchLocalPoems(value)
+  } finally {
+    loading.value = false
   }
 }
 
-const handleAppResize = () => {
-  updateAppScale()
+const goHome = () => uni.navigateBack({ fail: () => uni.reLaunch({ url: '/pages/index/index' }) })
+const selectPoem = (poem) => {
+  if (!poem?.id) return
+  API.getPoemDetail(poem.id).then(res => {
+    if (res?.success && res.data) API.preloadGenerateImage(res.data)
+  }).catch(() => {})
+  uni.navigateTo({ url: `/pages/study/study?poem_id=${poem.id}` })
+}
+
+const resize = () => updateScale()
+const loadRecommendations = async () => {
+  loading.value = true
+  try {
+    const response = await API.getRecommend(20, '', uni.getStorageSync('shiYaChildAgeText') || '4岁')
+    if (response?.success && Array.isArray(response.data) && response.data.length) {
+      results.value = response.data
+    }
+  } catch (err) {
+    console.log('加载推荐诗单失败，使用本地兜底：', err)
+  } finally {
+    loading.value = false
+  }
 }
 
 onMounted(() => {
-  updateAppScale()
-
-  if (typeof uni.onWindowResize === 'function') {
-    uni.onWindowResize(handleAppResize)
-  }
+  updateScale()
+  loadRecommendations()
+  if (typeof uni.onWindowResize === 'function') uni.onWindowResize(resize)
 })
-
 onUnmounted(() => {
-  if (typeof uni.offWindowResize === 'function') {
-    uni.offWindowResize(handleAppResize)
-  }
+  if (typeof uni.offWindowResize === 'function') uni.offWindowResize(resize)
 })
-
-const currentPoemId = ref('poem_001')
-const activeFilter = ref('all')
-const recommendList = ref([])
-const dailyPoem = ref({ id: '', title: '正在推荐', author: '', tags: [] })
-const dailyPoemText = computed(() => {
-  const tags = Array.isArray(dailyPoem.value?.tags) ? dailyPoem.value.tags : []
-  return tags.length ? `一起读读${tags[0]}主题吧！` : '一起读一首好诗吧！'
-})
-const getSelectedAge = () => {
-  return uni.getStorageSync('shiYaChildAge') || 4
-}
-
-const loadDailyRecommendation = async () => {
-  try {
-    const poem = await API.getDailyRecommendation(getSelectedAge())
-    if (poem?.id) dailyPoem.value = poem
-  } catch (err) {
-    console.log('每日推荐加载失败，继续显示本地推荐', err)
-  }
-}
-
-const filters = [
-  { label: '全部', value: 'all' },
-  { label: '春天', value: 'spring' },
-  { label: '动物', value: 'animal' },
-  { label: '自然', value: 'nature' }
-]
-
-const categoryMap = {
-  春天: 'spring',
-  自然: 'nature',
-  儿童启蒙: 'nature',
-  动物: 'animal',
-  月亮: 'nature',
-  思乡: 'nature',
-  劳动: 'nature',
-  珍惜粮食: 'nature',
-  登高: 'nature',
-  黄河: 'nature',
-  励志: 'nature'
-}
-
-const categoryKeywords = {
-  spring: ['春天', '春日', '春景', '春风', '花', '柳', '燕'],
-  animal: ['动物', '鸟', '鹅', '鸡', '鸭', '蝉', '虫', '鱼', '蜂', '蝶', '雁', '鹭'],
-  nature: ['自然', '山水', '田园', '江河', '湖', '月亮', '花', '树', '草', '雪', '雨', '风', '云']
-}
-
-const getPoemCategories = (poem = {}) => {
-  const tags = Array.isArray(poem.tags) ? poem.tags : []
-  const content = Array.isArray(poem.content) ? poem.content.join('') : String(poem.content || '')
-  const text = `${poem.title || ''}${tags.join('')}${content}`
-  const categories = tags.map(tag => categoryMap[tag]).filter(Boolean)
-
-  Object.entries(categoryKeywords).forEach(([category, keywords]) => {
-    if (keywords.some(keyword => text.includes(keyword))) {
-      categories.push(category)
-    }
-  })
-
-  return [...new Set(categories)]
-}
-
-const getPoemIcon = (title) => {
-  if (title === '春晓') return '🌸'
-  if (title === '静夜思') return '🌙'
-  if (title === '咏鹅') return '🦢'
-  if (title === '悯农') return '🌾'
-  if (title === '登鹳雀楼') return '🏯'
-  return '📜'
-}
-
-const getReason = (title) => {
-  if (title === '静夜思') return '适合继续学习月亮和思乡主题'
-  if (title === '咏鹅') return '内容简单，适合儿童启蒙'
-  if (title === '悯农') return '可以学习珍惜粮食'
-  if (title === '登鹳雀楼') return '适合学习登高望远的画面'
-  return '适合作为下一首学习'
-}
-
-const buildLocalRecommend = () => {
-  return LOCAL_POEMS
-    .filter(item => item.id !== currentPoemId.value)
-    .map(item => {
-      return {
-        ...item,
-        icon: getPoemIcon(item.title),
-        categories: getPoemCategories(item),
-        badge: item.id === 'poem_002' ? '✨ 推荐' : '',
-        reason: getReason(item.title)
-      }
-    })
-}
-
-const mapRecommendItems = (items = []) => {
-  return items.map(item => {
-    const local = LOCAL_POEMS.find(poem => poem.id === item.id || poem.id === item.poem_id)
-    const poem = {
-      ...(local || item),
-      ...item,
-      id: item.id || item.poem_id || local?.id,
-      title: item.title || local?.title,
-      author: item.author || local?.author,
-      dynasty: item.dynasty || local?.dynasty || '唐',
-      tags: item.tags || local?.tags || [],
-      icon: getPoemIcon(item.title || local?.title),
-      badge: item.badge || '✨ 推荐',
-      reason: item.recommend_reason || item.reason || getReason(item.title || local?.title)
-    }
-
-    return {
-      ...poem,
-      categories: getPoemCategories(poem)
-    }
-  })
-}
-
-const loadRecommendations = async (category = 'all') => {
-  try {
-    const res = await API.getRecommend(20, category, getSelectedAge())
-
-    if (res && res.success && Array.isArray(res.data)) {
-      recommendList.value = mapRecommendItems(res.data)
-      return
-    }
-  } catch (err) {
-    console.log('推荐接口暂不可用，使用本地推荐', err)
-  }
-
-  const localItems = buildLocalRecommend()
-  recommendList.value = category === 'all'
-    ? localItems
-    : localItems.filter(poem => poem.categories.includes(category))
-}
-
-const selectFilter = async (category) => {
-  if (activeFilter.value === category) return
-
-  activeFilter.value = category
-  await loadRecommendations(category)
-}
-
-onLoad(async (options) => {
-  currentPoemId.value = options.poem_id || 'poem_001'
-  recommendList.value = buildLocalRecommend()
-  await Promise.all([
-    loadRecommendations('all'),
-    loadDailyRecommendation()
-  ])
-})
-
-const filteredPoems = computed(() => {
-  return recommendList.value
-})
-
-const goHome = () => {
-  uni.reLaunch({
-    url: '/pages/index/index',
-    success: () => {
-      console.log('已返回主页')
-    },
-    fail: () => {
-      if (typeof window !== 'undefined') {
-        window.location.replace('#/pages/index/index')
-      }
-    }
-  })
-}
-
-const goStudy = (poemId) => {
-  if (!poemId) {
-    uni.showToast({ title: '每日推荐加载中', icon: 'none' })
-    return
-  }
-  uni.navigateTo({
-    url: `/pages/study/study?poem_id=${poemId}`,
-    fail: () => {
-      if (typeof window !== 'undefined') {
-        window.location.href = `#/pages/study/study?poem_id=${poemId}`
-      }
-    }
-  })
-}
-
-const preloadPoemImage = async (poemId) => {
-  try {
-    const detailRes = await API.getPoemDetail(poemId)
-
-    if (detailRes?.success && detailRes.data) {
-      API.preloadGenerateImage(detailRes.data)
-    }
-  } catch (err) {
-    console.log('预热配图失败，播放页会继续生成', err)
-  }
-}
-
-const selectPoem = (poem) => {
-  if (!poem.id) {
-    uni.showToast({
-      title: '这首诗缺少 poem_id',
-      icon: 'none'
-    })
-    return
-  }
-
-  preloadPoemImage(poem.id)
-  goStudy(poem.id)
-}
 </script>
 
 <style scoped>
-* {
-  box-sizing: border-box;
-}
+* { box-sizing: border-box; }
+button::after { border: 0; }
+.page-root { width: 100vw; height: 100vh; overflow: hidden; display: flex; align-items: center; justify-content: center; background: #172421; font-family: "STKaiti", "KaiTi", serif; }
+.search-page { position: relative; width: 1672px; height: 770px; flex: 0 0 auto; transform-origin: center; overflow: hidden; }
+.page-bg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.back-hotspot { position: absolute; left: 24px; top: 14px; }
+.art-back { z-index: 70; width: 120px; height: 120px; padding: 0; border: 0; background: transparent; }
+.art-back image, .page-arrow image { width: 100%; height: 100%; }
+.page-title { position: absolute; left: 570px; top: 35px; width: 532px; height: 96px; display: flex; align-items: center; justify-content: center; color: #704117; font-size: 56px; font-weight: 900; letter-spacing: 14px; }
+.search-trigger { position: absolute; right: 38px; top: 22px; width: 385px; height: 80px; padding: 0 24px 0 76px; border: 0; background: transparent; color: #8a7764; font: 700 27px/80px "PingFang SC", sans-serif; text-align: left; }
+.filter-row { position: absolute; left: 250px; right: 250px; top: 158px; display: flex; justify-content: center; gap: 20px; }
+.filter-row view { min-width: 100px; height: 42px; padding: 0 18px; display: flex; align-items: center; justify-content: center; color: #85562b; font-size: 21px; font-weight: 900; }
+.filter-row view.active { color: #65390f; border-bottom: 4px solid #b8792e; }
+.poem-grid { position: absolute; left: 208px; top: 210px; width: 1256px; height: 620px; display: flex; justify-content: center; gap: 42px; }
+.poem-card { position: relative; width: 272px; height: 476px; overflow: hidden; transition: transform .16s; }
+.poem-card:active { transform: translateY(7px) scale(.97); }
+.poem-card > image { position: absolute; left: -20px; top: -8px; width: 312px; height: 509px; filter: drop-shadow(0 8px 8px rgba(70, 43, 18, .18)); }
+.poem-content { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; color: #6f411b; }
+.poem-title { position: absolute; left: 28px; right: 28px; top: 9px; height: 70px; display: flex; align-items: center; justify-content: center; font-size: 34px; font-weight: 900; letter-spacing: 5px; }
+.poem-author { position: absolute; left: 28px; right: 28px; top: 104px; text-align: center; font-size: 22px; font-weight: 800; color: #8d5c30; }
+.poem-lines { position: absolute; left: 14px; right: 14px; top: 157px; display: flex; flex-direction: column; align-items: stretch; gap: 10px; font-size: 23px; font-weight: 700; line-height: 1.25; }
+.poem-lines text { display: block; width: 100%; text-align: center; white-space: nowrap; }
 
-button::after {
-  border: none;
-}
-
-.page-root {
-  width: 100vw;
-  height: 100vh;
-  background: #1a1a1a;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-  font-family: "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
-  color: #5b508d;
-}
-
-.recommend-app {
-  position: relative;
-  width: 844px;
-  height: 390px;
-  max-width: none;
-  max-height: none;
-  transform-origin: center center;
-  will-change: transform;
-  overflow: hidden;
-  border-radius: 0;
-  background:
-    radial-gradient(circle at 8% 12%, rgba(255, 225, 105, 0.22), transparent 22%),
-    radial-gradient(circle at 92% 25%, rgba(255, 221, 150, 0.16), transparent 22%),
-    linear-gradient(180deg, #fffaf2 0%, #fff1e8 45%, #ffe9df 78%, #fff6ee 100%);
-}
-
-.page {
-  position: absolute;
-  inset: 0;
-  padding: 6px 16px 14px;
-  display: grid;
-  grid-template-rows: 50px minmax(0, 1fr);
-  gap: 0;
-  overflow: hidden;
-}
-
-.topbar {
-  position: relative;
-  height: 44px;
-  z-index: 20;
-}
-
-.back {
-  position: absolute;
-  left: 0;
-  top: 4px;
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.86);
-  color: #5b508d;
-  font-size: 26px;
-  line-height: 36px;
-  text-align: center;
-  box-shadow: 0 7px 16px rgba(112, 79, 54, 0.14);
-  cursor: pointer;
-  z-index: 30;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  pointer-events: auto;
-}
-
-.title-pill {
-  position: absolute;
-  left: 50%;
-  top: -2px;
-  transform: translateX(-50%);
-  height: 42px;
-  min-width: 160px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 9px;
-  padding: 6px 18px 6px 11px;
-  border-radius: 999px;
-  border: 4px solid #ffe057;
-  background: rgba(255, 255, 255, 0.9);
-  color: #5b508d;
-  font-weight: 950;
-  font-size: 17px;
-  letter-spacing: 1px;
-  box-shadow: 0 7px 16px rgba(111, 84, 55, 0.09);
-}
-
-.logo {
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
-  background: #ff964b;
-  display: grid;
-  place-items: center;
-  color: #fff;
-  font-size: 16px;
-}
-
-.top-placeholder {
-  width: 36px;
-}
-
-.main-layout {
-  height: calc(100% + 8px);
-  min-height: 0;
-  display: flex;
-  gap: 16px;
-  padding-top: 0;
-  transform: translateY(-8px);
-}
-
-.left-panel {
-  flex: 1.6;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  min-width: 0;
-}
-
-.right-panel {
-  flex: 0.9;
-  min-width: 0;
-}
-
-.section-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.section-title {
-  font-size: 18px;
-  font-weight: 900;
-  color: #5b508d;
-}
-
-.filter-row {
-  display: flex;
-  gap: 6px;
-}
-
-.filter-chip {
-  padding: 5px 14px;
-  border-radius: 999px;
-  border: 2px solid transparent;
-  background: rgba(255, 255, 255, 0.8);
-  font-size: 12px;
-  font-weight: 800;
-  color: #9a90c0;
-}
-
-.filter-chip.active {
-  background: #fff4e6;
-  color: #ff914d;
-  border-color: #ffb78c;
-}
-
-.poem-list {
-  flex: 1;
-  height: 100%;
-  min-height: 0;
-}
-
-.poem-card {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 10px 14px;
-  border-radius: 20px;
-  background: rgba(255, 255, 255, 0.86);
-  box-shadow: 0 6px 14px rgba(74, 55, 42, 0.08);
-  margin-bottom: 8px;
-}
-
-.poem-card:active {
-  transform: scale(0.98);
-}
-
-.poem-icon {
-  width: 48px;
-  height: 48px;
-  border-radius: 16px;
-  display: grid;
-  place-items: center;
-  font-size: 26px;
-  background: #fff8ee;
-  flex-shrink: 0;
-}
-
-.poem-info {
-  flex: 1;
-  min-width: 0;
-}
-
-.poem-name-row {
-  font-size: 16px;
-  font-weight: 900;
-  color: #5b508d;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.badge {
-  padding: 4px 10px;
-  border-radius: 99px;
-  font-size: 10px;
-  font-weight: 900;
-  background: #fff4e6;
-  color: #ff914d;
-}
-
-.poem-author {
-  font-size: 11px;
-  font-weight: 800;
-  color: #9a90c0;
-  margin-top: 2px;
-}
-
-.poem-tags {
-  display: flex;
-  gap: 4px;
-  margin-top: 4px;
-}
-
-.poem-tag {
-  padding: 2px 8px;
-  border-radius: 99px;
-  font-size: 9px;
-  font-weight: 900;
-  background: #ecfbff;
-  color: #42a8c7;
-}
-
-.reason-text {
-  margin-top: 4px;
-  color: #ff914d;
-  font-size: 11px;
-  font-weight: 800;
-}
-
-.poem-arrow {
-  color: #cbc3e8;
-  font-size: 18px;
-}
-
-.empty-box {
-  margin-top: 50px;
-  text-align: center;
-  color: #999999;
-  font-size: 14px;
-  font-weight: 800;
-}
-
-.daily-card {
-  height: 100%;
-  border-radius: 24px;
-  background: linear-gradient(135deg, #fff8e7 0%, #fffdf5 100%);
-  box-shadow: 0 8px 20px rgba(74, 55, 42, 0.1);
-  padding: 16px 16px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  text-align: center;
-}
-
-.daily-star {
-  font-size: 52px;
-  animation: floatStar 3s ease-in-out infinite;
-}
-
-@keyframes floatStar {
-  50% {
-    transform: translateY(-10px);
-  }
-}
-
-.daily-title {
-  font-size: 19px;
-  font-weight: 900;
-  color: #5b508d;
-}
-
-.daily-text {
-  font-size: 13px;
-  font-weight: 800;
-  color: #9a90c0;
-  line-height: 1.5;
-}
-
-.daily-btn {
-  padding: 10px 24px;
-  border-radius: 99px;
-  border: 0;
-  background: linear-gradient(180deg, #ffac68, #ff7d32);
-  color: #fff;
-  font-size: 14px;
-  font-weight: 900;
-  box-shadow: 0 5px 0 #f16012, 0 8px 16px rgba(236, 98, 34, 0.2);
-}
+.poem-open { position: absolute; left: 40px; right: 40px; top: 350px; height: 62px; display: flex; align-items: center; justify-content: center; color: #704117; font-size: 24px; font-weight: 900; }
+.message { position: absolute; left: 380px; top: 420px; width: 912px; text-align: center; color: #82552d; font-size: 32px; font-weight: 900; }
+.page-arrow { position: absolute; top: 395px; width: 96px; height: 96px; border: 0; background: transparent; padding: 0; }
+.page-arrow.left { left: 102px; }
+.page-arrow.right { right: 102px; }
+.result-count { position: absolute; left: 720px; bottom: 48px; width: 235px; text-align: center; color: #76502b; font-size: 22px; font-weight: 900; }
+/* 手机横屏可读性 */
+.page-title { font-size: 64px; }
+.filter-row view { font-size: 30px; }
+.poem-title { font-size: 40px; }
+.poem-author { font-size: 27px; }
+.poem-lines { font-size: 29px; gap: 10px; }
+.poem-open { font-size: 32px; }
+.result-count { font-size: 30px; }
+.message { font-size: 40px; }
+.search-dialog-mask { position: absolute; inset: 0; z-index: 80; display: flex; align-items: center; justify-content: center; background: rgba(55, 46, 30, .4); backdrop-filter: blur(6px); }
+.search-dialog { position: relative; width: 1040px; height: 650px; padding: 188px 95px 55px; border: 8px solid #b77a32; border-radius: 24px; background: #fff0c8 url('/static/final-ui/page-title-plaque.png') center 18px / 520px 104px no-repeat; box-shadow: 0 22px 55px rgba(58, 37, 17, .35); }
+.dialog-close { position: absolute; right: 28px; top: 25px; width: 64px; height: 64px; padding: 0; border: 4px solid #9f672c; border-radius: 50%; background: #f7ce7a; color: #704117; font-size: 48px; line-height: 52px; }
+.dialog-title { position: absolute; left: 320px; right: 320px; top: 36px; text-align: center; color: #704117; font-size: 42px; font-weight: 900; }
+.dialog-search-row { position: absolute; left: 90px; right: 90px; top: 112px; height: 62px; display: flex; gap: 14px; }
+.dialog-search-row input { flex: 1; min-width: 0; height: 62px; padding: 0 24px; border: 3px solid #d5a45e; border-radius: 8px; background: rgba(255,250,226,.95); color: #704117; font-size: 27px; }
+.dialog-search-row button { width: 140px; height: 62px; padding: 0; border: 3px solid #a96c2b; border-radius: 8px; background: #eab35f; color: #704117; font-size: 28px; font-weight: 900; }
+.dialog-results { width: 100%; height: 100%; }
+.dialog-poem { min-height: 108px; margin-bottom: 16px; padding: 18px 28px; border: 3px solid #d5a45e; border-radius: 8px; background: rgba(255, 250, 226, .88); color: #704117; }
+.dialog-poem-title { font-size: 32px; font-weight: 900; }
+.dialog-poem-author { margin-top: 5px; font-size: 23px; color: #926138; }
+.dialog-poem-preview { margin-top: 8px; font-size: 24px; }
+.dialog-message { padding-top: 90px; text-align: center; color: #82552d; font-size: 34px; font-weight: 900; }
 </style>

@@ -1,132 +1,39 @@
 <template>
-  <view class="page-root">
-    <view class="camera-app" :style="appScaleStyle">
-      <view v-if="pageState === 'camera'" class="camera-page">
-        <view class="camera-header">
-          <view class="camera-back" @tap.stop="goBack">‹</view>
-
-          <view class="camera-title-pill">
-            <view class="camera-logo">🌱</view>
-            <text>拍照识别</text>
-          </view>
-
-          <view class="camera-tip">诗芽可以识别古诗，也能为风景匹配古诗哦！</view>
-        </view>
-
-        <view class="camera-shell">
-          <view class="camera-card">
-            <view class="camera-fallback">
-              <view>
-                点击“拍摄”会调起手机系统相机<br />
-                点击“相册”可以选择已有图片
-              </view>
+  <view class="page-root final-camera-root">
+    <view class="camera-app final-camera-app" :style="appScaleStyle">
+      <view v-if="pageState === 'camera'" class="final-mode-page">
+        <image class="final-page-bg" src="/static/final-ui/town-home.png" mode="scaleToFill" />
+        <view class="camera-popup-mask">
+          <view class="camera-choice-popup">
+            <image src="/static/final-ui/camera-choice-transparent.png" mode="scaleToFill" />
+            <view class="camera-popup-title">拍 一 拍</view>
+            <view class="camera-popup-tip">
+              <text>拍一拍，找诗意：</text>
+              <text>课本诗句和眼前风景都可以拍哦~</text>
             </view>
-
-            <view class="corner c1"></view>
-            <view class="corner c2"></view>
-            <view class="corner c3"></view>
-            <view class="corner c4"></view>
-
-            <view class="scan-line"></view>
-            <view class="camera-guide-text">请把诗句或风景放进取景框</view>
+            <button class="popup-close-hotspot" @tap="goBack" aria-label="关闭"></button>
+            <button class="popup-action album-hotspot" :disabled="recognizing" @tap="chooseAlbumAndRecognize" aria-label="相册"></button>
+            <button class="popup-action camera-hotspot" :disabled="recognizing" @tap="shootAndRecognize" aria-label="拍照"></button>
+            <button class="popup-action back-hotspot" @tap="goBack" aria-label="返回"></button>
+            <view v-if="recognizing" class="recognizing-tip">正在识别，请稍等……</view>
           </view>
-        </view>
-
-        <view class="mode-panel">
-          <view class="mode-switch">
-            <button
-              class="mode-option"
-              :class="{ active: mode === 'poem' }"
-              @tap="mode = 'poem'"
-            >
-              古诗
-            </button>
-
-            <button
-              class="mode-option"
-              :class="{ active: mode === 'landscape' }"
-              @tap="mode = 'landscape'"
-            >
-              风景
-            </button>
-          </view>
-        </view>
-
-        <view class="right-actions">
-          <button class="side-btn" @tap="goBack">
-            <text class="side-icon">🏠</text>
-            <text>返回</text>
-          </button>
-
-          <button class="shoot-btn" :disabled="recognizing" @tap="shootAndRecognize">
-            <text class="shoot-icon">📷</text>
-            <text>拍摄</text>
-          </button>
-
-          <button class="side-btn" :disabled="recognizing" @tap="chooseAlbumAndRecognize">
-            <text class="side-icon">🖼️</text>
-            <text>相册</text>
-          </button>
         </view>
       </view>
 
-      <view v-if="pageState === 'result'" class="camera-page result-page">
-        <view class="camera-header">
-          <view class="camera-back" @tap.stop="pageState = 'camera'">‹</view>
-
-          <view class="camera-title-pill">
-            <view class="camera-logo">🌱</view>
-            <text>识别结果</text>
-          </view>
-        </view>
-
-        <view class="result-card">
-          <view class="poem-zone">
-            <scroll-view
-              class="poem-result"
-              :class="{ 'long-poem': matchedPoem.content.length > 4 }"
-              scroll-y
-              :show-scrollbar="false"
-            >
-              <view class="poem-result-inner">
-                <view class="result-title">{{ matchedPoem.title }}</view>
-                <view class="author">{{ matchedPoem.dynasty }} · {{ matchedPoem.author }}</view>
-                <view class="poem-lines">
-                  <text
-                    v-for="line in matchedPoem.content"
-                    :key="line"
-                  >
-                    {{ line }}
-                  </text>
-                </view>
-              </view>
-            </scroll-view>
-
-            <view class="tag-panel">
-              <view
-                v-for="tag in displayTags"
-                :key="tag"
-                class="tag"
-              >
-                {{ tag }}
-              </view>
+      <view v-else class="final-result-page">
+        <image class="final-page-bg" src="/static/final-ui/camera-result-page.png" mode="scaleToFill" />
+        <button class="result-back-hotspot art-back" @tap="pageState = 'camera'" aria-label="返回"><image src="/static/final-ui/nav-back.png" mode="aspectFit" /></button>
+        <view class="result-page-title">诗芽为你找到了这些古诗</view>
+        <view class="result-subtitle">点击诗卡，打开画卷继续学习</view>
+        <view class="result-cards">
+          <view v-for="(poem, index) in resultCandidates" :key="poem.id" class="result-poem-card" :class="{ best: index === 0 }" @tap="selectResult(poem)">
+            <view class="candidate-title">{{ poem.title }}</view>
+            <view class="candidate-author">{{ poem.dynasty }} · {{ poem.author }}</view>
+            <view class="candidate-lines">
+              <text v-for="line in getCandidateLines(poem)" :key="line">{{ line }}</text>
             </view>
-          </view>
-
-          <view class="result-meta">
-            <view class="mascot">👧</view>
-          </view>
-
-          <view class="speech-area">
-            <view class="speech-card">
-              诗芽为你找到了最合适的古诗，要不要进入学习？<br />
-              进入后可以看诗意画面，还能和诗人聊聊这首诗。
-            </view>
-
-            <view class="inline-actions">
-              <button class="choice secondary" @tap="pageState = 'camera'">再拍一首</button>
-              <button class="choice primary" @tap="goStudy">进入学习 ▶</button>
-            </view>
+            <view class="candidate-tags">{{ (poem.tags || []).slice(0, 2).join(' · ') }}</view>
+            <button class="open-poem-button">打开画卷</button>
           </view>
         </view>
       </view>
@@ -136,10 +43,10 @@
 
 <script setup>
 import { computed, onMounted, onUnmounted, ref } from 'vue'
-import { API, getLocalPoemById } from '@/utils/api.js'
+import { API, LOCAL_POEMS, getLocalPoemById } from '@/utils/api.js'
 
-const DESIGN_WIDTH = 844
-const DESIGN_HEIGHT = 390
+const DESIGN_WIDTH = 1672
+const DESIGN_HEIGHT = 770
 const appScale = ref(1)
 
 const appScaleStyle = computed(() => `transform: scale(${appScale.value});`)
@@ -188,6 +95,24 @@ const displayTags = computed(() => {
   return poemTags.slice(0, 3).map((tag) => `✨ ${tag}`)
 })
 
+const resultCandidates = computed(() => {
+  const first = matchedPoem.value || LOCAL_POEMS[0]
+  const others = LOCAL_POEMS.filter(item => String(item.id) !== String(first?.id)).slice(0, 2)
+  return [first, ...others].filter(Boolean).slice(0, 3)
+})
+
+const getCandidateLines = (poem = {}) => {
+  const content = Array.isArray(poem.content)
+    ? poem.content
+    : String(poem.content || '').split(/[，。\n]/).filter(Boolean)
+  return content.slice(0, 4)
+}
+
+const selectResult = (poem) => {
+  if (!poem?.id) return
+  matchedPoem.value = poem
+  goStudy()
+}
 const goBack = () => {
   const pages = typeof getCurrentPages === 'function' ? getCurrentPages() : []
 
@@ -415,7 +340,7 @@ const fileToBase64 = async (chooseRes) => {
   throw new Error('没有获取到可读取的图片文件')
 }
 
-const handleOcrResult = (res) => {
+const handleOcrResult = async (res) => {
   console.log('识诗结果：', res)
 
   if (!res || !res.success) {
@@ -426,15 +351,27 @@ const handleOcrResult = (res) => {
     return
   }
 
-  const poem = res.data?.matched_poem || res.data || res.matched_poem
+  const firstCandidate = Array.isArray(res.candidates) ? res.candidates[0] : null
+  let poem = res.data?.matched_poem || res.data || res.matched_poem || firstCandidate
 
-  if (!poem || !poem.id) {
+  const candidateId = poem?.id || poem?.poem_id
+  if (candidateId && (!Array.isArray(poem?.content) || !poem.content.length)) {
+    try {
+      const detail = await API.getPoemDetail(candidateId)
+      if (detail?.success && detail?.data) poem = detail.data
+    } catch (err) {
+      console.log('候选诗详情加载失败：', err)
+    }
+  }
+
+  if (!poem || !(poem.id || poem.poem_id)) {
     toast('识别成功但没有匹配到古诗')
     return
   }
 
   matchedPoem.value = {
     ...poem,
+    id: poem.id || poem.poem_id,
     content: Array.isArray(poem.content)
       ? poem.content
       : String(poem.content || '').split(/[，,。\n]/).filter(Boolean)
@@ -449,7 +386,7 @@ const handleOcrResult = (res) => {
 
 const recognizeByBase64 = async (imageBase64) => {
   const res = await API.recognizePoemImage(imageBase64)
-  handleOcrResult(res)
+  await handleOcrResult(res)
 }
 
 const chooseCameraBySystem = () => {
@@ -539,14 +476,13 @@ const goStudy = () => {
 </script>
 
 <style scoped>
+
 * {
   box-sizing: border-box;
 }
-
 button::after {
   border: none;
 }
-
 .page-root {
   width: 100vw;
   height: 100vh;
@@ -558,7 +494,6 @@ button::after {
   font-family: "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
   color: #5b508d;
 }
-
 .camera-app {
   position: relative;
   width: 844px;
@@ -574,7 +509,6 @@ button::after {
     radial-gradient(circle at 92% 16%, rgba(255, 210, 145, 0.14), transparent 25%),
     linear-gradient(180deg, #fffaf2 0%, #fff2e9 52%, #ffe9df 100%);
 }
-
 .camera-page {
   position: absolute;
   inset: 0;
@@ -584,14 +518,12 @@ button::after {
   grid-template-rows: 58px minmax(0, 1fr);
   gap: 8px 12px;
 }
-
 .camera-header {
   grid-column: 1 / 4;
   position: relative;
   height: 44px;
   z-index: 20;
 }
-
 .camera-back {
   position: absolute;
   left: 0;
@@ -612,7 +544,6 @@ button::after {
   z-index: 9999;
   pointer-events: auto;
 }
-
 .camera-title-pill {
   position: absolute;
   left: 50%;
@@ -634,7 +565,6 @@ button::after {
   letter-spacing: 1px;
   box-shadow: 0 7px 16px rgba(111, 84, 55, 0.09);
 }
-
 .camera-logo {
   width: 30px;
   height: 30px;
@@ -646,7 +576,6 @@ button::after {
   font-size: 18px;
   flex-shrink: 0;
 }
-
 .camera-tip {
   position: absolute;
   left: 50%;
@@ -657,7 +586,6 @@ button::after {
   font-weight: 850;
   white-space: nowrap;
 }
-
 .camera-shell {
   grid-column: 1;
   grid-row: 2;
@@ -668,7 +596,6 @@ button::after {
   padding: 2px 0 4px;
   transform: translateX(10px);
 }
-
 .camera-card {
   position: relative;
   width: 90%;
@@ -680,7 +607,6 @@ button::after {
   box-shadow: 0 14px 24px rgba(74, 55, 42, 0.18);
   border: 4px solid rgba(255, 255, 255, 0.78);
 }
-
 .camera-card::before {
   content: "";
   position: absolute;
@@ -691,7 +617,6 @@ button::after {
     linear-gradient(0deg, transparent 0 32%, rgba(255, 255, 255, 0.075) 32% 33%, transparent 33% 66%, rgba(255, 255, 255, 0.075) 66% 67%, transparent 67%);
   opacity: 0.84;
 }
-
 .poem-paper {
   position: absolute;
   left: 50%;
@@ -710,14 +635,12 @@ button::after {
   align-items: center;
   box-shadow: 0 12px 24px rgba(0, 0, 0, 0.17);
 }
-
 .poem-paper-title {
   margin: 0 0 5px;
   font-size: 20px;
   color: #5b508d;
   font-weight: 950;
 }
-
 .poem-paper-line {
   display: block;
   margin: 3px 0;
@@ -725,7 +648,6 @@ button::after {
   font-weight: 900;
   letter-spacing: 2px;
 }
-
 .scan-line {
   position: absolute;
   z-index: 3;
@@ -736,15 +658,13 @@ button::after {
   border-radius: 9px;
   background: linear-gradient(90deg, transparent, #55e4cf, transparent);
   box-shadow: 0 0 16px #55e4cf;
-  animation: scan 2.2s infinite ease-in-out;
+  animation: scan-7b8d50ad 2.2s infinite ease-in-out;
 }
-
-@keyframes scan {
-  50% {
+@keyframes scan-7b8d50ad {
+50% {
     transform: translateY(38px);
-  }
 }
-
+}
 .corner {
   position: absolute;
   width: 38px;
@@ -753,35 +673,30 @@ button::after {
   border-style: solid;
   z-index: 3;
 }
-
 .c1 {
   left: 20px;
   top: 20px;
   border-width: 4px 0 0 4px;
   border-radius: 14px 0 0 0;
 }
-
 .c2 {
   right: 20px;
   top: 20px;
   border-width: 4px 4px 0 0;
   border-radius: 0 14px 0 0;
 }
-
 .c3 {
   left: 20px;
   bottom: 20px;
   border-width: 0 0 4px 4px;
   border-radius: 0 0 0 14px;
 }
-
 .c4 {
   right: 20px;
   bottom: 20px;
   border-width: 0 4px 4px 0;
   border-radius: 0 0 14px 0;
 }
-
 .mode-panel {
   grid-column: 2;
   grid-row: 2;
@@ -790,7 +705,6 @@ button::after {
   height: 154px;
   z-index: 2;
 }
-
 .mode-switch {
   height: 100%;
   display: grid;
@@ -803,7 +717,6 @@ button::after {
   box-shadow: 0 8px 16px rgba(111, 84, 55, 0.1);
   overflow: hidden;
 }
-
 .mode-option {
   margin: 0;
   padding: 0;
@@ -818,19 +731,18 @@ button::after {
   font-weight: 950;
   line-height: 1;
   letter-spacing: 2px;
-  writing-mode: vertical-rl;
+  -webkit-writing-mode: vertical-rl;
+          writing-mode: vertical-rl;
   text-orientation: upright;
   display: flex;
   align-items: center;
   justify-content: center;
 }
-
 .mode-option.active {
   color: #ffffff;
   background: linear-gradient(180deg, #ffac68, #ff7d32);
   box-shadow: 0 3px 0 #f16012;
 }
-
 .right-actions {
   grid-column: 3;
   grid-row: 2;
@@ -841,7 +753,6 @@ button::after {
   gap: 25px;
   z-index: 1;
 }
-
 .side-btn {
   margin: 0;
   padding: 0;
@@ -859,12 +770,10 @@ button::after {
   gap: 2px;
   line-height: 1.2;
 }
-
 .side-icon {
   font-size: 22px;
   line-height: 1;
 }
-
 .shoot-btn {
   margin: 0;
   padding: 0;
@@ -883,7 +792,6 @@ button::after {
   gap: 4px;
   line-height: 1.2;
 }
-
 .shoot-icon {
   width: 34px;
   height: 34px;
@@ -895,7 +803,6 @@ button::after {
   font-size: 22px;
   line-height: 1;
 }
-
 .camera-page {
   position: absolute;
   inset: 0;
@@ -906,7 +813,6 @@ button::after {
   grid-template-rows: 58px minmax(0, 1fr);
   gap: 8px 12px;
 }
-
 .result-card {
   grid-column: 1 / 4;
   grid-row: 2;
@@ -925,7 +831,6 @@ button::after {
   align-items: center;
   overflow: hidden;
 }
-
 .poem-zone {
   display: grid;
   gap: 9px;
@@ -933,7 +838,6 @@ button::after {
   align-content: center;
   width: 100%;
 }
-
 .poem-result {
   width: 100%;
   height: 206px;
@@ -946,40 +850,33 @@ button::after {
   color: #4e4775;
   overflow: hidden;
 }
-
 .poem-result-inner {
   min-height: 100%;
   display: flex;
   flex-direction: column;
   justify-content: center;
 }
-
 .poem-result.long-poem .poem-result-inner {
   justify-content: flex-start;
 }
-
 .poem-result.long-poem .result-title {
   font-size: 18px;
   letter-spacing: 3px;
 }
-
 .poem-result.long-poem .author {
   margin: 2px 0 4px;
   font-size: 12px;
 }
-
 .poem-result.long-poem .poem-lines {
   font-size: 14px;
   line-height: 1.42;
 }
-
 .result-title {
   color: #4e4775;
   font-size: 21px;
   letter-spacing: 5px;
   font-weight: 950;
 }
-
 .author {
   color: #7a6ea1;
   font-size: 14px;
@@ -987,7 +884,6 @@ button::after {
   margin: 4px 0 7px;
   letter-spacing: 2px;
 }
-
 .poem-lines {
   color: #5d5485;
   font-size: 17px;
@@ -997,7 +893,6 @@ button::after {
   display: flex;
   flex-direction: column;
 }
-
 .tag-panel {
   width: 100%;
   border-radius: 18px;
@@ -1008,7 +903,6 @@ button::after {
   grid-template-columns: repeat(3, 1fr);
   gap: 7px;
 }
-
 .tag {
   padding: 7px 10px;
   border-radius: 999px;
@@ -1018,14 +912,12 @@ button::after {
   font-weight: 950;
   text-align: center;
 }
-
 .result-meta {
   position: absolute;
   left: 465px;
   top: 40px;
   z-index: 2;
 }
-
 .mascot {
   width: 66px;
   height: 66px;
@@ -1037,14 +929,12 @@ button::after {
   box-shadow: 0 9px 18px rgba(112, 79, 54, 0.13);
   position: relative;
 }
-
 .mascot::before {
   content: "🌱";
   position: absolute;
   top: -23px;
   font-size: 28px;
 }
-
 .speech-area {
   grid-column: 2;
   display: grid;
@@ -1057,7 +947,6 @@ button::after {
   margin-left: auto;
   margin-right: 18px;
 }
-
 .speech-card {
   grid-column: 2;
   position: relative;
@@ -1071,7 +960,6 @@ button::after {
   font-weight: 950;
   line-height: 1.58;
 }
-
 .inline-actions {
   grid-column: 1 / 3;
   display: grid;
@@ -1080,7 +968,6 @@ button::after {
   padding-top: 14px;
   transform: translateY(7px);
 }
-
 .choice {
   height: 46px;
   border: 0;
@@ -1088,20 +975,16 @@ button::after {
   font-weight: 950;
   font-size: 16px;
 }
-
 .primary {
   background: linear-gradient(180deg, #ffac68, #ff7d32);
   color: white;
   box-shadow: 0 5px 0 #f16012;
 }
-
 .secondary {
   background: #fff;
   color: #6a5f97;
   box-shadow: 0 5px 0 rgba(220, 211, 236, 0.9);
 }
-
-
 .live-camera {
   position: absolute;
   inset: 0;
@@ -1109,7 +992,6 @@ button::after {
   height: 100%;
   z-index: 0;
 }
-
 .camera-fallback {
   position: absolute;
   inset: 0;
@@ -1126,7 +1008,6 @@ button::after {
   font-weight: 950;
   line-height: 1.6;
 }
-
 .camera-guide-text {
   position: absolute;
   left: 50%;
@@ -1141,9 +1022,199 @@ button::after {
   font-weight: 900;
   white-space: nowrap;
 }
-
 button[disabled] {
   opacity: 0.6;
 }
 
+/* 最终版插画界面：业务逻辑仍沿用原 OCR 与相册/相机实现。 */
+.final-camera-root {
+  font-family: "STKaiti", "KaiTi", "PingFang SC", serif;
+}
+.final-camera-app {
+  position: relative;
+  width: 1672px;
+  height: 770px;
+  max-width: none;
+  max-height: none;
+  flex: 0 0 auto;
+  transform-origin: center;
+  overflow: hidden;
+  background: transparent;
+}
+.final-mode-page,
+.final-result-page {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.final-page-bg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.camera-popup-mask {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(55, 46, 30, .38);
+  -webkit-backdrop-filter: blur(5px);
+          backdrop-filter: blur(5px);
+}
+.camera-choice-popup {
+  position: relative;
+  width: 790px;
+  height: 584px;
+}
+.camera-choice-popup > image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.camera-popup-title {
+  position: absolute;
+  left: 230px;
+  top: 33px;
+  width: 330px;
+  height: 83px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  color: #704117;
+  font-size: 34px;
+  font-weight: 900;
+  letter-spacing: 5px;
+}
+.camera-popup-tip {
+  position: absolute;
+  left: 95px;
+  top: 208px;
+  width: 600px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  color: #79502a;
+  font-size: 22px;
+  font-weight: 900;
+  letter-spacing: 3px;
+}
+.popup-close-hotspot,
+.popup-action {
+  position: absolute;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+.popup-close-hotspot { right: 82px; top: 63px; width: 58px; height: 60px; border-radius: 50%;
+}
+.popup-action { top: 424px; height: 97px;
+}
+.album-hotspot { left: 76px; width: 203px;
+}
+.camera-hotspot { left: 293px; width: 207px;
+}
+.back-hotspot { left: 508px; width: 202px;
+}
+.recognizing-tip { position: absolute; left: 230px; bottom: 31px; width: 330px; text-align: center; color: #7a4c22; font-size: 18px; font-weight: 900;
+}
+.final-back-hotspot {
+  position: absolute;
+  left: 24px;
+  top: 30px;
+  width: 130px;
+  height: 105px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  z-index: 5;
+}
+.final-page-title {
+  position: absolute;
+  left: 505px;
+  top: 60px;
+  width: 665px;
+  text-align: center;
+  color: #704117;
+  font-size: 48px;
+  font-weight: 900;
+  letter-spacing: 16px;
+}
+.mode-card {
+  position: absolute;
+  top: 180px;
+  width: 510px;
+  height: 548px;
+  border-radius: 58px;
+  border: 6px solid transparent;
+  transition: transform .16s, box-shadow .16s;
+  color: #704117;
+}
+.mode-card.poem-mode { left: 279px;
+}
+.mode-card.landscape-mode { left: 850px;
+}
+.mode-card.selected {
+  border-color: rgba(213, 142, 54, .7);
+  box-shadow: 0 0 0 10px rgba(255, 232, 166, .55), 0 14px 28px rgba(81, 52, 20, .18);
+  transform: translateY(-8px);
+}
+.mode-title { position: absolute; left: 45px; right: 45px; bottom: 51px; text-align: center; font-size: 35px; font-weight: 900; letter-spacing: 8px;
+}
+.mode-sub { position: absolute; left: 0; right: 0; bottom: 7px; text-align: center; font-size: 20px; font-weight: 800; color: #9a6b3d;
+}
+.selected-mark { position: absolute; right: 18px; top: 18px; width: 55px; height: 55px; border-radius: 50%; background: #c98231; color: white; display: flex; align-items: center; justify-content: center; font: 900 34px/1 sans-serif;
+}
+.capture-actions { position: absolute; left: 475px; bottom: 18px; width: 720px; display: flex; gap: 26px;
+}
+.final-action { flex: 1; height: 72px; border: 4px solid #9c6429; border-radius: 20px; color: #623816; font-size: 26px; font-weight: 900;
+}
+.final-action.primary { background: #e4a64d; box-shadow: inset 0 3px rgba(255,255,255,.45);
+}
+.final-action.secondary { background: #fae4ba; box-shadow: inset 0 3px rgba(255,255,255,.55);
+}
+.capture-tip { position: absolute; left: 558px; bottom: 96px; width: 555px; text-align: center; color: #815a35; font-size: 20px; font-weight: 800;
+}
+.result-back-hotspot { position: absolute; left: 28px; top: 25px;
+}
+.art-back { z-index: 70; width: 120px; height: 120px; padding: 0; border: 0; background: transparent; }
+.art-back image { width: 100%; height: 100%; }
+.result-page-title { position: absolute; left: 525px; top: 86px; width: 625px; text-align: center; color: #744319; font-size: 45px; font-weight: 900; letter-spacing: 4px;
+}
+.result-subtitle { position: absolute; left: 515px; top: 189px; width: 645px; text-align: center; color: #9a714b; font-size: 22px; font-weight: 800;
+}
+.result-cards { position: absolute; left: 264px; top: 235px; width: 1142px; height: 470px; display: flex; gap: 34px;
+}
+.result-poem-card { position: relative; flex: 1; padding: 26px 28px 18px; display: flex; flex-direction: column; align-items: center; color: #704117;
+}
+.result-poem-card.best { transform: none;
+}
+.candidate-title { width: 100%; height: 68px; display: flex; align-items: center; justify-content: center; font-size: 38px; font-weight: 900; letter-spacing: 7px;
+}
+.candidate-author { width: 190px; height: 48px; display: flex; align-items: center; justify-content: center; font-size: 20px; color: #8a5b2f; font-weight: 800;
+}
+.candidate-lines { margin-top: 22px; display: flex; flex-direction: column; align-items: center; gap: 9px; font-size: 24px; font-weight: 800;
+}
+.candidate-tags { margin-top: auto; margin-bottom: 58px; font-size: 18px; color: #956a40; font-weight: 800;
+}
+.open-poem-button { position: absolute; left: 50px; right: 50px; bottom: 16px; width: auto; height: 54px; padding: 0; border: 0; background: transparent; color: #68401d; font-size: 23px; font-weight: 900;
+}
+
+
+/* 手机横屏可读性 */
+.camera-popup-title { font-size: 46px; }
+.camera-popup-tip { font-size: 38px; }
+.recognizing-tip { font-size: 27px; }
+.result-page-title { font-size: 58px; }
+.result-subtitle { font-size: 32px; }
+.candidate-title { font-size: 46px; }
+.candidate-author { font-size: 30px; }
+.candidate-lines { font-size: 34px; }
+.candidate-tags { font-size: 27px; }
+.open-poem-button { font-size: 32px; }
 </style>

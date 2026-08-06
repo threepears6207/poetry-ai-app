@@ -666,5 +666,59 @@
       "total_seconds": 44.552,
       "parallel_workers": 4
     }
+  },
+  "poem_019": {
+    "success": true,
+    "poem_title": "望天门山",
+    "has_character": false,
+    "character_desc": "",
+    "recurring_elements": "",
+    "total_lines": 4,
+    "frames": [
+      {
+        "index": 0,
+        "line": "天门中断楚江开",
+        "scene": "远景，长江从中间穿过天门山，两山相对，山壁陡峭，江水奔腾而出，水花飞溅，天空湛蓝，白云朵朵。",
+        "shot_type": "远景",
+        "image_url": "/static/images/poems/poem_019/frame_0.jpg",
+        "duration_ms": 3000,
+        "elapsed_seconds": 17.527
+      },
+      {
+        "index": 1,
+        "line": "碧水东流至此回",
+        "scene": "中景，碧绿的江水向东流淌，在靠近山脚处形成一个回旋的漩涡，水流湍急，水面上有波纹和浪花，岸边有岩石。",
+        "shot_type": "中景",
+        "image_url": "/static/images/poems/poem_019/frame_1.jpg",
+        "duration_ms": 3000,
+        "elapsed_seconds": 15.872
+      },
+      {
+        "index": 2,
+        "line": "两岸青山相对出",
+        "scene": "远景，两岸青山对峙，山体青翠，树木葱茏，山势从远处逐渐显现，仿佛从江面两侧迎面而来，天空辽阔。",
+        "shot_type": "远景",
+        "image_url": "/static/images/poems/poem_019/frame_2.jpg",
+        "duration_ms": 3000,
+        "elapsed_seconds": 12.42
+      },
+      {
+        "index": 3,
+        "line": "孤帆一片日边来",
+        "scene": "远景，画面右侧远处，一轮红日挂在天边，阳光洒在江面上，一叶孤帆从太阳方向缓缓驶来，帆影清晰，江面波光粼粼。",
+        "shot_type": "远景",
+        "image_url": "/static/images/poems/poem_019/frame_3.jpg",
+        "duration_ms": 3000,
+        "elapsed_seconds": 15.83
+      }
+    ],
+    "errors": [],
+    "from_cache": false,
+    "timings": {
+      "planning_seconds": 12.024,
+      "image_seconds": 18.51,
+      "total_seconds": 30.535,
+      "parallel_workers": 4
+    }
   }
 }

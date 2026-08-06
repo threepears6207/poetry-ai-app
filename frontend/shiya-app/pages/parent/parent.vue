@@ -3,7 +3,7 @@
     <view class="parent-app" :style="appScaleStyle">
       <view class="page">
         <view class="topbar">
-          <view class="back" @tap.stop="goBack">‹</view>
+          <view class="back art-back-small" @tap.stop="goBack"><image src="/static/final-ui/nav-back.png" mode="aspectFit" /></view>
 
           <view class="title-pill">
             <view class="logo">🌱</view>
@@ -19,7 +19,7 @@
               <view>
                 <view class="summary-title">今日学习<br />小朋友表现很棒</view>
                 <view class="summary-sub">
-                  已完成 {{ summary.learned_count }} 首古诗学习
+                  今日完成 {{ summary.today_learned_count }} 首，待温习 {{ summary.pending_review_count }} 首
                 </view>
               </view>
 
@@ -144,6 +144,8 @@ const loading = ref(false)
 
 const summary = ref({
   learned_count: 0,
+  today_learned_count: 0,
+  pending_review_count: 0,
   record_count: 0,
   total_duration_seconds: 0,
   learned_poems: [],
@@ -280,7 +282,12 @@ const loadRecordSummary = async () => {
   loading.value = true
 
   try {
-    const res = await API.getRecordSummary()
+    const [recordResult, overviewResult] = await Promise.allSettled([
+      API.getRecordSummary(),
+      API.getParentOverview()
+    ])
+    const res = recordResult.status === 'fulfilled' ? recordResult.value : null
+    const overview = overviewResult.status === 'fulfilled' ? overviewResult.value : null
 
     if (res && res.success) {
       const payload = getSummaryPayload(res)
@@ -305,6 +312,7 @@ const loadRecordSummary = async () => {
           : Number(payload.total_duration_seconds || payload.total_duration || 0)
 
       summary.value = {
+        ...summary.value,
         learned_count: hasLearnedDurationInfo
           ? learnedPoems.length
           : Number(payload.learned_count || payload.poem_count || learnedPoems.length || 0),
@@ -315,7 +323,27 @@ const loadRecordSummary = async () => {
         learned_poems: learnedPoems,
         recent_records: recentRecords
       }
-    } else {
+    }
+
+    if (overview?.success) {
+      const overviewRecent = Array.isArray(overview.recent_records) ? overview.recent_records : []
+      summary.value = {
+        ...summary.value,
+        learned_count: Number(overview.learned_poem_count ?? summary.value.learned_count ?? 0),
+        today_learned_count: Number(overview.today_learning?.poem_count || 0),
+        pending_review_count: Number(overview.pending_review_count || 0),
+        total_duration_seconds: Math.max(
+          Number(summary.value.total_duration_seconds || 0),
+          Number(overview.today_learning?.duration_seconds || 0)
+        ),
+        learned_poems: summary.value.learned_poems.length
+          ? summary.value.learned_poems
+          : overviewRecent,
+        recent_records: overviewRecent
+      }
+    }
+
+    if ((!res || !res.success) && !overview?.success) {
       uni.showToast({
         title: '学习统计获取失败',
         icon: 'none'
@@ -741,4 +769,6 @@ button::after {
   text-align: center;
   padding: 20px;
 }
+.art-back-small { width: 52px; height: 52px; padding: 0; border: 0; background: transparent; }
+.art-back-small image { width: 100%; height: 100%; }
 </style>

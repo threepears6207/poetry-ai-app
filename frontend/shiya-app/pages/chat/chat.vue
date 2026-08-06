@@ -1,9 +1,10 @@
 <template>
   <view class="page-root">
     <view class="chat-app" :style="appScaleStyle">
+      <image class="chat-bg" src="/static/final-ui/chat_with_poet.jpg" mode="scaleToFill" />
       <view class="page">
         <view class="topbar">
-          <view class="back" @tap.stop="goBack">‹</view>
+          <view class="back art-back-small" @tap.stop="goBack"><image src="/static/final-ui/nav-back.png" mode="aspectFit" /></view>
 
           <view class="title-pill">
             <view class="logo">🌱</view>
@@ -123,6 +124,21 @@
           </view>
         </view>
       </view>
+
+      <view v-if="showReviewGuide" class="review-guide-mask">
+        <view class="review-guide-card">
+          <view class="review-guide-title">学完这首古诗啦</view>
+          <view class="review-guide-text">小朋友，你已经学完了这首古诗，想要点亮的话就去练一练吧~</view>
+          <view class="review-guide-actions">
+            <button class="review-guide-btn primary" @tap="goReview">去练一练</button>
+            <button class="review-guide-btn secondary" @tap="goHome">返回主页</button>
+          </view>
+          <view class="review-guide-checkbox" @tap="skipReviewGuideToday = !skipReviewGuideToday">
+            <view class="checkbox-box" :class="{ checked: skipReviewGuideToday }">{{ skipReviewGuideToday ? '✓' : '' }}</view>
+            <text>今日不再提示</text>
+          </view>
+        </view>
+      </view>
     </view>
   </view>
 </template>
@@ -133,8 +149,8 @@ import { onLoad, onUnload } from '@dcloudio/uni-app'
 import { API, getLocalPoemById, normalizeAssetUrl, getPoetAvatarStaticUrl } from '@/utils/api.js'
 import { isLiveAsrActive, startLiveAsr, stopLiveAsr } from '@/utils/live-asr.js'
 
-const DESIGN_WIDTH = 844
-const DESIGN_HEIGHT = 390
+const DESIGN_WIDTH = 1672
+const DESIGN_HEIGHT = 770
 const appScale = ref(1)
 
 const appScaleStyle = computed(() => `transform: scale(${appScale.value});`)
@@ -192,6 +208,8 @@ const userInput = ref('')
 const inputMode = ref('voice')
 const chatScrollTop = ref(0)
 const canNext = ref(false)
+const showReviewGuide = ref(false)
+const skipReviewGuideToday = ref(false)
 const isReplying = ref(false)
 const poetAvatarUrl = ref('')
 const replyAudioContext = ref(null)
@@ -1095,11 +1113,17 @@ const switchInputMode = () => {
 }
 
 const isAndroidApp = () => {
+  // #ifdef APP-PLUS
   try {
     return uni.getSystemInfoSync()?.platform === 'android'
   } catch (err) {
     return false
   }
+  // #endif
+
+  // #ifndef APP-PLUS
+  return false
+  // #endif
 }
 
 const interruptPoetForLiveVoice = () => {
@@ -1319,7 +1343,7 @@ const askSuggestion = (text) => {
   sendMessage()
 }
 
-const handleNext = () => {
+const handleNext = async () => {
   if (!canNext.value) {
     toast('先和诗人聊一句吧')
     return
@@ -1327,14 +1351,51 @@ const handleNext = () => {
 
   stopChatReplyAudio(false)
 
+  const now = new Date()
+  const today = `${now.getFullYear()}-${now.getMonth() + 1}-${now.getDate()}`
+  let suppressedToday = uni.getStorageSync('shiYaSkipReviewGuideDate') === today
+  try {
+    const reminder = await API.getReminderStatus()
+    suppressedToday = Boolean(reminder?.practice_prompt_suppressed)
+  } catch (err) {
+    console.log('读取今日巩固提醒状态失败，使用本地状态：', err)
+  }
+  if (suppressedToday) {
+    goReview()
+    return
+  }
+
+  showReviewGuide.value = true
+}
+
+const rememberReviewGuideChoice = async () => {
+  if (!skipReviewGuideToday.value) return
+  const now = new Date()
+  uni.setStorageSync('shiYaSkipReviewGuideDate', `${now.getFullYear()}-${now.getMonth() + 1}-${now.getDate()}`)
+  try {
+    await API.suppressPracticeReminderToday()
+  } catch (err) {
+    console.log('保存今日不再提醒失败，已保留本地设置：', err)
+  }
+}
+
+const goReview = async () => {
+  await rememberReviewGuideChoice()
+  showReviewGuide.value = false
   uni.navigateTo({
-    url: `/pages/recommend/recommend?poem_id=${poemId.value}`,
+    url: '/pages/review/review',
     fail: () => {
       if (typeof window !== 'undefined') {
-        window.location.href = `#/pages/recommend/recommend?poem_id=${poemId.value}`
+        window.location.href = '#/pages/review/review'
       }
     }
   })
+}
+
+const goHome = async () => {
+  await rememberReviewGuideChoice()
+  showReviewGuide.value = false
+  uni.reLaunch({ url: '/pages/index/index' })
 }
 
 const toast = (title) => {
@@ -1812,4 +1873,46 @@ button::after {
   font-weight: 850;
   padding: 0 14px;
 }
+.art-back-small { width: 52px; height: 52px; padding: 0; border: 0; background: transparent; }
+.art-back-small image { width: 100%; height: 100%; }
+
+/* 新版诗人对话底图布局，保留原有对话、语音和接口逻辑。 */
+.chat-app { width: 1672px; height: 770px; flex: 0 0 auto; background: transparent; }
+.chat-bg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.page { position: absolute; inset: 0; padding: 0; display: block; overflow: hidden; }
+.topbar { position: absolute; inset: 0; height: auto; pointer-events: none; }
+.topbar .back { left: 18px; top: 14px; width: 112px; height: 112px; pointer-events: auto; }
+.topbar .title-pill { display: none; }
+.next-btn { right: 28px; top: 26px; width: 178px; height: 70px; padding: 0; border: 0; background: transparent; box-shadow: none; color: transparent; pointer-events: auto; }
+.next-btn.active { background: transparent; color: transparent; filter: brightness(1.05); }
+.main-layout { position: absolute; inset: 0; display: block; }
+.poet-stage { position: absolute; left: 164px; top: 78px; width: 485px; height: 610px; padding: 0; border-radius: 0; background: transparent; box-shadow: none; overflow: hidden; display: block; }
+.poet-img-large { left: 45px; top: 52px; bottom: auto; width: 395px; height: 470px; border-radius: 0; background: transparent; object-fit: contain; }
+.poet-name { left: 92px; right: 92px; top: 535px; height: 55px; padding: 0; display: flex; align-items: center; justify-content: center; border-radius: 0; background: transparent; box-shadow: none; color: #704117; font-size: 34px; }
+.left-poem-card { display: none; }
+.dialog-panel { position: absolute; left: 670px; top: 116px; width: 850px; height: 600px; display: block; }
+.chat-card { position: absolute; left: 0; top: 0; width: 100%; height: 480px; padding: 24px 30px; border-radius: 0; background: transparent; box-shadow: none; }
+.bubble { font-size: 24px; line-height: 1.45; padding: 13px 18px; }
+.mini-avatar { width: 54px; height: 54px; }
+.suggest-box { margin: 12px 0 4px 62px; padding: 14px; }
+.suggest-title { font-size: 23px; }
+.chips { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.chip { min-width: 0; padding: 9px 10px; font-size: 19px; text-align: center; white-space: normal; }
+.input-bar { position: absolute; left: 0; right: 0; bottom: 0; height: 92px; padding: 0; gap: 12px; }
+.mode-btn { width: 92px; height: 92px; opacity: 0; }
+.voice-hold-btn { height: 82px; border: 0; background: transparent; box-shadow: none; color: transparent; font-size: 25px; }
+.voice-hold-btn.recording, .voice-hold-btn.recognizing { background: rgba(255,255,255,.45); color: #8b4b2a; }
+.text-input { height: 72px; border-radius: 36px; background: rgba(255,255,255,.82); font-size: 25px; padding: 0 28px; }
+.send-btn { width: 72px; height: 72px; font-size: 30px; }
+.review-guide-mask { position: absolute; inset: 0; z-index: 120; display: flex; align-items: center; justify-content: center; background: rgba(58, 38, 20, .34); backdrop-filter: blur(8px); }
+.review-guide-card { width: 760px; min-height: 390px; padding: 55px 70px 42px; border: 7px solid #a66a2d; border-radius: 20px; background: #fff0c8; box-shadow: 0 24px 60px rgba(58, 37, 17, .38); color: #704117; text-align: center; }
+.review-guide-title { font-size: 46px; font-weight: 900; }
+.review-guide-text { margin-top: 32px; font-size: 30px; font-weight: 800; line-height: 1.6; }
+.review-guide-actions { margin-top: 36px; display: flex; justify-content: center; gap: 28px; }
+.review-guide-btn { width: 250px; height: 72px; padding: 0; border: 3px solid #9f672c; border-radius: 8px; font-size: 29px; font-weight: 900; }
+.review-guide-btn.primary { background: #d99a49; color: #fff8e7; box-shadow: 0 6px 0 #9f672c; }
+.review-guide-btn.secondary { background: #fff9e8; color: #704117; box-shadow: 0 6px 0 #d3aa70; }
+.review-guide-checkbox { margin-top: 32px; display: flex; align-items: center; justify-content: center; gap: 14px; font-size: 24px; font-weight: 800; }
+.checkbox-box { width: 34px; height: 34px; border: 3px solid #9f672c; border-radius: 5px; display: flex; align-items: center; justify-content: center; background: #fff9e8; color: #fff; font-size: 26px; line-height: 1; }
+.checkbox-box.checked { background: #a66a2d; }
 </style>

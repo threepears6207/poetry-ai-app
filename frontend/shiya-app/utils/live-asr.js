@@ -1,10 +1,25 @@
 import { DEFAULT_USER_ID, LIVE_ASR_STREAM_URL } from './api.js'
+
+// #ifdef APP-PLUS
 import {
   onLiveAudioError,
   onLiveAudioFrame,
   startLiveAudio,
   stopLiveAudio,
 } from '@/uni_modules/shiya-live-audio'
+// #endif
+
+// H5 cannot resolve or execute the native UTS recorder. These stubs keep the
+// shared module importable; chat.vue selects its browser recorder on H5.
+// #ifndef APP-PLUS
+const nativeAudioUnavailable = () => {
+  throw new Error('Live audio recording is only available in the App build')
+}
+const onLiveAudioError = nativeAudioUnavailable
+const onLiveAudioFrame = nativeAudioUnavailable
+const startLiveAudio = nativeAudioUnavailable
+const stopLiveAudio = () => ({ recording: false, sampleRate: 16000, frameBytes: 1280 })
+// #endif
 
 let activeSession = null
 

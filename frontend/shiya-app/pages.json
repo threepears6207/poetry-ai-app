@@ -43,6 +43,13 @@
       }
     },
     {
+      "path": "pages/collection/collection",
+      "style": {
+        "navigationBarTitleText": "集章墙",
+        "navigationStyle": "custom"
+      }
+    },
+    {
       "path": "pages/parent/parent",
       "style": {
         "navigationBarTitleText": "家长端",

@@ -1,0 +1,141 @@
+<template>
+  <view class="page-root">
+    <view class="catalog" :style="scaleStyle">
+      <image class="catalog-bg" src="/static/final-ui/stamp-page.png" mode="scaleToFill" />
+      <button class="back-hotspot art-back" @tap="goBack" aria-label="返回"><image src="/static/final-ui/nav-back.png" mode="aspectFit" /></button>
+      <view class="page-title">集 章 墙</view>
+
+      <view class="card-grid">
+        <view v-for="poem in visiblePoems" :key="poem.id" class="poem-card" :class="{ locked: !poem.unlocked }" @tap="openPoem(poem)">
+          <image class="card-bg" src="/static/final-ui/collection-card-replacement.png" mode="scaleToFill" />
+          <view class="card-name">{{ poem.title }}</view>
+          <image class="card-scene" :src="poem.sceneImage" mode="aspectFill" />
+          <view v-if="!poem.unlocked" class="lock-mark">尚未点亮</view>
+          <view class="card-author">{{ poem.dynasty }} · {{ poem.author }}</view>
+        </view>
+      </view>
+
+      <button class="page-arrow left" :disabled="pageIndex === 0" @tap="pageIndex--" aria-label="上一页"></button>
+      <button class="page-arrow right" :disabled="pageIndex >= maxPage" @tap="pageIndex++" aria-label="下一页"></button>
+      <view class="page-number">已点亮 {{ unlockedCount }} / {{ allPoems.length }} 首古诗　·　{{ pageIndex + 1 }} / {{ maxPage + 1 }}</view>
+    </view>
+  </view>
+</template>
+
+<script setup>
+import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { onShow } from '@dcloudio/uni-app'
+import { API, normalizeAssetUrl } from '@/utils/api.js'
+
+const DESIGN_WIDTH = 1672
+const DESIGN_HEIGHT = 770
+const scale = ref(1)
+const scaleStyle = computed(() => `transform: scale(${scale.value});`)
+const completedIds = ref(new Set())
+const catalogPoems = ref([])
+const pageIndex = ref(0)
+const PAGE_SIZE = 4
+
+const allPoems = computed(() => catalogPoems.value.map(poem => ({
+  ...poem,
+  sceneImage: normalizeAssetUrl(`/static/images/poems/${poem.id}/frame_0.jpg`),
+  unlocked: completedIds.value.has(String(poem.id))
+})))
+const maxPage = computed(() => Math.max(0, Math.ceil(allPoems.value.length / PAGE_SIZE) - 1))
+const visiblePoems = computed(() => allPoems.value.slice(pageIndex.value * PAGE_SIZE, pageIndex.value * PAGE_SIZE + PAGE_SIZE))
+const unlockedCount = computed(() => allPoems.value.filter(item => item.unlocked).length)
+
+const updateScale = () => {
+  try {
+    const info = uni.getSystemInfoSync()
+    scale.value = Number(Math.min((info.windowWidth || DESIGN_WIDTH) / DESIGN_WIDTH, (info.windowHeight || DESIGN_HEIGHT) / DESIGN_HEIGHT).toFixed(4)) || 1
+  } catch (err) { scale.value = 1 }
+}
+
+const extractList = (payload) => [
+  payload,
+  payload?.data,
+  payload?.items,
+  payload?.poems,
+  payload?.records,
+  payload?.results,
+  payload?.data?.items,
+  payload?.data?.poems,
+  payload?.data?.records,
+  payload?.data?.results
+].find(Array.isArray) || []
+
+const loadCollection = async () => {
+  try {
+    const result = await API.getCollectionWall()
+    const poems = Array.isArray(result?.poems) ? result.poems : extractList(result)
+    catalogPoems.value = poems.map(item => ({
+      ...item,
+      id: item.id || item.poem_id,
+      poem_id: item.poem_id || item.id
+    }))
+    completedIds.value = new Set(
+      poems
+        .filter(item => item.collection_state === 'color')
+        .map(item => String(item.poem_id || item.id || ''))
+        .filter(Boolean)
+    )
+    pageIndex.value = Math.min(pageIndex.value, maxPage.value)
+  } catch (err) {
+    console.log('加载集章墙失败：', err)
+    catalogPoems.value = []
+    completedIds.value = new Set()
+  }
+}
+
+const goBack = () => uni.navigateBack({ fail: () => uni.reLaunch({ url: '/pages/index/index' }) })
+const openPoem = (poem) => {
+  if (!poem.unlocked) {
+    uni.showToast({ title: '完成巩固后就能点亮', icon: 'none' })
+    return
+  }
+  uni.navigateTo({ url: `/pages/study/study?poem_id=${poem.id}` })
+}
+
+const resize = () => updateScale()
+onMounted(() => {
+  updateScale()
+  if (typeof uni.onWindowResize === 'function') uni.onWindowResize(resize)
+})
+onUnmounted(() => {
+  if (typeof uni.offWindowResize === 'function') uni.offWindowResize(resize)
+})
+onShow(loadCollection)
+</script>
+
+<style scoped>
+* { box-sizing: border-box; }
+button::after { border: 0; }
+.page-root { width: 100vw; height: 100vh; overflow: hidden; display: flex; align-items: center; justify-content: center; background: #172421; font-family: "STKaiti", "KaiTi", serif; }
+.catalog { position: relative; width: 1672px; height: 770px; flex: 0 0 auto; transform-origin: center; overflow: hidden; }
+.catalog-bg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.back-hotspot { position: absolute; left: 24px; top: 14px; }
+.art-back { z-index: 70; width: 120px; height: 120px; padding: 0; border: 0; background: transparent; }
+.art-back image { width: 100%; height: 100%; }
+.page-title { position: absolute; left: 570px; top: 42px; width: 532px; height: 78px; display: flex; align-items: center; justify-content: center; color: #744319; font-size: 46px; font-weight: 900; letter-spacing: 14px; }
+.card-grid { position: absolute; left: 246px; top: 145px; width: 1180px; height: 570px; display: flex; justify-content: center; align-items: flex-start; gap: 33px; }
+.poem-card { position: relative; width: 270px; height: 273px; overflow: visible; transition: transform .16s; }
+.poem-card:active { transform: translateY(6px) scale(.98); }
+.poem-card.locked { filter: grayscale(.76); opacity: .68; }
+.card-bg { position: absolute; inset: 0; width: 270px; height: 273px; }
+.card-name { position: absolute; left: 62px; right: 62px; top: 25px; height: 40px; display: flex; align-items: center; justify-content: center; color: #744319; font-size: 24px; font-weight: 900; }
+.card-scene { position: absolute; left: 42px; top: 82px; width: 186px; height: 105px; border: 3px solid rgba(133, 84, 42, .42); border-radius: 5px; background: #ead9b8; }
+.lock-mark { position: absolute; left: 38px; right: 38px; top: 176px; text-align: center; color: #6f6b60; font-size: 18px; font-weight: 900; }
+.card-author { position: absolute; left: 28px; width: 145px; bottom: 24px; height: 34px; display: flex; align-items: center; justify-content: center; color: #81572f; font-size: 18px; font-weight: 800; white-space: nowrap; }
+.page-arrow { position: absolute; top: 352px; width: 96px; height: 96px; padding: 0; border: 0; background: transparent; }
+.page-arrow.left { left: 78px; }
+.page-arrow.right { right: 78px; }
+.page-arrow[disabled] { opacity: .25; }
+.page-number { position: absolute; left: 570px; bottom: 4px; width: 532px; height: 44px; display: flex; align-items: center; justify-content: center; text-align: center; color: #855326; font-size: 22px; font-weight: 900; }
+/* 手机横屏可读性 */
+.page-title { font-size: 60px; }
+.card-name { font-size: 34px; }
+.lock-mark { font-size: 28px; }
+.card-author { font-size: 20px; }
+.page-number { font-size: 30px; }
+</style>

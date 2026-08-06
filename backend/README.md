@@ -2,11 +2,21 @@
 
 后端使用 FastAPI，负责古诗数据、学习记录、巩固计划、个性化推荐、OCR、语音识别、诗人对话、语音合成、AI 配图和视频生成实验。
 
+## 最新进展（2026-08-06）
+
+- 已完成诗库结构化、来源追踪、正文哈希去重、标签规范化和可信内容筛选。
+- 已新增图片理解结果候选检索，可综合文字、景物、季节和氛围返回 2—3 首候选诗。
+- 已升级推荐排序，综合适龄与内容完整、待温习/薄弱项、近期偏好、难度递进和内容多样性。
+- 已完成学习巩固闭环：分镜朗读和诗句连线均完成后，集章墙诗卡由灰色变彩色并增加小红花。
+- 已提供当日练习提醒、暂停当日提醒以及家长端学习聚合数据。
+- 陈誉文负责范围的专项自动化测试共 27 项，当前全部通过。
+
 ## 当前数据状态
 
 - 正式读写已切换到 SQLite，默认文件为 `data/poetry_ai.db`。
-- 古诗库共 150 首：`age_3_4` 50 首，`age_5_7` 100 首。
-- 数据表：`poems`、`users`、`learning_records`、`consolidations`、`reading_scores`。
+- 当前本地 SQLite 古诗库共 218 首；核心库和扩展候选通过 `library_scope`、`verification_status`、`content_complete` 和 `recommend_eligible` 区分。
+- 诗歌已补充来源、版本、年龄段、难度、主题标签、知识标签、正文哈希、完整状态和推荐资格等结构化字段。
+- 主要数据表：`poems`、`users`、`learning_records`、`consolidations`、`reading_scores`、`daily_reminder_settings`。
 - `data/poems.json`、`records.json`、`consolidations.json` 仅作为历史源数据/迁移输入，正式接口不再直接读写它们。
 - SQLite 运行库已加入 `.gitignore`，新环境需自行初始化。
 
@@ -62,7 +72,7 @@ python scripts/init_database.py
 python scripts/import_poems_to_db.py
 ```
 
-第一条命令根据 `schema.sql` 建表，第二条命令将 `data_sources/generated/children_poems_candidates.json` 中的 150 首古诗导入 SQLite。
+第一条命令根据 `schema.sql` 建表，第二条命令将候选目录导入 SQLite。导入过程会规范化正文和标签、计算正文哈希并根据可信来源与字段完整度设置推荐资格。
 
 如需用候选文件同步更新已存在的诗：
 
@@ -114,10 +124,26 @@ uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 
 ### 个性化推荐
 
-1. 根据 `age_3_4` / `age_5_7` 筛选年龄匹配的古诗。
-2. 排除该用户已学过的诗。
-3. 根据 `reading_scores` 计算标签平均分和 `strong_tags`。
-4. 优先返回与强项标签重合的古诗，再参考难度排序。
+1. 先筛选年龄匹配、内容完整且允许推荐的古诗。
+2. 优先安排待温习、待巩固或薄弱项目。
+3. 结合近期喜欢的主题、意象和阅读画像。
+4. 按难度递进，并对连续同类内容施加多样性约束。
+5. `GET /recommend/today` 返回当前推荐；`exclude_poem_id` 可用于“换一首”。
+
+### 图片候选与诗库解析
+
+- `POST /poems/candidates` 接收结构化图片理解结果，综合 `recognized_text`、`objects`、`season`、`mood` 和 `confidence` 检索诗库。
+- 文字场景优先按诗句匹配，风景场景按标签匹配，图文混合场景合并结果后去重排序。
+- 低置信度或无可靠结果时返回重新拍摄状态，不强行推荐。
+- `POST /poems/resolve` 只解析和返回可信候选；未经核验的未知文本不会直接写入正式诗库。
+
+### 学习巩固、集章墙和提醒
+
+- `POST /consolidation/progress` 分别记录 `reading` 和 `connection` 两类练习进度。
+- 两项均完成后，`collection_state` 从 `gray` 变为 `color`，首次解锁增加 `flower_count`。
+- `GET /collection/wall` 只返回已学诗，并由服务端给出灰卡、彩卡和小红花状态。
+- `GET /reminders/status` 返回当天是否显示练习提醒；`POST /reminders/suppress-today` 仅暂停当天提醒，次日恢复资格。
+- `GET /parent/overview` 聚合今日学习、待温习数量、练习完成情况和近期学习记录。
 
 ### 诗人对话与语音
 
@@ -147,15 +173,23 @@ uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 | GET | `/ping` | 健康检查和 vivo 配置状态 |
 | GET | `/poems/search` | 标题、作者、朝代、诗句、标签搜索与分页 |
 | GET | `/poems/{poem_id}` | 古诗详情 |
+| POST | `/poems/candidates` | 根据文字、景物、季节和氛围返回候选诗卡 |
+| POST | `/poems/resolve` | 解析可信候选诗，不自动写入未知内容 |
 | POST | `/record` | 写入学习记录并建立巩固记录 |
 | GET | `/record` | 用户学习记录 |
 | GET | `/record/summary` | 家长端学习统计 |
 | POST | `/profile/reading-score` | 保存整首跟读平均分 |
 | GET | `/profile/{user_id}` | 用户标签分数和强项标签 |
 | GET | `/recommend` | 年龄 + 未学 + 强项标签推荐 |
+| GET | `/recommend/today` | 今天学什么及换一首推荐 |
+| POST | `/consolidation/progress` | 写入朗读或连线的分阶段进度 |
+| GET | `/collection/wall` | 已学诗集章墙状态 |
 | GET | `/consolidation/list` | 巩固列表和统计 |
 | GET | `/consolidation/status/{poem_id}` | 单首巩固状态 |
 | POST | `/consolidation/result` | 整首通过后更新复习计划 |
+| GET | `/reminders/status` | 当日练习提醒状态 |
+| POST | `/reminders/suppress-today` | 今天先不提醒 |
+| GET | `/parent/overview` | 家长端学习聚合数据 |
 | POST | `/ocr` | 文字 OCR 识诗或风景匹配 |
 | POST | `/asr` | 语音转文字 |
 | POST | `/asr/score` | 当前单句跟读评分 |
@@ -179,9 +213,13 @@ uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 | `main.py` | FastAPI 入口、CORS、静态目录和路由注册 |
 | `database.py` / `schema.sql` | SQLite 连接、WAL 配置和表结构 |
 | `poems.py` | 古诗搜索与详情 |
+| `poem_catalog.py` | 可信候选解析、规范化与去重 |
+| `candidate_search.py` | 图片理解结果的文字/风景候选检索 |
+| `tag_rules.py` | 主题和知识标签规范化规则 |
 | `record.py` | 学习记录与家长统计 |
-| `consolidation.py` | 巩固记录和 1/3/7 天复习节奏 |
-| `recommend.py` | 跟读画像与个性化推荐 |
+| `consolidation.py` | 分阶段练习、集章状态和 1/3/7 天复习节奏 |
+| `learning_dashboard.py` | 当日提醒与家长端聚合数据 |
+| `recommend.py` | 适龄、巩固优先、偏好、难度和多样性推荐 |
 | `ocr.py` | 百度 OCR、图像识别和 SQLite 古诗匹配 |
 | `asr.py` | vivo 实时语音识别、流式 WebSocket 转发和单句评分 |
 | `chat.py` / `poet_voice.py` / `vivo_tts.py` | 诗人对话、声音档案、vivo TTS 和降级 |
@@ -193,6 +231,16 @@ uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 | `test_result/` | 后端测试脚本；运行结果文本已忽略 |
 
 ## 测试
+
+陈誉文负责范围的专项测试：
+
+```powershell
+cd backend
+$env:PYTHONPATH=(Get-Location).Path
+python -m pytest tests -q
+```
+
+当前基线结果：`27 passed`。
 
 先启动后端，再在另一个终端运行：
 

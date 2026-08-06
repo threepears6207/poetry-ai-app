@@ -1,8 +1,8 @@
 # 诗芽小学堂 API 接口文档
 
-> 文档版本：v1.2
-> 更新时间：2026-05-27
-> 负责人：陈俪姗
+> 文档版本：v1.3
+> 更新时间：2026-08-06
+> 接口负责人：按下表及各章节标注
 > 后端基础URL：http://localhost:8000（开发环境）
 
 ---
@@ -19,8 +19,16 @@
 | 学习记录 | POST | /record | 陈誉文 | ✅ |
 | 学习统计 | GET | /record/summary | 陈誉文 | ✅ |
 | 推荐古诗 | GET | /recommend | 陈誉文 | ✅ |
+| 今天学什么 | GET | /recommend/today | 陈誉文 | ✅ |
 | 拍照识诗 | POST | /ocr | 陈誉文 | ✅ |
-| 语音朗读 | POST | /tts | 陈誉文 | 🔧 开发中 |
+| 图片候选检索 | POST | /poems/candidates | 陈誉文 | ✅ |
+| 可信诗歌解析 | POST | /poems/resolve | 陈誉文 | ✅ |
+| 练习进度 | POST | /consolidation/progress | 陈誉文 | ✅ |
+| 集章墙 | GET | /collection/wall | 陈誉文 | ✅ |
+| 提醒状态 | GET | /reminders/status | 陈誉文 | ✅ |
+| 今天先不提醒 | POST | /reminders/suppress-today | 陈誉文 | ✅ |
+| 家长端聚合 | GET | /parent/overview | 陈誉文 | ✅ |
+| 语音朗读 | POST | /tts | 陈誉文 | ✅ |
 
 ---
 
@@ -382,6 +390,23 @@ GET /recommend?user_id=test_user&limit=5
 
 ## 通用规范
 
+陈誉文负责的新接口详细字段和示例见：
+
+- `../docs/image-analysis-candidates-api.md`
+- `../docs/poem-catalog-resolve-api.md`
+- `../docs/recommendation-api.md`
+- `../docs/learning-collection-api.md`
+- `../docs/reminders-parent-api.md`
+- `../docs/poem-tag-standard.md`
+
+当前后端数据与规则说明：
+
+- 本地 SQLite 当前包含 218 首结构化诗歌。
+- 推荐只使用内容完整且具备推荐资格的诗歌。
+- 图片候选接口固定面向 2—3 首候选卡，不把未知识别文本直接写入正式诗库。
+- 分镜朗读和诗句连线均完成后，集章状态由 `gray` 变为 `color` 并增加小红花。
+- 陈誉文负责范围的专项自动化测试当前为 `27 passed`。
+
 - 所有接口统一返回 `success` 字段标识成功与否
 - 失败时返回 `error` 字段说明原因
 - HTTP 状态码：200 成功，400 参数错误，500 服务器错误
@@ -396,3 +421,4 @@ GET /recommend?user_id=test_user&limit=5
 | v1.0 | 2026-05-18 | 初始版本，定义全部接口 | 陈俪姗 |
 | v1.1 | 2026-05-23 | 更新 /chat 接口参数，新增 history 字段 | 陈俪姗 |
 | v1.2 | 2026-05-27 | 更新 /generate/image 为逐句生成，新增 /record/summary | 陈俪姗 |
+| v1.3 | 2026-08-06 | 新增候选检索、可信诗歌解析、推荐排序、学习巩固、集章墙、提醒与家长端接口说明 | 陈誉文 |

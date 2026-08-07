@@ -176,21 +176,32 @@ def expand_catalog(write=False):
     supplement = load_json(SUPPLEMENT_PATH)
     seen_hashes = set()
     used_titles = set()
+    canonical_versions = []
     duplicate_indexes = []
 
     for poem in core:
         seen_hashes.add(poem_key(poem))
-        used_titles.add(title_author_key(poem.get("title", ""), poem.get("author", "")))
+        title_key = title_author_key(poem.get("title", ""), poem.get("author", ""))
+        used_titles.add(title_key)
+        canonical_versions.append((title_key, normalize_poem_text("".join(poem.get("content") or []))))
     for index, poem in enumerate(supplement):
         key = poem_key(poem)
         title_key = title_author_key(poem.get("title", ""), poem.get("author", ""))
         # “不重复”按规范化正文判定。相同题目可能存在不同版本或同题诗，
         # 不能仅凭“题目 + 作者”误删正文不同的作品。
-        if not key or key in seen_hashes:
+        normalized_content = normalize_poem_text("".join(poem.get("content") or []))
+        is_shorter_contained_version = any(
+            title_key == canonical_title
+            and len(normalized_content) < len(canonical_content)
+            and normalized_content in canonical_content
+            for canonical_title, canonical_content in canonical_versions
+        )
+        if not key or key in seen_hashes or is_shorter_contained_version:
             duplicate_indexes.append(index)
             continue
         seen_hashes.add(key)
         used_titles.add(title_key)
+        canonical_versions.append((title_key, normalized_content))
 
     pool = replacement_pool(source_entries(), seen_hashes, used_titles)
     if len(pool) < len(duplicate_indexes):
@@ -207,6 +218,7 @@ def expand_catalog(write=False):
         replacements.append({
             "poem_id": old["id"],
             "old_title": old.get("title", ""),
+            "old_line_count": len(old.get("content") or []),
             "new_title": title,
             "author": author,
             "selection_tier": priority,

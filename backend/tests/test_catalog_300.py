@@ -16,6 +16,26 @@ class Catalog300Tests(unittest.TestCase):
             {f"poem_{index:03d}" for index in range(1, 301)},
         )
 
+    def test_catalog_has_no_shortened_version_of_same_poem(self):
+        poems, _, _, _ = load_default_catalogs()
+
+        def normalized(value):
+            return "".join(str(value).split()).replace("（节选）", "").replace("（扩展理解）", "")
+
+        for index, left in enumerate(poems):
+            for right in poems[index + 1:]:
+                if normalized(left["title"]) != normalized(right["title"]):
+                    continue
+                if normalized(left["author"]) != normalized(right["author"]):
+                    continue
+                left_content = normalized("".join(left["content"]))
+                right_content = normalized("".join(right["content"]))
+                shorter, longer = sorted((left_content, right_content), key=len)
+                self.assertFalse(
+                    len(shorter) < len(longer) and shorter in longer,
+                    f"发现同诗短版本：{left['id']} 与 {right['id']}",
+                )
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -37,19 +37,19 @@ def load_catalog(source_path=DEFAULT_SOURCE_PATH):
 def load_default_catalogs():
     """Load both user-provided batches and reuse the first canonical content row."""
     specs = (
-        (CORE_SOURCE_PATH, "core", "儿童核心诗库"),
-        (SUPPLEMENT_SOURCE_PATH, "extension", "补充古诗库（原文件 tang_poems_candidates.json）"),
+        (CORE_SOURCE_PATH, "儿童诗库"),
+        (SUPPLEMENT_SOURCE_PATH, "补充批次（原文件 tang_poems_candidates.json）"),
     )
     merged = []
     duplicates = []
     seen_hashes = {}
     raw_count = 0
-    for path, scope, source_label in specs:
+    for path, source_label in specs:
         poems = load_catalog(path)
         raw_count += len(poems)
         for poem in poems:
             item = dict(poem)
-            item["_library_scope"] = scope
+            item["_library_scope"] = "core"
             item["_source_name"] = f"{SOURCE_NAME} / {source_label}"
             content_hash = poem_content_hash(item.get("content") or [])
             canonical = seen_hashes.get(content_hash)

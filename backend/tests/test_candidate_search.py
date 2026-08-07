@@ -25,6 +25,27 @@ class CandidateSearchTests(unittest.TestCase):
         self.assertTrue(result["success"])
         self.assertEqual(result["poems"][0]["title"], "静夜思")
 
+    def test_new_poem_text_contract(self):
+        request = ImageAnalysisInput.model_validate({
+            "type": "poem_text",
+            "poem_text": "举头望明月低头思故乡",
+            "confidence": 0.9,
+        })
+        result = search_candidates(request, self.db_path)
+        self.assertEqual(request.content_type, "poem_text")
+        self.assertEqual(request.recognized_text, request.poem_text)
+        self.assertEqual(result["poems"][0]["title"], "静夜思")
+
+    def test_new_nested_scene_contract(self):
+        request = ImageAnalysisInput.model_validate({
+            "type": "scene",
+            "scene": {"objects": ["枫叶", "山"], "season": "autumn"},
+            "confidence": 0.88,
+        })
+        result = search_candidates(request, self.db_path)
+        self.assertEqual(request.objects, ["枫叶", "山"])
+        self.assertEqual(result["poems"][0]["title"], "山行")
+
     def test_scene_uses_objects_season_and_tags(self):
         result = search_candidates(ImageAnalysisInput(content_type="scene", objects=["枫叶", "山"], season="autumn", confidence=0.88, debug=True), self.db_path)
         self.assertTrue(result["success"])

@@ -1,7 +1,6 @@
 import hashlib
 import json
 import re
-import uuid
 from datetime import datetime, timezone
 from typing import List, Optional
 
@@ -116,8 +115,23 @@ def _backfill_hashes(connection) -> None:
         )
 
 
-def _insert_extension_poem(connection, candidate: VerifiedPoemCandidate):
-    poem_id = f"ext_{uuid.uuid4().hex[:16]}"
+def _next_poem_id(connection) -> str:
+    """Allocate the next regular poem ID, starting at poem_301.
+
+    The caller holds a BEGIN IMMEDIATE transaction, so concurrent writers cannot
+    receive the same ID.
+    """
+    rows = connection.execute("SELECT id FROM poems WHERE id LIKE 'poem_%'").fetchall()
+    numbers = []
+    for row in rows:
+        match = re.fullmatch(r"poem_(\d+)", row["id"] or "")
+        if match:
+            numbers.append(int(match.group(1)))
+    return f"poem_{max([300, *numbers]) + 1:03d}"
+
+
+def _insert_verified_poem(connection, candidate: VerifiedPoemCandidate):
+    poem_id = _next_poem_id(connection)
     now = datetime.now(timezone.utc).isoformat()
     content = _clean_list(candidate.content)
     connection.execute(
@@ -128,7 +142,7 @@ def _insert_extension_poem(connection, candidate: VerifiedPoemCandidate):
             knowledge_tags_json, recommend_reason, content_hash, library_scope,
             source_name, source_url, source_version, verification_status,
             content_complete, recommend_eligible, created_at, updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, '', ?, 'extension',
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, '', ?, 'core',
                   ?, ?, ?, 'verified', 1, 1, ?, ?)
         """,
         (
@@ -183,8 +197,8 @@ def resolve_verified_poems(request: ResolvePoemsRequest, db_path: Optional[str] 
                 rejected.append({"title": candidate.title, "errors": ["正式库未命中且未开启自动入库"]})
                 continue
 
-            poem = _as_frontend_poem(_insert_extension_poem(connection, candidate))
-            poem["resolution"] = "inserted_extension"
+            poem = _as_frontend_poem(_insert_verified_poem(connection, candidate))
+            poem["resolution"] = "inserted"
             poem["match_type"] = "verified_new_poem"
             resolved.append(poem)
         connection.commit()
@@ -204,5 +218,5 @@ def resolve_verified_poems(request: ResolvePoemsRequest, db_path: Optional[str] 
 
 @router.post("/poems/resolve")
 def resolve_poems(request: ResolvePoemsRequest):
-    """Reuse formal poems or insert verified new poems into the extension catalog."""
+    """Reuse existing poems or insert cloud-verified poems into the poems table."""
     return resolve_verified_poems(request)

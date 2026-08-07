@@ -35,14 +35,25 @@ class PoemCatalogTests(unittest.TestCase):
 
     def test_verified_new_poem_is_inserted_then_reused(self):
         first = self.resolve(candidate())
-        self.assertEqual(first["poems"][0]["resolution"], "inserted_extension")
+        self.assertEqual(first["poems"][0]["resolution"], "inserted")
         poem_id = first["poems"][0]["id"]
+        self.assertEqual(poem_id, "poem_301")
+        self.assertEqual(first["poems"][0]["library_scope"], "core")
         self.assertEqual(first["poems"][0]["poem_id"], poem_id)
 
         second = self.resolve(candidate(title="另一个标题"))
         self.assertEqual(second["poems"][0]["id"], poem_id)
         self.assertEqual(second["poems"][0]["resolution"], "reused")
         self.assertEqual(second["poems"][0]["match_type"], "content_hash")
+
+    def test_new_poem_ids_increment_from_301(self):
+        first = self.resolve(candidate())
+        second = self.resolve(candidate(
+            title="第二首示例",
+            content=["松风吹远壑", "明月照清泉"],
+        ))
+        self.assertEqual(first["poems"][0]["id"], "poem_301")
+        self.assertEqual(second["poems"][0]["id"], "poem_302")
 
     def test_unverified_candidate_is_rejected(self):
         result = self.resolve(candidate(verification_status="pending"))

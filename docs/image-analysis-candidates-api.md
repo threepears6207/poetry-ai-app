@@ -6,26 +6,27 @@
 
 ```json
 {
-  "content_type": "mixed",
-  "recognized_text": "处处闻啼鸟",
-  "recognized_title": "",
-  "recognized_author": "",
-  "objects": ["花", "鸟"],
-  "scene_tags": ["春景"],
-  "season": "spring",
-  "mood": "happy",
+  "type": "mixed",
+  "poem_text": "处处闻啼鸟",
+  "scene": {
+    "objects": ["花", "鸟"],
+    "tags": ["春景"],
+    "season": "spring",
+    "mood": "happy"
+  },
   "confidence": 0.9,
   "age_level": "age_3_4",
   "limit": 3
 }
 ```
 
-`content_type` 支持：
+标准字段 `type` 支持：
 
-- `text_poem`：课本印刷古诗。
-- `handwritten`：手写古诗或诗句。
+- `poem_text`：课本、印刷或手写古诗文字，正文放在 `poem_text`。
 - `scene`：自然风景。
 - `mixed`：同时包含文字和风景。
+
+风景信息统一放在 `scene`，字段为 `objects`、`tags`、`season`、`mood`。为避免前端和端侧同时改版，接口暂时兼容旧字段 `content_type`、`recognized_text`、`objects`、`scene_tags`、`season`、`mood`，后端会归一化为新结构。
 
 ## 成功响应
 

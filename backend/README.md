@@ -9,12 +9,12 @@
 - 已升级推荐排序，综合适龄与内容完整、待温习/薄弱项、近期偏好、难度递进和内容多样性。
 - 已完成学习巩固闭环：分镜朗读和诗句连线均完成后，集章墙诗卡由灰色变彩色并增加小红花。
 - 已提供当日练习提醒、暂停当日提醒以及家长端学习聚合数据。
-- 陈誉文负责范围的专项自动化测试共 27 项，当前全部通过。
+- 陈誉文负责范围的专项自动化测试共 30 项，当前全部通过。
 
 ## 当前数据状态
 
 - 正式读写已切换到 SQLite，默认文件为 `data/poetry_ai.db`。
-- 当前本地 SQLite 古诗库共 218 首；核心库和扩展候选通过 `library_scope`、`verification_status`、`content_complete` 和 `recommend_eligible` 区分。
+- 当前本地 SQLite 古诗库共 218 首；新诗核验通过后直接写入现有 `poems` 表，并从 `poem_301` 起顺序编号。
 - 诗歌已补充来源、版本、年龄段、难度、主题标签、知识标签、正文哈希、完整状态和推荐资格等结构化字段。
 - 主要数据表：`poems`、`users`、`learning_records`、`consolidations`、`reading_scores`、`daily_reminder_settings`。
 - `data/poems.json`、`records.json`、`consolidations.json` 仅作为历史源数据/迁移输入，正式接口不再直接读写它们。
@@ -132,10 +132,10 @@ uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 
 ### 图片候选与诗库解析
 
-- `POST /poems/candidates` 接收结构化图片理解结果，综合 `recognized_text`、`objects`、`season`、`mood` 和 `confidence` 检索诗库。
+- `POST /poems/candidates` 标准入参使用 `type`、`poem_text`、`scene` 和 `confidence`；后端仍兼容旧字段，并综合文字、景物、季节和氛围检索诗库。
 - 文字场景优先按诗句匹配，风景场景按标签匹配，图文混合场景合并结果后去重排序。
 - 低置信度或无可靠结果时返回重新拍摄状态，不强行推荐。
-- `POST /poems/resolve` 只解析和返回可信候选；未经核验的未知文本不会直接写入正式诗库。
+- `POST /poems/resolve` 复用已有诗；云端补全且校验通过的新诗直接写入 `poems`，返回 `poem_301+` 统一编号。未经核验的未知文本不会入库。
 
 ### 学习巩固、集章墙和提醒
 
@@ -240,7 +240,7 @@ $env:PYTHONPATH=(Get-Location).Path
 python -m pytest tests -q
 ```
 
-当前基线结果：`27 passed`。
+当前基线结果：`30 passed`。
 
 先启动后端，再在另一个终端运行：
 

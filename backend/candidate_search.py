@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import List, Literal, Optional
 
 from fastapi import APIRouter
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 from database import get_connection, initialize_database
 from poem_catalog import normalize_poem_text
@@ -38,19 +38,65 @@ MOOD_MAP = {
 }
 
 
+class SceneAnalysisInput(BaseModel):
+    objects: List[str] = Field(default_factory=list)
+    tags: List[str] = Field(default_factory=list)
+    season: str = ""
+    mood: str = ""
+
+
 class ImageAnalysisInput(BaseModel):
-    content_type: Literal["text_poem", "handwritten", "scene", "mixed"]
+    content_type: Literal["poem_text", "scene", "mixed"]
+    poem_text: str = ""
     recognized_text: str = ""
     recognized_title: str = ""
     recognized_author: str = ""
     objects: List[str] = Field(default_factory=list)
     scene_tags: List[str] = Field(default_factory=list)
+    scene: Optional[SceneAnalysisInput] = None
     season: str = ""
     mood: str = ""
     confidence: float = Field(default=0.0, ge=0, le=1)
     age_level: Optional[Literal["age_3_4", "age_5_7"]] = None
     limit: int = Field(default=3, ge=2, le=3)
     debug: bool = False
+
+    @model_validator(mode="before")
+    @classmethod
+    def normalize_input_contract(cls, raw):
+        """Accept the compact contract while preserving existing client payloads."""
+        values = dict(raw or {})
+        raw_type = values.get("content_type") or values.get("type")
+        raw_type = {
+            "text_poem": "poem_text",
+            "handwritten": "poem_text",
+            "poem": "poem_text",
+        }.get(raw_type, raw_type)
+
+        poem_text = values.get("poem_text") or values.get("recognized_text") or ""
+        values["poem_text"] = poem_text
+        values["recognized_text"] = values.get("recognized_text") or poem_text
+
+        scene = values.get("scene")
+        if isinstance(scene, dict):
+            values["objects"] = values.get("objects") or scene.get("objects") or []
+            values["scene_tags"] = (
+                values.get("scene_tags") or scene.get("tags") or scene.get("scene_tags") or []
+            )
+            values["season"] = values.get("season") or scene.get("season") or ""
+            values["mood"] = values.get("mood") or scene.get("mood") or ""
+
+        has_text = bool(
+            poem_text or values.get("recognized_title") or values.get("recognized_author")
+        )
+        has_scene = bool(
+            values.get("objects") or values.get("scene_tags")
+            or values.get("season") or values.get("mood")
+        )
+        if not raw_type:
+            raw_type = "mixed" if has_text and has_scene else "poem_text" if has_text else "scene"
+        values["content_type"] = raw_type
+        return values
 
 
 def _unique(values):
@@ -204,7 +250,7 @@ def search_candidates(request: ImageAnalysisInput, db_path=None):
     if request.confidence < 0.3 and not has_text:
         return {"success": False, "status": "retake", "error_code": "low_confidence", "poems": []}
 
-    use_text = request.content_type in {"text_poem", "handwritten", "mixed"} and has_text
+    use_text = request.content_type in {"poem_text", "mixed"} and has_text
     use_scene = request.content_type in {"scene", "mixed"} and has_scene
     text_weight = 1.0 if use_text and not use_scene else 0.75
     scene_weight = 1.0 if use_scene and not use_text else 0.25

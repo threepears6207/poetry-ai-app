@@ -21,8 +21,8 @@ CREATE TABLE IF NOT EXISTS poems (
     knowledge_tags_json TEXT NOT NULL DEFAULT '[]',
     recommend_reason TEXT NOT NULL DEFAULT '',
     content_hash TEXT NOT NULL DEFAULT '',
-    library_scope TEXT NOT NULL DEFAULT 'core'
-        CHECK (library_scope IN ('core', 'extension')),
+    -- Legacy compatibility field. Business logic no longer uses a separate extension library.
+    library_scope TEXT NOT NULL DEFAULT 'core',
     source_name TEXT NOT NULL DEFAULT '',
     source_url TEXT NOT NULL DEFAULT '',
     source_version TEXT NOT NULL DEFAULT '',

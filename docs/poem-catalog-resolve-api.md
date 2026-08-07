@@ -5,8 +5,9 @@
 1. 规范化正文并计算 SHA-256 内容哈希。
 2. 优先按正文哈希复用已有诗；其次按标题、作者、正文复用。
 3. 同标题、作者但正文冲突时拒绝自动覆盖。
-4. 仅当 `verification_status=verified`、正文完整且提供 `source_name` 时，自动写入扩展库。
-5. 无论复用还是新入库，都通过统一的 `poems[]` 返回正式 `poem_id`。
+4. 仅当 `verification_status=verified`、正文完整且提供 `source_name` 时，直接写入现有 `poems` 表。
+5. 新增诗统一从 `poem_301` 起按当前最大编号递增，不再生成 `ext_xxx`，也不再区分 extension 库。
+6. 无论复用还是新入库，都通过统一的 `poems[]` 返回正式 `poem_id`。
 
 ## 请求示例
 
@@ -53,4 +54,4 @@
 }
 ```
 
-`resolution` 为 `reused` 或 `inserted_extension`。`rejected` 仅用于后端联调和日志；儿童端只消费 `poems[]`。
+`resolution` 为 `reused` 或 `inserted`。例如当前最大正式编号为 `poem_300` 时，下一首核验通过的新诗返回 `poem_301`。`rejected` 仅用于后端联调和日志；儿童端只消费 `poems[]`。

@@ -173,6 +173,7 @@ def main():
     parser.add_argument("--all", action="store_true", help="生成所有尚未进入草稿的诗歌")
     parser.add_argument("--batch-size", type=int, default=10, help="批量模式每次请求数量")
     parser.add_argument("--retries", type=int, default=3, help="单批校验失败后的重试次数")
+    parser.add_argument("--catalog-path", type=Path, default=CATALOG_PATH, help="待补全元数据的诗库 JSON")
     args = parser.parse_args()
 
     load_dotenv(BACKEND_DIR / ".env")
@@ -180,7 +181,7 @@ def main():
     if not app_key:
         raise SystemExit("缺少 VIVO_APP_KEY，无法调用比赛平台大模型")
 
-    catalog = load_json(CATALOG_PATH, [])
+    catalog = load_json(args.catalog_path, [])
     old = load_json(OUTPUT_PATH, [])
     old_map = {item["id"]: item for item in old}
     selected_ids = set(args.ids or [])

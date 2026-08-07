@@ -1,0 +1,773 @@
+{
+  "target_count": 300,
+  "total_count": 300,
+  "unique_content_count": 300,
+  "unique_title_author_count": 290,
+  "replaced_duplicate_count": 82,
+  "textbook_priority_replacement_count": 1,
+  "authoritative_basis": [
+    "教育部《义务教育语文课程标准（2022年版）》",
+    "人民教育出版社《小学生必备古诗词112首》"
+  ],
+  "text_source": {
+    "repository": "chinese-poetry/chinese-poetry",
+    "commit": "b8594f81a89752241442f2ce267d6f66f96704ee",
+    "files": [
+      "qianjiashi.json",
+      "tangshisanbaishou.json"
+    ],
+    "full_tang_files": [
+      "poet.tang.0.json",
+      "poet.tang.1000.json",
+      "poet.tang.2000.json",
+      "poet.tang.3000.json",
+      "poet.tang.4000.json",
+      "poet.tang.5000.json",
+      "poet.tang.6000.json",
+      "poet.tang.7000.json",
+      "poet.tang.8000.json",
+      "poet.tang.9000.json"
+    ]
+  },
+  "metadata_complete": true,
+  "replacements": [
+    {
+      "poem_id": "poem_151",
+      "old_title": "望庐山瀑布",
+      "new_title": "三衢道中",
+      "author": "曾几",
+      "selection_tier": 3,
+      "textbook_priority": true,
+      "source_file": "蒙学/qianjiashi.json"
+    },
+    {
+      "poem_id": "poem_152",
+      "old_title": "山行",
+      "new_title": "雪梅",
+      "author": "卢梅坡",
+      "selection_tier": 2,
+      "textbook_priority": false,
+      "source_file": "蒙学/qianjiashi.json"
+    },
+    {
+      "poem_id": "poem_153",
+      "old_title": "望天门山",
+      "new_title": "夏日",
+      "author": "张耒",
+      "selection_tier": 2,
+      "textbook_priority": false,
+      "source_file": "蒙学/qianjiashi.json"
+    },
+    {
+      "poem_id": "poem_154",
+      "old_title": "早发白帝城",
+      "new_title": "客中初夏",
+      "author": "司马光",
+      "selection_tier": 2,
+      "textbook_priority": false,
+      "source_file": "蒙学/qianjiashi.json"
+    },
+    {
+      "poem_id": "poem_155",
+      "old_title": "静夜思",
+      "new_title": "湖上",
+      "author": "徐元杰",
+      "selection_tier": 2,
+      "textbook_priority": false,
+      "source_file": "蒙学/qianjiashi.json"
+    },
+    {
+      "poem_id": "poem_156",
+      "old_title": "春晓",
+      "new_title": "山居夏日",
+      "author": "高骈",
+      "selection_tier": 2,
+      "textbook_priority": false,
+      "source_file": "蒙学/qianjiashi.json"
+    },
+    {
+      "poem_id": "poem_165",
+      "old_title": "清明",
+      "new_title": "村居即事",
+      "author": "范成大",
+      "selection_tier": 2,
+      "textbook_priority": false,
+      "source_file": "蒙学/qianjiashi.json"
+    },
+    {
+      "poem_id": "poem_167",
+      "old_title": "枫桥夜泊",
+      "new_title": "汾上惊秋",
+      "author": "苏颋",
+      "selection_tier": 2,
+      "textbook_priority": false,
+      "source_file": "蒙学/qianjiashi.json"
+    },
+    {
+      "poem_id": "poem_168",
+      "old_title": "晓出净慈寺送林子方",
+      "new_title": "秋日",
+      "author": "耿湋",
+      "selection_tier": 2,
+      "textbook_priority": false,
+      "source_file": "蒙学/qianjiashi.json"
+    },
+    {
+      "poem_id": "poem_173",
+      "old_title": "乐游原",
+      "new_title": "积雨辋川庄作",
+      "author": "王维",
+      "selection_tier": 2,
+      "textbook_priority": false,
+      "source_file": "蒙学/qianjiashi.json"
+    },
+    {
+      "poem_id": "poem_174",
+      "old_title": "村居",
+      "new_title": "春夜",
+      "author": "王安石",
+      "selection_tier": 2,
+      "textbook_priority": false,
+      "source_file": "蒙学/qianjiashi.json"
+    },
+    {
+      "poem_id": "poem_175",
+      "old_title": "小池",
+      "new_title": "晚楼闲坐",
+      "author": "王安石",
+      "selection_tier": 2,
+      "textbook_priority": false,
+      "source_file": "蒙学/qianjiashi.json"
+    },
+    {
+      "poem_id": "poem_177",
+      "old_title": "独坐敬亭山",
+      "new_title": "题松汀驿",
+      "author": "张祜",
+      "selection_tier": 2,
+      "textbook_priority": false,
+      "source_file": "蒙学/qianjiashi.json"
+    },
+    {
+      "poem_id": "poem_178",
+      "old_title": "鹿柴",
+      "new_title": "北山",
+      "author": "王安石",
+      "selection_tier": 2,
+      "textbook_priority": false,
+      "source_file": "蒙学/qianjiashi.json"
+    },
+    {
+      "poem_id": "poem_180",
+      "old_title": "望洞庭",
+      "new_title": "泛舟",
+      "author": "朱熹",
+      "selection_tier": 2,
+      "textbook_priority": false,
+      "source_file": "蒙学/qianjiashi.json"
+    },
+    {
+      "poem_id": "poem_181",
+      "old_title": "江南春",
+      "new_title": "漫兴",
+      "author": "杜甫",
+      "selection_tier": 2,
+      "textbook_priority": false,
+      "source_file": "蒙学/qianjiashi.json"
+    },
+    {
+      "poem_id": "poem_183",
+      "old_title": "黄鹤楼送孟浩然之广陵",
+      "new_title": "答钟弱翁",
+      "author": "牧童",
+      "selection_tier": 2,
+      "textbook_priority": false,
+      "source_file": "蒙学/qianjiashi.json"
+    },
+    {
+      "poem_id": "poem_184",
+      "old_title": "早春呈水部张十八员外",
+      "new_title": "绝句",
+      "author": "僧志安",
+      "selection_tier": 2,
+      "textbook_priority": false,
+      "source_file": "蒙学/qianjiashi.json"
+    },
+    {
+      "poem_id": "poem_185",
+      "old_title": "池上",
+      "new_title": "霜月",
+      "author": "李商隐",
+      "selection_tier": 2,
+      "textbook_priority": false,
+      "source_file": "蒙学/qianjiashi.json"
+    },
+    {
+      "poem_id": "poem_186",
+      "old_title": "忆江南",
+      "new_title": "题榴花",
+      "author": "朱熹",
+      "selection_tier": 2,
+      "textbook_priority": false,
+      "source_file": "蒙学/qianjiashi.json"
+    },
+    {
+      "poem_id": "poem_188",
+      "old_title": "寻隐者不遇",
+      "new_title": "冬至",
+      "author": "杜甫",
+      "selection_tier": 2,
+      "textbook_priority": false,
+      "source_file": "蒙学/qianjiashi.json"
+    },
+    {
+      "poem_id": "poem_191",
+      "old_title": "绝句",
+      "new_title": "冷泉亭",
+      "author": "林稹",
+      "selection_tier": 2,
+      "textbook_priority": false,
+      "source_file": "蒙学/qianjiashi.json"
+    },
+    {
+      "poem_id": "poem_193",
+      "old_title": "八阵图",
+      "new_title": "夏日登车盖亭",
+      "author": "蔡确",
+      "selection_tier": 2,
+      "textbook_priority": false,
+      "source_file": "蒙学/qianjiashi.json"
+    },
+    {
+      "poem_id": "poem_196",
+      "old_title": "鹿柴",
+      "new_title": "春暮",
+      "author": "曹豳",
+      "selection_tier": 2,
+      "textbook_priority": false,
+      "source_file": "蒙学/qianjiashi.json"
+    },
+    {
+      "poem_id": "poem_198",
+      "old_title": "九月九日忆山东兄弟",
+      "new_title": "春暮游小园",
+      "author": "王淇",
+      "selection_tier": 2,
+      "textbook_priority": false,
+      "source_file": "蒙学/qianjiashi.json"
+    },
+    {
+      "poem_id": "poem_201",
+      "old_title": "出塞",
+      "new_title": "秋登宣城谢眺北楼",
+      "author": "李白",
+      "selection_tier": 2,
+      "textbook_priority": false,
+      "source_file": "蒙学/qianjiashi.json"
+    },
+    {
+      "poem_id": "poem_202",
+      "old_title": "芙蓉楼送辛渐",
+      "new_title": "花影",
+      "author": "苏轼",
+      "selection_tier": 2,
+      "textbook_priority": false,
+      "source_file": "蒙学/qianjiashi.json"
+    },
+    {
+      "poem_id": "poem_204",
+      "old_title": "枫桥夜泊",
+      "new_title": "苏氏别业",
+      "author": "祖咏",
+      "selection_tier": 2,
+      "textbook_priority": false,
+      "source_file": "蒙学/qianjiashi.json"
+    },
+    {
+      "poem_id": "poem_205",
+      "old_title": "浪淘沙",
+      "new_title": "送友人",
+      "author": "李白",
+      "selection_tier": 2,
+      "textbook_priority": false,
+      "source_file": "蒙学/qianjiashi.json"
+    },
+    {
+      "poem_id": "poem_206",
+      "old_title": "乌衣巷",
+      "new_title": "临洞庭",
+      "author": "孟浩然",
+      "selection_tier": 2,
+      "textbook_priority": false,
+      "source_file": "蒙学/qianjiashi.json"
+    },
+    {
+      "poem_id": "poem_209",
+      "old_title": "山居秋暝",
+      "new_title": "望秦川",
+      "author": "李颀",
+      "selection_tier": 2,
+      "textbook_priority": false,
+      "source_file": "蒙学/qianjiashi.json"
+    },
+    {
+      "poem_id": "poem_212",
+      "old_title": "逢入京使",
+      "new_title": "梅花",
+      "author": "林逋",
+      "selection_tier": 2,
+      "textbook_priority": false,
+      "source_file": "蒙学/qianjiashi.json"
+    },
+    {
+      "poem_id": "poem_215",
+      "old_title": "四时田园杂兴",
+      "new_title": "答丁元珍",
+      "author": "欧阳修",
+      "selection_tier": 2,
+      "textbook_priority": false,
+      "source_file": "蒙学/qianjiashi.json"
+    },
+    {
+      "poem_id": "poem_216",
+      "old_title": "小儿垂钓",
+      "new_title": "终南山",
+      "author": "王维",
+      "selection_tier": 2,
+      "textbook_priority": false,
+      "source_file": "蒙学/qianjiashi.json"
+    },
+    {
+      "poem_id": "poem_218",
+      "old_title": "所见",
+      "new_title": "月夜舟中",
+      "author": "戴复古",
+      "selection_tier": 2,
+      "textbook_priority": false,
+      "source_file": "蒙学/qianjiashi.json"
+    },
+    {
+      "poem_id": "poem_225",
+      "old_title": "题西林壁",
+      "new_title": "渡扬子江",
+      "author": "丁仙芝",
+      "selection_tier": 2,
+      "textbook_priority": false,
+      "source_file": "蒙学/qianjiashi.json"
+    },
+    {
+      "poem_id": "poem_226",
+      "old_title": "六月二十七日望湖楼醉书",
+      "new_title": "游月陂",
+      "author": "程颢",
+      "selection_tier": 2,
+      "textbook_priority": false,
+      "source_file": "蒙学/qianjiashi.json"
+    },
+    {
+      "poem_id": "poem_227",
+      "old_title": "饮湖上初晴后雨",
+      "new_title": "野望",
+      "author": "王绩",
+      "selection_tier": 2,
+      "textbook_priority": false,
+      "source_file": "蒙学/qianjiashi.json"
+    },
+    {
+      "poem_id": "poem_228",
+      "old_title": "惠崇春江晚景",
+      "new_title": "寒食书事",
+      "author": "赵鼎",
+      "selection_tier": 2,
+      "textbook_priority": false,
+      "source_file": "蒙学/qianjiashi.json"
+    },
+    {
+      "poem_id": "poem_230",
+      "old_title": "观书有感",
+      "new_title": "新秋",
+      "author": "杜甫",
+      "selection_tier": 2,
+      "textbook_priority": false,
+      "source_file": "蒙学/qianjiashi.json"
+    },
+    {
+      "poem_id": "poem_231",
+      "old_title": "小儿垂钓",
+      "new_title": "中秋",
+      "author": "李朴",
+      "selection_tier": 2,
+      "textbook_priority": false,
+      "source_file": "蒙学/qianjiashi.json"
+    },
+    {
+      "poem_id": "poem_232",
+      "old_title": "池上",
+      "new_title": "新竹",
+      "author": "陆游",
+      "selection_tier": 2,
+      "textbook_priority": false,
+      "source_file": "蒙学/qianjiashi.json"
+    },
+    {
+      "poem_id": "poem_234",
+      "old_title": "四时田园杂兴",
+      "new_title": "偶成",
+      "author": "程颢",
+      "selection_tier": 2,
+      "textbook_priority": false,
+      "source_file": "蒙学/qianjiashi.json"
+    },
+    {
+      "poem_id": "poem_238",
+      "old_title": "题西林壁",
+      "new_title": "上元应制",
+      "author": "蔡襄",
+      "selection_tier": 2,
+      "textbook_priority": false,
+      "source_file": "蒙学/qianjiashi.json"
+    },
+    {
+      "poem_id": "poem_239",
+      "old_title": "游园不值",
+      "new_title": "晚春归山居题窗前竹",
+      "author": "刘长卿",
+      "selection_tier": 0,
+      "textbook_priority": false,
+      "source_file": "全唐诗/poet.tang.7000.json"
+    },
+    {
+      "poem_id": "poem_240",
+      "old_title": "泊船瓜洲",
+      "new_title": "咏春雪",
+      "author": "韦应物",
+      "selection_tier": 0,
+      "textbook_priority": false,
+      "source_file": "全唐诗/poet.tang.9000.json"
+    },
+    {
+      "poem_id": "poem_241",
+      "old_title": "元日",
+      "new_title": "山房春事二首 一",
+      "author": "岑参",
+      "selection_tier": 0,
+      "textbook_priority": false,
+      "source_file": "全唐诗/poet.tang.9000.json"
+    },
+    {
+      "poem_id": "poem_242",
+      "old_title": "六月二十七日望湖楼醉书",
+      "new_title": "早春野望",
+      "author": "王勃",
+      "selection_tier": 0,
+      "textbook_priority": false,
+      "source_file": "全唐诗/poet.tang.3000.json"
+    },
+    {
+      "poem_id": "poem_245",
+      "old_title": "登幽州台歌",
+      "new_title": "江中对月",
+      "author": "刘长卿",
+      "selection_tier": 0,
+      "textbook_priority": false,
+      "source_file": "全唐诗/poet.tang.7000.json"
+    },
+    {
+      "poem_id": "poem_246",
+      "old_title": "凉州词",
+      "new_title": "秋浦歌十七首 十一",
+      "author": "李白",
+      "selection_tier": 0,
+      "textbook_priority": false,
+      "source_file": "全唐诗/poet.tang.8000.json"
+    },
+    {
+      "poem_id": "poem_247",
+      "old_title": "凉州词",
+      "new_title": "夏日山中",
+      "author": "李白",
+      "selection_tier": 0,
+      "textbook_priority": false,
+      "source_file": "全唐诗/poet.tang.8000.json"
+    },
+    {
+      "poem_id": "poem_248",
+      "old_title": "出塞",
+      "new_title": "始夏南园思旧里",
+      "author": "韦应物",
+      "selection_tier": 0,
+      "textbook_priority": false,
+      "source_file": "全唐诗/poet.tang.9000.json"
+    },
+    {
+      "poem_id": "poem_249",
+      "old_title": "芙蓉楼送辛渐",
+      "new_title": "山中",
+      "author": "王勃",
+      "selection_tier": 0,
+      "textbook_priority": false,
+      "source_file": "全唐诗/poet.tang.3000.json"
+    },
+    {
+      "poem_id": "poem_250",
+      "old_title": "赠刘景文",
+      "new_title": "峨眉山月歌",
+      "author": "李白",
+      "selection_tier": 0,
+      "textbook_priority": false,
+      "source_file": "全唐诗/poet.tang.8000.json"
+    },
+    {
+      "poem_id": "poem_251",
+      "old_title": "江南春",
+      "new_title": "春日还郊",
+      "author": "王勃",
+      "selection_tier": 0,
+      "textbook_priority": false,
+      "source_file": "全唐诗/poet.tang.3000.json"
+    },
+    {
+      "poem_id": "poem_253",
+      "old_title": "绝句",
+      "new_title": "檀溪寻故人",
+      "author": "孟浩然",
+      "selection_tier": 0,
+      "textbook_priority": false,
+      "source_file": "全唐诗/poet.tang.7000.json"
+    },
+    {
+      "poem_id": "poem_255",
+      "old_title": "春夜喜雨",
+      "new_title": "白田马上闻莺",
+      "author": "李白",
+      "selection_tier": 0,
+      "textbook_priority": false,
+      "source_file": "全唐诗/poet.tang.8000.json"
+    },
+    {
+      "poem_id": "poem_256",
+      "old_title": "早春呈水部张十八员外",
+      "new_title": "白鹭鹚",
+      "author": "李白",
+      "selection_tier": 0,
+      "textbook_priority": false,
+      "source_file": "全唐诗/poet.tang.8000.json"
+    },
+    {
+      "poem_id": "poem_258",
+      "old_title": "相思",
+      "new_title": "秋浦歌十七首 五",
+      "author": "李白",
+      "selection_tier": 0,
+      "textbook_priority": false,
+      "source_file": "全唐诗/poet.tang.8000.json"
+    },
+    {
+      "poem_id": "poem_259",
+      "old_title": "九月九日忆山东兄弟",
+      "new_title": "秋浦歌十七首 十三",
+      "author": "李白",
+      "selection_tier": 0,
+      "textbook_priority": false,
+      "source_file": "全唐诗/poet.tang.8000.json"
+    },
+    {
+      "poem_id": "poem_260",
+      "old_title": "山居秋暝",
+      "new_title": "观放白鹰二首 一",
+      "author": "李白",
+      "selection_tier": 0,
+      "textbook_priority": false,
+      "source_file": "全唐诗/poet.tang.8000.json"
+    },
+    {
+      "poem_id": "poem_261",
+      "old_title": "鹿柴",
+      "new_title": "辋川集 欹湖",
+      "author": "王维",
+      "selection_tier": 0,
+      "textbook_priority": false,
+      "source_file": "全唐诗/poet.tang.6000.json"
+    },
+    {
+      "poem_id": "poem_262",
+      "old_title": "送元二使安西",
+      "new_title": "三月奉教作",
+      "author": "李峤",
+      "selection_tier": 0,
+      "textbook_priority": false,
+      "source_file": "全唐诗/poet.tang.3000.json"
+    },
+    {
+      "poem_id": "poem_265",
+      "old_title": "望洞庭",
+      "new_title": "山茱萸",
+      "author": "王维",
+      "selection_tier": 0,
+      "textbook_priority": false,
+      "source_file": "全唐诗/poet.tang.6000.json"
+    },
+    {
+      "poem_id": "poem_266",
+      "old_title": "浪淘沙",
+      "new_title": "怀瑯琊深标二释子",
+      "author": "韦应物",
+      "selection_tier": 0,
+      "textbook_priority": false,
+      "source_file": "全唐诗/poet.tang.9000.json"
+    },
+    {
+      "poem_id": "poem_267",
+      "old_title": "秋词",
+      "new_title": "春梦",
+      "author": "岑参",
+      "selection_tier": 0,
+      "textbook_priority": false,
+      "source_file": "全唐诗/poet.tang.9000.json"
+    },
+    {
+      "poem_id": "poem_269",
+      "old_title": "乌衣巷",
+      "new_title": "杂歌谣辞 襄阳曲 一",
+      "author": "李白",
+      "selection_tier": 0,
+      "textbook_priority": false,
+      "source_file": "全唐诗/poet.tang.2000.json"
+    },
+    {
+      "poem_id": "poem_272",
+      "old_title": "枫桥夜泊",
+      "new_title": "林塘怀友",
+      "author": "王勃",
+      "selection_tier": 0,
+      "textbook_priority": false,
+      "source_file": "全唐诗/poet.tang.3000.json"
+    },
+    {
+      "poem_id": "poem_273",
+      "old_title": "枫桥夜泊（扩展理解）",
+      "new_title": "江",
+      "author": "李峤",
+      "selection_tier": 0,
+      "textbook_priority": false,
+      "source_file": "全唐诗/poet.tang.3000.json"
+    },
+    {
+      "poem_id": "poem_274",
+      "old_title": "寻隐者不遇",
+      "new_title": "游南阳白水登石激作",
+      "author": "李白",
+      "selection_tier": 0,
+      "textbook_priority": false,
+      "source_file": "全唐诗/poet.tang.8000.json"
+    },
+    {
+      "poem_id": "poem_280",
+      "old_title": "八阵图",
+      "new_title": "湖口望庐山瀑布泉",
+      "author": "张九龄",
+      "selection_tier": 0,
+      "textbook_priority": false,
+      "source_file": "全唐诗/poet.tang.3000.json"
+    },
+    {
+      "poem_id": "poem_281",
+      "old_title": "黄鹤楼送孟浩然之广陵",
+      "new_title": "登城春望",
+      "author": "王勃",
+      "selection_tier": 0,
+      "textbook_priority": false,
+      "source_file": "全唐诗/poet.tang.3000.json"
+    },
+    {
+      "poem_id": "poem_282",
+      "old_title": "独坐敬亭山",
+      "new_title": "秋浦歌十七首 三",
+      "author": "李白",
+      "selection_tier": 0,
+      "textbook_priority": false,
+      "source_file": "全唐诗/poet.tang.8000.json"
+    },
+    {
+      "poem_id": "poem_288",
+      "old_title": "赠刘景文",
+      "new_title": "越女词五首 五",
+      "author": "李白",
+      "selection_tier": 0,
+      "textbook_priority": false,
+      "source_file": "全唐诗/poet.tang.8000.json"
+    },
+    {
+      "poem_id": "poem_289",
+      "old_title": "题西林壁",
+      "new_title": "高句骊",
+      "author": "李白",
+      "selection_tier": 0,
+      "textbook_priority": false,
+      "source_file": "全唐诗/poet.tang.8000.json"
+    },
+    {
+      "poem_id": "poem_290",
+      "old_title": "六月二十七日望湖楼醉书",
+      "new_title": "上皇三台",
+      "author": "韦应物",
+      "selection_tier": 0,
+      "textbook_priority": false,
+      "source_file": "全唐诗/poet.tang.9000.json"
+    },
+    {
+      "poem_id": "poem_291",
+      "old_title": "西江月·夜行黄沙道中",
+      "new_title": "东湖临泛饯王司马",
+      "author": "张九龄",
+      "selection_tier": 0,
+      "textbook_priority": false,
+      "source_file": "全唐诗/poet.tang.3000.json"
+    },
+    {
+      "poem_id": "poem_292",
+      "old_title": "清平乐·村居",
+      "new_title": "东鲁门泛舟二首 一",
+      "author": "李白",
+      "selection_tier": 0,
+      "textbook_priority": false,
+      "source_file": "全唐诗/poet.tang.8000.json"
+    },
+    {
+      "poem_id": "poem_293",
+      "old_title": "小儿垂钓",
+      "new_title": "中秋月二首 二",
+      "author": "李峤",
+      "selection_tier": 0,
+      "textbook_priority": false,
+      "source_file": "全唐诗/poet.tang.3000.json"
+    },
+    {
+      "poem_id": "poem_294",
+      "old_title": "池上",
+      "new_title": "九月十日即事",
+      "author": "李白",
+      "selection_tier": 0,
+      "textbook_priority": false,
+      "source_file": "全唐诗/poet.tang.8000.json"
+    },
+    {
+      "poem_id": "poem_299",
+      "old_title": "早春呈水部张十八员外",
+      "new_title": "入百丈涧见桃花晚开",
+      "author": "刘长卿",
+      "selection_tier": 0,
+      "textbook_priority": false,
+      "source_file": "全唐诗/poet.tang.7000.json"
+    },
+    {
+      "poem_id": "poem_300",
+      "old_title": "夜雨寄北",
+      "new_title": "冬郊行望",
+      "author": "王勃",
+      "selection_tier": 0,
+      "textbook_priority": false,
+      "source_file": "全唐诗/poet.tang.3000.json"
+    }
+  ]
+}

@@ -6,27 +6,25 @@
 
 ```json
 {
-  "type": "mixed",
-  "poem_text": "处处闻啼鸟",
-  "scene": {
-    "objects": ["花", "鸟"],
-    "tags": ["春景"],
-    "season": "spring",
-    "mood": "happy"
+  "content_type": "poem_text",
+  "poem": {
+    "title": "春晓",
+    "author": "孟浩然",
+    "dynasty": "唐",
+    "content": ["春眠不觉晓", "处处闻啼鸟"],
+    "translation": "……"
   },
   "confidence": 0.9,
-  "age_level": "age_3_4",
-  "limit": 3
+  "objects": []
 }
 ```
 
-标准字段 `type` 支持：
+`content_type` 只支持：
 
-- `poem_text`：课本、印刷或手写古诗文字，正文放在 `poem_text`。
-- `scene`：自然风景。
-- `mixed`：同时包含文字和风景。
+- `poem_text`：读取嵌套的 `poem.title`、`poem.author`、`poem.content`；明确且唯一命中时可以只返回 1 首。
+- `scene`：读取外层 `objects`，例如 `{"content_type":"scene","poem":null,"objects":["山峰","湖面"],"confidence":0.9}`；返回 2—3 首可靠候选。
 
-风景信息统一放在 `scene`，字段为 `objects`、`tags`、`season`、`mood`。为避免前端和端侧同时改版，接口暂时兼容旧字段 `content_type`、`recognized_text`、`objects`、`scene_tags`、`season`、`mood`，后端会归一化为新结构。
+后端暂时兼容旧字段 `type`、`poem_text`、`recognized_text`、`recognized_title`、`recognized_author`、`scene`、`scene_tags`、`season`、`mood`，但新端侧不再发送 `mixed`。
 
 ## 成功响应
 
@@ -38,16 +36,21 @@
   "poems": [
     {
       "poem_id": "poem_001",
+      "id": "poem_001",
       "title": "春晓",
       "author": "孟浩然",
       "dynasty": "唐",
       "cover_url": "/static/images/poems/poem_001/frame_0.jpg",
       "age_level": "age_3_4",
-      "difficulty": 1
+      "difficulty": 1,
+      "learned_state": null
     }
   ]
 }
 ```
+
+候选、搜索和推荐接口共享同一组 `PoemCard` 核心字段。`id` 仅用于兼容旧前端，
+新接入统一以 `poem_id` 作为详情和学习页跳转主键。
 
 儿童端只消费 `poems[]`。联调时可传 `debug=true`，诗卡会临时附带 `match_score`、`text_score`、`scene_score` 和 `match_sources`。
 

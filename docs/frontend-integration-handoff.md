@@ -11,18 +11,23 @@
 ```ts
 interface PoemCard {
   poem_id: string
+  id: string // 旧前端兼容别名，与 poem_id 相同；新代码统一使用 poem_id
   title: string
   author: string
   dynasty?: string
   cover_url?: string | null
   age_level?: 'age_3_4' | 'age_5_7'
   difficulty?: number
+  learned_state?: 'unlearned' | 'learned' | null
   collection_state?: 'gray' | 'color'
   flower_count?: number
 }
 ```
 
-`match_score`、`score_components`、`source`、`verification_status` 等是联调字段，不在儿童页面展示。
+`/recommend`、`/recommend/today`、`/poems/search` 和 `/poems/candidates`
+统一复用以上核心字段；各接口可额外返回正文预览、标签或调试信息，但跳转主键始终使用 `poem_id`。
+
+`match_score`、`score_components`、`source` 等是联调字段，不在儿童页面展示；`verification_status` 仅在数据库内部维护。
 
 ## 2. 页面与接口对应关系
 
@@ -102,21 +107,20 @@ Content-Type: application/json
 
 ```json
 {
-  "content_type": "mixed",
-  "recognized_text": "处处闻啼鸟",
-  "recognized_title": "",
-  "recognized_author": "",
-  "objects": ["花", "鸟"],
-  "scene_tags": ["春景"],
-  "season": "spring",
-  "mood": "happy",
-  "confidence": 0.9,
-  "age_level": "age_3_4",
-  "limit": 3
+  "content_type": "poem_text",
+  "poem": {
+    "title": "春晓",
+    "author": "孟浩然",
+    "dynasty": "唐",
+    "content": ["春眠不觉晓", "处处闻啼鸟"],
+    "translation": "……"
+  },
+  "objects": [],
+  "confidence": 0.9
 }
 ```
 
-成功时：`status="ok"`，渲染 `poems[]` 的 2-3 张候选卡。不要展示推荐理由。
+成功时：`status="ok"`。确定的 `poem_text` 命中可以只返回 1 首；`scene` 渲染 `poems[]` 的 2—3 张候选卡。不要展示推荐理由。
 
 失败时：
 

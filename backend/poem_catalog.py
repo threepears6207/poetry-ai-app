@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 from typing import List, Optional
 
 from fastapi import APIRouter
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from database import get_connection, initialize_database
 from poems import row_to_poem
@@ -18,6 +18,8 @@ AGE_LEVELS = {"age_3_4", "age_5_7"}
 
 
 class VerifiedPoemCandidate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     title: str
     author: str
     dynasty: str = ""
@@ -29,10 +31,8 @@ class VerifiedPoemCandidate(BaseModel):
     difficulty: int = Field(default=2, ge=1, le=5)
     theme_tags: List[str] = Field(default_factory=list)
     knowledge_tags: List[str] = Field(default_factory=list)
-    source_name: str
     source_url: str = ""
     source_version: str = ""
-    verification_status: str = "verified"
 
 
 class ResolvePoemsRequest(BaseModel):
@@ -56,8 +56,6 @@ def _clean_list(values: List[str]) -> List[str]:
 
 def validate_verified_candidate(candidate: VerifiedPoemCandidate) -> List[str]:
     errors = []
-    if candidate.verification_status != "verified":
-        errors.append("verification_status 必须为 verified")
     if not candidate.title.strip():
         errors.append("标题不能为空")
     if not candidate.author.strip():
@@ -67,8 +65,6 @@ def validate_verified_candidate(candidate: VerifiedPoemCandidate) -> List[str]:
         errors.append("正文至少包含两句有效诗句")
     if len(normalize_poem_text("".join(lines))) < 8:
         errors.append("正文过短，无法可靠入库")
-    if not candidate.source_name.strip():
-        errors.append("缺少核验来源 source_name")
     if candidate.age_level not in AGE_LEVELS:
         errors.append("age_level 仅支持 age_3_4 或 age_5_7")
     from tag_rules import validate_tag_metadata
@@ -153,7 +149,7 @@ def _insert_verified_poem(connection, candidate: VerifiedPoemCandidate):
             candidate.age_level, candidate.age_range.strip(), candidate.difficulty,
             json.dumps(_clean_list(candidate.theme_tags), ensure_ascii=False),
             json.dumps(_clean_list(candidate.knowledge_tags), ensure_ascii=False),
-            poem_content_hash(content), candidate.source_name.strip(),
+            poem_content_hash(content), "cloud_verified_poem",
             candidate.source_url.strip(), candidate.source_version.strip(), now, now,
         ),
     )
@@ -162,6 +158,8 @@ def _insert_verified_poem(connection, candidate: VerifiedPoemCandidate):
 
 def _as_frontend_poem(row):
     poem = row_to_poem(row)
+    poem.pop("source_name", None)
+    poem.pop("verification_status", None)
     poem["poem_id"] = poem["id"]
     return poem
 

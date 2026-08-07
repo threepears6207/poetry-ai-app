@@ -3,6 +3,7 @@ import json
 from fastapi import APIRouter, HTTPException, Query
 
 from database import get_connection
+from poem_cards import build_poem_card
 
 router = APIRouter()
 
@@ -130,14 +131,10 @@ def search_poems(
             "tag": tag
         },
         "data": [
-            {
-                "id": poem.get("id"),
-                "title": poem.get("title"),
-                "author": poem.get("author"),
-                "dynasty": poem.get("dynasty"),
+            build_poem_card(poem, extra={
                 "content_preview": "，".join(poem.get("content", [])[:2]) + "。",
-                "tags": poem.get("tags", [])
-            }
+                "tags": poem.get("tags", []),
+            })
             for poem in page_data
         ]
     }

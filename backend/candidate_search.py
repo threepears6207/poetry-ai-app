@@ -1,7 +1,6 @@
 import json
 import re
 from difflib import SequenceMatcher
-from pathlib import Path
 from typing import List, Literal, Optional
 
 from fastapi import APIRouter
@@ -9,11 +8,11 @@ from pydantic import BaseModel, Field, model_validator
 
 from database import get_connection, initialize_database
 from poem_catalog import normalize_poem_text
+from poem_cards import build_poem_card
 from poems import row_to_poem
 
 
 router = APIRouter()
-STATIC_DIR = Path(__file__).resolve().parent / "static"
 
 SCENE_EXPANSIONS = {
     "月": ("月亮", "夜晚", "思乡"), "夜": ("夜晚", "月亮"),
@@ -45,8 +44,17 @@ class SceneAnalysisInput(BaseModel):
     mood: str = ""
 
 
+class PoemAnalysisInput(BaseModel):
+    title: str = ""
+    author: str = ""
+    dynasty: str = ""
+    content: List[str] = Field(default_factory=list)
+    translation: str = ""
+
+
 class ImageAnalysisInput(BaseModel):
-    content_type: Literal["poem_text", "scene", "mixed"]
+    content_type: Literal["poem_text", "scene"]
+    poem: Optional[PoemAnalysisInput] = None
     poem_text: str = ""
     recognized_text: str = ""
     recognized_title: str = ""
@@ -58,7 +66,7 @@ class ImageAnalysisInput(BaseModel):
     mood: str = ""
     confidence: float = Field(default=0.0, ge=0, le=1)
     age_level: Optional[Literal["age_3_4", "age_5_7"]] = None
-    limit: int = Field(default=3, ge=2, le=3)
+    limit: int = Field(default=3, ge=1, le=3)
     debug: bool = False
 
     @model_validator(mode="before")
@@ -73,9 +81,19 @@ class ImageAnalysisInput(BaseModel):
             "poem": "poem_text",
         }.get(raw_type, raw_type)
 
-        poem_text = values.get("poem_text") or values.get("recognized_text") or ""
+        poem = values.get("poem")
+        if isinstance(poem, BaseModel):
+            poem = poem.model_dump()
+        poem = poem if isinstance(poem, dict) else {}
+        poem_content = poem.get("content") or []
+        poem_text = (
+            values.get("poem_text") or values.get("recognized_text")
+            or "".join(str(line) for line in poem_content if line)
+        )
         values["poem_text"] = poem_text
         values["recognized_text"] = values.get("recognized_text") or poem_text
+        values["recognized_title"] = values.get("recognized_title") or poem.get("title") or ""
+        values["recognized_author"] = values.get("recognized_author") or poem.get("author") or ""
 
         scene = values.get("scene")
         if isinstance(scene, dict):
@@ -86,15 +104,9 @@ class ImageAnalysisInput(BaseModel):
             values["season"] = values.get("season") or scene.get("season") or ""
             values["mood"] = values.get("mood") or scene.get("mood") or ""
 
-        has_text = bool(
-            poem_text or values.get("recognized_title") or values.get("recognized_author")
-        )
-        has_scene = bool(
-            values.get("objects") or values.get("scene_tags")
-            or values.get("season") or values.get("mood")
-        )
+        has_text = bool(poem_text or values.get("recognized_title") or values.get("recognized_author"))
         if not raw_type:
-            raw_type = "mixed" if has_text and has_scene else "poem_text" if has_text else "scene"
+            raw_type = "poem_text" if has_text else "scene"
         values["content_type"] = raw_type
         return values
 
@@ -218,18 +230,9 @@ def _scene_score(poem, request):
     return min(score, 1.0), _unique(matched)
 
 
-def _cover_url(poem_id):
-    path = STATIC_DIR / "images" / "poems" / poem_id / "frame_0.jpg"
-    return f"/static/images/poems/{poem_id}/frame_0.jpg" if path.exists() else None
-
-
 def _poem_card(item, debug=False):
     poem = item["poem"]
-    card = {
-        "poem_id": poem["id"], "title": poem["title"], "author": poem["author"],
-        "dynasty": poem["dynasty"], "cover_url": _cover_url(poem["id"]),
-        "age_level": poem["age_level"], "difficulty": poem["difficulty"],
-    }
+    card = build_poem_card(poem)
     if debug:
         card.update({
             "match_score": round(item["score"], 4),
@@ -250,10 +253,10 @@ def search_candidates(request: ImageAnalysisInput, db_path=None):
     if request.confidence < 0.3 and not has_text:
         return {"success": False, "status": "retake", "error_code": "low_confidence", "poems": []}
 
-    use_text = request.content_type in {"poem_text", "mixed"} and has_text
-    use_scene = request.content_type in {"scene", "mixed"} and has_scene
-    text_weight = 1.0 if use_text and not use_scene else 0.75
-    scene_weight = 1.0 if use_scene and not use_text else 0.25
+    use_text = request.content_type == "poem_text" and has_text
+    use_scene = request.content_type == "scene" and has_scene
+    text_weight = 1.0
+    scene_weight = 1.0
     ranked = []
     for poem in _load_recommendable_poems(db_path):
         text_score, text_evidence = _text_score(poem, request) if use_text else (0.0, [])
@@ -277,6 +280,10 @@ def search_candidates(request: ImageAnalysisInput, db_path=None):
     selected = ranked[:request.limit]
     if not selected or selected[0]["score"] < 0.28:
         return {"success": False, "status": "retake", "error_code": "no_reliable_match", "poems": []}
+    if request.content_type == "poem_text" and selected[0]["text_score"] >= 0.7:
+        second_score = selected[1]["text_score"] if len(selected) > 1 else 0.0
+        if selected[0]["text_score"] - second_score >= 0.12:
+            selected = selected[:1]
     return {
         "success": True, "status": "ok", "error_code": None,
         "poems": [_poem_card(item, request.debug) for item in selected],

@@ -7,6 +7,7 @@ from fastapi import APIRouter, Query
 from pydantic import BaseModel, Field
 
 from database import get_connection, initialize_database
+from poem_cards import build_poem_card
 
 
 router = APIRouter()
@@ -337,7 +338,7 @@ def load_recommend_context(user_id, poems):
 
     learned_ids = set(recent_ids) | set(reading_scores) | set(consolidations)
     preference_counts = Counter()
-    for poem_id in recent_ids[1:]:
+    for poem_id in recent_ids:
         poem = poem_map.get(poem_id)
         if poem:
             preference_counts.update(get_poem_learning_tags(poem))
@@ -357,6 +358,38 @@ def load_recommend_context(user_id, poems):
         "preference_counts": preference_counts,
         "target_difficulty": target_difficulty,
     }
+
+
+def diversify_recommendations(ranked, debug=False):
+    """Greedily avoid adjacent cards with the same theme or author.
+
+    Base relevance remains dominant. The penalty only chooses a more varied
+    neighbour when candidates have reasonably close recommendation scores.
+    """
+    remaining = list(ranked)
+    result = []
+    while remaining:
+        if not result:
+            best_index = 0
+            penalty = 0.0
+        else:
+            previous = result[-1]
+            previous_tags = set(get_poem_learning_tags(previous))
+            scored = []
+            for index, item in enumerate(remaining):
+                overlap = len(previous_tags & set(get_poem_learning_tags(item)))
+                theme_penalty = min(18.0, overlap * 9.0)
+                author_penalty = 7.0 if item.get("author") == previous.get("author") else 0.0
+                current_penalty = theme_penalty + author_penalty
+                adjusted = float(item["recommend_score"]) - current_penalty
+                scored.append((adjusted, -current_penalty, -index, index, current_penalty))
+            _, _, _, best_index, penalty = max(scored)
+        selected = dict(remaining.pop(best_index))
+        if debug:
+            selected.setdefault("score_components", {})
+            selected["score_components"]["list_diversity_penalty"] = round(-penalty, 2)
+        result.append(selected)
+    return result
 
 
 def rank_recommendations(
@@ -417,7 +450,7 @@ def rank_recommendations(
         total = sum(components.values())
         item = {
             **poem,
-            "poem_id": poem_id,
+            **build_poem_card(poem, learned_state="learned" if learned else "unlearned"),
             "content_preview": build_content_preview(poem),
             "recommend_score": round(total, 2),
             "recommend_type": "review" if due_review or weak else "new",
@@ -434,7 +467,7 @@ def rank_recommendations(
         int(item.get("difficulty", 5)),
         item["id"],
     ))
-    return ranked
+    return diversify_recommendations(ranked, debug)
 
 
 @router.post("/profile/reading-score")

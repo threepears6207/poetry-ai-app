@@ -60,6 +60,26 @@ class RecommendRankingTests(unittest.TestCase):
         )
         self.assertEqual([item["id"] for item in result], ["two"])
 
+    def test_recommendation_list_avoids_adjacent_same_theme(self):
+        poems = [
+            poem("spring_one", "春一", ["春天"]),
+            poem("spring_two", "春二", ["春天"]),
+            poem("moon", "月夜", ["月亮"]),
+        ]
+        result = rank_recommendations(poems, self.context(), "age_3_4")
+        self.assertEqual(result[0]["id"], "moon")
+        self.assertIn("spring", result[1]["id"])
+        self.assertIn("spring", result[2]["id"])
+
+    def test_debug_explains_list_diversity_penalty(self):
+        poems = [
+            poem("one", "一", ["春天"]),
+            poem("two", "二", ["春天"]),
+        ]
+        result = rank_recommendations(poems, self.context(), "age_3_4", debug=True)
+        self.assertEqual(result[0]["score_components"]["list_diversity_penalty"], 0.0)
+        self.assertLess(result[1]["score_components"]["list_diversity_penalty"], 0)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -20,7 +20,7 @@ class LearningCollectionTests(unittest.TestCase):
                 title="测试诗", author="测试作者", dynasty="唐",
                 content=["青山入远目", "白云过小桥"],
                 tags=["山水", "白云"], theme_tags=["山水", "自然"],
-                knowledge_tags=["画面理解"], source_name="测试源",
+                knowledge_tags=["画面理解"],
             )
         ]), self.db_path)
         self.poem_id = result["poems"][0]["poem_id"]

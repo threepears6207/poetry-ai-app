@@ -31,5 +31,6 @@
 3. 最近学习中反复出现的意象偏好。
 4. 相对当前能力的小步难度递进。
 5. 对刚学过的同主题和同作者进行降权。
+6. 对最终列表做相邻多样性重排：在基础相关性接近时，避免连续出现同主题或同作者诗卡；到期温习和薄弱项的优先级仍高于多样性。
 
-列表接口同时返回 `poems`、`data` 和 `recommendations`，三者内容相同；`data`、`recommendations` 用于兼容原前端。传 `debug=true` 可查看 `score_components`。
+列表接口同时返回 `poems`、`data` 和 `recommendations`，三者内容相同；`data`、`recommendations` 用于兼容原前端。传 `debug=true` 可查看 `score_components`，其中 `list_diversity_penalty` 表示列表相邻主题或作者的多样性降权。

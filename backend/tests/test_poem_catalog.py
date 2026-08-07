@@ -2,6 +2,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from pydantic import ValidationError
+
 from poem_catalog import ResolvePoemsRequest, VerifiedPoemCandidate, resolve_verified_poems
 
 
@@ -14,7 +16,6 @@ def candidate(**overrides):
         "tags": ["青山", "白云"],
         "theme_tags": ["青山", "自然"],
         "knowledge_tags": ["画面理解"],
-        "source_name": "可信诗词资料库",
         "source_url": "https://example.test/poem",
     }
     values.update(overrides)
@@ -55,11 +56,14 @@ class PoemCatalogTests(unittest.TestCase):
         self.assertEqual(first["poems"][0]["id"], "poem_301")
         self.assertEqual(second["poems"][0]["id"], "poem_302")
 
-    def test_unverified_candidate_is_rejected(self):
-        result = self.resolve(candidate(verification_status="pending"))
-        self.assertFalse(result["success"])
-        self.assertEqual(result["poems"], [])
-        self.assertIn("verification_status", result["rejected"][0]["errors"][0])
+    def test_internal_audit_fields_are_not_part_of_request_contract(self):
+        with self.assertRaises(ValidationError):
+            candidate(source_name="客户端来源", verification_status="pending")
+
+    def test_internal_audit_fields_are_not_exposed_in_response(self):
+        result = self.resolve(candidate())
+        self.assertNotIn("source_name", result["poems"][0])
+        self.assertNotIn("verification_status", result["poems"][0])
 
     def test_same_title_author_with_different_content_is_not_overwritten(self):
         self.resolve(candidate())

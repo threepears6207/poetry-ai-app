@@ -4,7 +4,7 @@
 // 1. 后端基础地址
 // =====================================================
 // 电脑浏览器本机联调：使用 127.0.0.1
-const BASE_URL = 'http://192.168.3.18:8000'
+const BASE_URL = 'http://192.168.3.29:8000'
 export const LIVE_ASR_STREAM_URL = `${BASE_URL.replace(/^http/, 'ws')}/asr/stream`
 
 // 手机真机联调时，不要用 127.0.0.1。
@@ -754,16 +754,15 @@ export const API = {
   // 跟读评分
   // POST /asr/score
   // -----------------------------------------------------
-  scoreReading(audioBase64, poemContent = '', audioFormat = 'mp3') {
-    const pureBase64 = String(audioBase64 || '').replace(/^data:audio\/\w+;base64,/, '')
+  scoreReading(pcmBase64, poemContent = '') {
+    const pureBase64 = String(pcmBase64 || '').replace(/^data:audio\/[^;]+;base64,/, '')
 
     return request({
       url: '/asr/score',
       method: 'POST',
       data: {
-        audio_base64: pureBase64,
-        poem_content: String(poemContent || '').replace(/[，,。；;！!？?\s]/g, ''),
-        audio_format: audioFormat || 'mp3'
+        pcm_base64: pureBase64,
+        poem_content: String(poemContent || '').replace(/[，,。；;！!？?\s]/g, '')
       },
       timeout: 120000
     })

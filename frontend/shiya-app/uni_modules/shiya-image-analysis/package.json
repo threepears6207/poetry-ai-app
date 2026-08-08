@@ -1,0 +1,39 @@
+{
+  "id": "shiya-image-analysis",
+  "displayName": "shiya-image-analysis",
+  "version": "1.0.0",
+  "description": "诗芽小学堂端侧图片理解与内容安全插件",
+  "keywords": [
+    "shiya-image-analysis",
+    "vivo",
+    "text-moderation"
+  ],
+  "repository": "",
+  "engines": {
+    "HBuilderX": "^3.6.8",
+    "uni-app": "^3.1.0",
+    "uni-app-x": "^3.1.0"
+  },
+  "dcloudext": {
+    "type": "uts"
+  },
+  "uni_modules": {
+    "dependencies": [],
+    "encrypt": [],
+    "platforms": {
+      "client": {
+        "uni-app": {
+          "vue": {
+            "vue2": "-",
+            "vue3": "-"
+          },
+          "app": {
+            "android": "-",
+            "ios": "-",
+            "harmony": "-"
+          }
+        }
+      }
+    }
+  }
+}

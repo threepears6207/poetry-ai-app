@@ -1,0 +1,70 @@
+export type TextAuditState = 'passed' | 'suspicious' | 'blocked' | 'unavailable' | 'timeout' | 'error'
+
+// The raw model text is intentionally not returned. Later image-analysis code may
+// only consume a `passed` result before it parses the model's JSON response.
+export type TextAuditResult = {
+  state : TextAuditState
+  code : number
+  message : string
+}
+
+export type TextAuditCallback = (result : TextAuditResult) => void
+export type AuditGeneratedText = (text : string, callback : TextAuditCallback) => void
+
+export type DeviceModelState = 'ready' | 'permission_required' | 'model_missing' | 'init_failed' | 'released'
+
+export type DeviceModelResult = {
+  state : DeviceModelState
+  code : number
+  message : string
+}
+
+export type DeviceModelCallback = (result : DeviceModelResult) => void
+export type InitializeImageModel = (modelPath : string, callback : DeviceModelCallback) => void
+export type ReleaseImageModel = () => void
+export type OpenModelStoragePermissionSettings = () => void
+
+export type ImageVisionState = 'prepared' | 'model_not_ready' | 'image_unreadable' | 'vit_failed'
+
+export type ImageVisionResult = {
+  state : ImageVisionState
+  code : number
+  message : string
+}
+
+export type ImageVisionCallback = (result : ImageVisionResult) => void
+export type PrepareImageVision = (imagePath : string, callback : ImageVisionCallback) => void
+
+// Only two product outcomes exist: a confirmed complete poem, or a non-poem
+// scene. The latter includes natural scenery, ordinary text, couplets and signs.
+export type ImageContentType = 'poem_text' | 'scene'
+
+// The terminal model only returns the core facts it can read reliably. The
+// backend will later enrich, validate and store the complete poem record.
+export type TerminalPoem = {
+  title : string
+  author : string
+  dynasty : string
+  content : Array<string>
+  translation : string
+}
+
+export type ImageAnalysis = {
+  content_type : ImageContentType
+  poem : TerminalPoem | null
+  // Internal clues used when the backend later retrieves scene candidates.
+  objects : Array<string>
+  confidence : number
+}
+
+export type ImageAnalysisState = 'success' | 'model_not_ready' | 'image_unreadable' | 'vit_failed' | 'generation_busy' | 'generation_failed' | 'audit_rejected' | 'invalid_result'
+
+export type ImageAnalysisResult = {
+  state : ImageAnalysisState
+  code : number
+  message : string
+  analysis : ImageAnalysis | null
+}
+
+export type ImageAnalysisCallback = (result : ImageAnalysisResult) => void
+export type AnalyzeImage = (imagePath : string, callback : ImageAnalysisCallback) => void

@@ -106,7 +106,6 @@ CREATE TABLE IF NOT EXISTS daily_reminder_settings (
 CREATE INDEX IF NOT EXISTS idx_poems_title ON poems(title);
 CREATE INDEX IF NOT EXISTS idx_poems_author ON poems(author);
 CREATE INDEX IF NOT EXISTS idx_poems_age_difficulty ON poems(age_level, difficulty);
-CREATE INDEX IF NOT EXISTS idx_poems_content_hash ON poems(content_hash);
 CREATE INDEX IF NOT EXISTS idx_poems_title_author ON poems(title, author);
 CREATE INDEX IF NOT EXISTS idx_poem_aliases_poem ON poem_aliases(poem_id);
 CREATE INDEX IF NOT EXISTS idx_learning_records_user_time

@@ -22,12 +22,12 @@
 
       <view v-else class="final-result-page">
         <image class="final-page-bg" src="/static/final-ui/camera-result-page.png" mode="scaleToFill" />
-        <button class="result-back-hotspot art-back" @tap="pageState = 'camera'" aria-label="返回"><image src="/static/final-ui/nav-back.png" mode="aspectFit" /></button>
+        <button class="result-back-hotspot result-back-native" @tap="pageState = 'camera'" aria-label="返回"></button>
         <view class="result-page-title">诗芽为你找到了这些古诗</view>
         <view class="result-subtitle">点击诗卡，打开画卷继续学习</view>
         <view class="result-cards">
-          <view v-for="(poem, index) in resultCandidates" :key="poem.id" class="result-poem-card" :class="{ best: index === 0 }" @tap="selectResult(poem)">
-            <view class="candidate-title">{{ poem.title }}</view>
+          <view v-for="(poem, index) in resultCandidates" :key="poem.id" class="result-poem-card" :class="{ best: index === resultCandidates.length - 1 }" @tap="selectResult(poem)">
+            <view class="candidate-title" :class="{ 'long-title': isLongPoemTitle(poem.title) }">{{ poem.title }}</view>
             <view class="candidate-author">{{ poem.dynasty }} · {{ poem.author }}</view>
             <view class="candidate-lines">
               <text v-for="line in getCandidateLines(poem)" :key="line">{{ line }}</text>
@@ -50,6 +50,7 @@ const DESIGN_HEIGHT = 770
 const appScale = ref(1)
 
 const appScaleStyle = computed(() => `transform: scale(${appScale.value});`)
+const isLongPoemTitle = (title = '') => Array.from(String(title).replace(/\s/g, '')).length > 4
 
 const updateAppScale = () => {
   try {
@@ -98,7 +99,7 @@ const displayTags = computed(() => {
 const resultCandidates = computed(() => {
   const first = matchedPoem.value || LOCAL_POEMS[0]
   const others = LOCAL_POEMS.filter(item => String(item.id) !== String(first?.id)).slice(0, 2)
-  return [first, ...others].filter(Boolean).slice(0, 3)
+  return [...others, first].filter(Boolean).slice(-3)
 })
 
 const getCandidateLines = (poem = {}) => {
@@ -1182,6 +1183,7 @@ button[disabled] {
 }
 .result-back-hotspot { position: absolute; left: 28px; top: 25px;
 }
+.result-back-native { z-index: 70; width: 120px; height: 120px; padding: 0; border: 0; background: transparent; }
 .art-back { z-index: 70; width: 120px; height: 120px; padding: 0; border: 0; background: transparent; }
 .art-back image { width: 100%; height: 100%; }
 .result-page-title { position: absolute; left: 525px; top: 86px; width: 625px; text-align: center; color: #744319; font-size: 45px; font-weight: 900; letter-spacing: 4px;
@@ -1196,6 +1198,7 @@ button[disabled] {
 }
 .candidate-title { width: 100%; height: 68px; display: flex; align-items: center; justify-content: center; font-size: 38px; font-weight: 900; letter-spacing: 7px;
 }
+.candidate-title.long-title { font-size: 31px; letter-spacing: 2px; }
 .candidate-author { width: 190px; height: 48px; display: flex; align-items: center; justify-content: center; font-size: 20px; color: #8a5b2f; font-weight: 800;
 }
 .candidate-lines { margin-top: 22px; display: flex; flex-direction: column; align-items: center; gap: 9px; font-size: 24px; font-weight: 800;
@@ -1213,6 +1216,7 @@ button[disabled] {
 .result-page-title { font-size: 58px; }
 .result-subtitle { font-size: 32px; }
 .candidate-title { font-size: 46px; }
+.candidate-title.long-title { font-size: 36px; letter-spacing: 1px; }
 .candidate-author { font-size: 30px; }
 .candidate-lines { font-size: 34px; }
 .candidate-tags { font-size: 27px; }

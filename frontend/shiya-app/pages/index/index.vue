@@ -11,7 +11,6 @@
         <view class="age-control" @tap="showAgeList = !showAgeList">
           <image src="/static/final-ui/age.png" mode="scaleToFill" />
           <text>{{ selectedAge }}</text>
-          <text class="age-arrow">⌄</text>
         </view>
         <view class="parent-control" @tap="goPage('/pages/parent/parent')">
           <image src="/static/final-ui/parent.png" mode="scaleToFill" />
@@ -48,7 +47,7 @@
           <button class="modal-close" @tap.stop="showLottery = false" aria-label="关闭"></button>
           <view class="lottery-copy">
             <text class="lottery-kicker">抽到啦！</text>
-            <text class="lottery-title">{{ dailyPoem.title }}</text>
+            <text class="lottery-title" :class="{ 'long-title': isLongPoemTitle(dailyPoem.title) }">{{ dailyPoem.title }}</text>
             <text class="lottery-author">{{ dailyPoem.dynasty }} · {{ dailyPoem.author }}</text>
             <text class="lottery-line">{{ dailyLine }}</text>
           </view>
@@ -89,9 +88,17 @@ const showAgeList = ref(false)
 const showLottery = ref(false)
 const pressedEntry = ref('')
 const dailyPoem = ref(LOCAL_POEMS[0])
+const isLongPoemTitle = (title = '') => Array.from(String(title).replace(/\s/g, '')).length > 4
 const dailyLine = computed(() => {
   const content = dailyPoem.value?.content
-  return Array.isArray(content) ? content.slice(0, 2).join('，') : String(content || '')
+  if (!Array.isArray(content)) return String(content || '')
+  // 先拿前两句拼接
+  const twoSentence = content.slice(0, 2).join('，')
+  // 单句超过5字 / 两句总长度过长，只显示第一句
+  if (content[0].length > 5 || twoSentence.length > 12) {
+    return content[0]
+  }
+  return twoSentence
 })
 
 const ageNumber = () => Number(String(selectedAge.value).match(/\d+/)?.[0] || 4)
@@ -216,9 +223,10 @@ button::after { border: 0; }
 .lottery-copy { position: absolute; inset: 0; color: #663c19; text-align: center; pointer-events: none; }
 .lottery-kicker { position: absolute; left: 175px; right: 175px; top: 40px; height: 86px; display: flex; align-items: center; justify-content: center; font-size: 42px; font-weight: 900; }
 .lottery-title { position: absolute; left: 145px; right: 145px; top: 180px; font-size: 72px; font-weight: 900; letter-spacing: 12px; }
+.lottery-title.long-title { font-size: 56px; letter-spacing: 4px; }
 .lottery-author { position: absolute; left: 170px; right: 170px; top: 282px; font-size: 30px; font-weight: 800; }
 .lottery-line { position: absolute; left: 120px; right: 180px; top: 345px; font-size: 24px; color: #8d623a; }
-.lottery-actions { position: absolute; left: 126px; right: 126px; bottom: 54px; height: 82px; display: flex; gap: 39px; }
+.lottery-actions { position: absolute; left: 126px; right: 126px; bottom: 70px; height: 82px; display: flex; gap: 39px; }
 .scroll-button { flex: 1; height: 82px; padding: 0; border: 0; background: transparent; color: #623a17; font-size: 27px; font-weight: 900; }
 .scroll-button.primary, .scroll-button.secondary { background: transparent; box-shadow: none; }
 /* 手机横屏可读性 */
@@ -226,6 +234,7 @@ button::after { border: 0; }
 .age-menu view { font-size: 30px; }
 .lottery-kicker { font-size: 52px; }
 .lottery-title { font-size: 78px; }
+.lottery-title.long-title { font-size: 60px; letter-spacing: 3px; }
 .lottery-author { font-size: 38px; }
 .lottery-line { font-size: 34px; }
 .scroll-button { font-size: 36px; }

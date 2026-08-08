@@ -8,7 +8,7 @@
       <view class="card-grid">
         <view v-for="poem in visiblePoems" :key="poem.id" class="poem-card" :class="{ locked: !poem.unlocked }" @tap="openPoem(poem)">
           <image class="card-bg" src="/static/final-ui/collection-card-replacement.png" mode="scaleToFill" />
-          <view class="card-name">{{ poem.title }}</view>
+          <view class="card-name" :class="{ 'long-title': isLongPoemTitle(poem.title) }">{{ poem.title }}</view>
           <image class="card-scene" :src="poem.sceneImage" mode="aspectFill" />
           <view v-if="!poem.unlocked" class="lock-mark">尚未点亮</view>
           <view class="card-author">{{ poem.dynasty }} · {{ poem.author }}</view>
@@ -35,6 +35,7 @@ const completedIds = ref(new Set())
 const catalogPoems = ref([])
 const pageIndex = ref(0)
 const PAGE_SIZE = 4
+const isLongPoemTitle = (title = '') => Array.from(String(title).replace(/\s/g, '')).length > 4
 
 const allPoems = computed(() => catalogPoems.value.map(poem => ({
   ...poem,
@@ -124,6 +125,7 @@ button::after { border: 0; }
 .poem-card.locked { filter: grayscale(.76); opacity: .68; }
 .card-bg { position: absolute; inset: 0; width: 270px; height: 273px; }
 .card-name { position: absolute; left: 62px; right: 62px; top: 25px; height: 40px; display: flex; align-items: center; justify-content: center; color: #744319; font-size: 24px; font-weight: 900; }
+.card-name.long-title { left: 42px; right: 42px; font-size: 20px; }
 .card-scene { position: absolute; left: 42px; top: 82px; width: 186px; height: 105px; border: 3px solid rgba(133, 84, 42, .42); border-radius: 5px; background: #ead9b8; }
 .lock-mark { position: absolute; left: 38px; right: 38px; top: 176px; text-align: center; color: #6f6b60; font-size: 18px; font-weight: 900; }
 .card-author { position: absolute; left: 28px; width: 145px; bottom: 24px; height: 34px; display: flex; align-items: center; justify-content: center; color: #81572f; font-size: 18px; font-weight: 800; white-space: nowrap; }
@@ -131,10 +133,11 @@ button::after { border: 0; }
 .page-arrow.left { left: 78px; }
 .page-arrow.right { right: 78px; }
 .page-arrow[disabled] { opacity: .25; }
-.page-number { position: absolute; left: 570px; bottom: 4px; width: 532px; height: 44px; display: flex; align-items: center; justify-content: center; text-align: center; color: #855326; font-size: 22px; font-weight: 900; }
+.page-number { position: absolute; left: 570px; bottom: 4px; width: 532px; height: 44px; display: flex; align-items: center; justify-content: center; text-align: center; color: #855326; -webkit-text-stroke: 1px #fff1cf; paint-order: stroke fill; text-shadow: 0 1px 2px rgba(255, 241, 207, .9); font-size: 22px; font-weight: 900; }
 /* 手机横屏可读性 */
 .page-title { font-size: 60px; }
 .card-name { font-size: 34px; }
+.card-name.long-title { font-size: 27px; }
 .lock-mark { font-size: 28px; }
 .card-author { font-size: 20px; }
 .page-number { font-size: 30px; }

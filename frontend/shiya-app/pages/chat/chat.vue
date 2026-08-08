@@ -1361,7 +1361,7 @@ const handleNext = async () => {
     console.log('读取今日巩固提醒状态失败，使用本地状态：', err)
   }
   if (suppressedToday) {
-    goReview()
+    goHome()
     return
   }
 
@@ -1887,8 +1887,8 @@ button::after {
 .next-btn.active { background: transparent; color: transparent; filter: brightness(1.05); }
 .main-layout { position: absolute; inset: 0; display: block; }
 .poet-stage { position: absolute; left: 164px; top: 78px; width: 485px; height: 610px; padding: 0; border-radius: 0; background: transparent; box-shadow: none; overflow: hidden; display: block; }
-.poet-img-large { left: 45px; top: 52px; bottom: auto; width: 395px; height: 470px; border-radius: 0; background: transparent; object-fit: contain; }
-.poet-name { left: 92px; right: 92px; top: 535px; height: 55px; padding: 0; display: flex; align-items: center; justify-content: center; border-radius: 0; background: transparent; box-shadow: none; color: #704117; font-size: 34px; }
+.poet-img-large { left: 100px; top: 82px; bottom: auto; width: 300px; height: 360px; border-radius: 0; background: transparent; object-fit: contain; }
+.poet-name { left: 92px; right: 92px; top: 500px; height: 55px; padding: 0; display: flex; align-items: center; justify-content: center; border-radius: 0; background: transparent; box-shadow: none; color: #704117; font-size: 34px; }
 .left-poem-card { display: none; }
 .dialog-panel { position: absolute; left: 670px; top: 116px; width: 850px; height: 600px; display: block; }
 .chat-card { position: absolute; left: 0; top: 0; width: 100%; height: 480px; padding: 24px 30px; border-radius: 0; background: transparent; box-shadow: none; }

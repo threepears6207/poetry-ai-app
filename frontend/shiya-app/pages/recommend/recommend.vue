@@ -19,11 +19,11 @@
         <view v-for="poem in visiblePoems" :key="poem.id" class="poem-card" @tap="selectPoem(poem)">
           <image src="/static/final-ui/poem-card-transparent.png" mode="scaleToFill" />
           <view class="poem-content">
-            <view class="poem-title">{{ poem.title }}</view>
+            <view class="poem-title" :class="{ 'long-title': isLongPoemTitle(poem.title) }">{{ poem.title }}</view>
             <view class="poem-author">{{ poem.dynasty }} · {{ poem.author }}</view>
-            <view class="poem-lines">
+            <scroll-view class="poem-lines" scroll-y :show-scrollbar="false">
               <text v-for="line in poemLines(poem)" :key="line">{{ line }}</text>
-            </view>
+            </scroll-view>
 
             <view class="poem-open">打开画卷</view>
           </view>
@@ -79,6 +79,7 @@ const filters = [
   { label: '山水', value: '山' },
   { label: '动物', value: '动物' }
 ]
+const isLongPoemTitle = (title = '') => Array.from(String(title).replace(/\s/g, '')).length > 4
 
 const updateScale = () => {
   try {
@@ -96,8 +97,8 @@ const filteredPoems = computed(() => {
 const maxPage = computed(() => Math.max(0, Math.ceil(filteredPoems.value.length / 4) - 1))
 const visiblePoems = computed(() => filteredPoems.value.slice(pageIndex.value * 4, pageIndex.value * 4 + 4))
 const poemLines = (poem) => {
-  if (Array.isArray(poem.content)) return poem.content.filter(Boolean).slice(0, 4)
-  return String(poem.content || poem.content_preview || '').split(/[，。\n]/).filter(Boolean).slice(0, 4)
+  if (Array.isArray(poem.content)) return poem.content.filter(Boolean)
+  return String(poem.content || poem.content_preview || '').split(/[，。\n]/).filter(Boolean)
 }
 const selectFilter = (value) => {
   activeFilter.value = value
@@ -188,20 +189,23 @@ button::after { border: 0; }
 .poem-card > image { position: absolute; left: -20px; top: -8px; width: 312px; height: 509px; filter: drop-shadow(0 8px 8px rgba(70, 43, 18, .18)); }
 .poem-content { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; color: #6f411b; }
 .poem-title { position: absolute; left: 28px; right: 28px; top: 9px; height: 70px; display: flex; align-items: center; justify-content: center; font-size: 34px; font-weight: 900; letter-spacing: 5px; }
+.poem-title.long-title { font-size: 28px; letter-spacing: 1px; }
 .poem-author { position: absolute; left: 28px; right: 28px; top: 104px; text-align: center; font-size: 22px; font-weight: 800; color: #8d5c30; }
-.poem-lines { position: absolute; left: 14px; right: 14px; top: 157px; display: flex; flex-direction: column; align-items: stretch; gap: 10px; font-size: 23px; font-weight: 700; line-height: 1.25; }
+.poem-lines { position: absolute; left: 1px; right: 22px; top: 157px; height: 184px; overflow-y: auto; font-size: 23px; font-weight: 700; line-height: 1.25; }
 .poem-lines text { display: block; width: 100%; text-align: center; white-space: nowrap; }
+.poem-lines text + text { margin-top: 10px; }
 
 .poem-open { position: absolute; left: 40px; right: 40px; top: 350px; height: 62px; display: flex; align-items: center; justify-content: center; color: #704117; font-size: 24px; font-weight: 900; }
 .message { position: absolute; left: 380px; top: 420px; width: 912px; text-align: center; color: #82552d; font-size: 32px; font-weight: 900; }
 .page-arrow { position: absolute; top: 395px; width: 96px; height: 96px; border: 0; background: transparent; padding: 0; }
 .page-arrow.left { left: 102px; }
 .page-arrow.right { right: 102px; }
-.result-count { position: absolute; left: 720px; bottom: 48px; width: 235px; text-align: center; color: #76502b; font-size: 22px; font-weight: 900; }
+.result-count { position: absolute; left: 720px; bottom: 48px; width: 235px; text-align: center; color: #76502b; -webkit-text-stroke: 1px #fff1cf; paint-order: stroke fill; text-shadow: 0 1px 2px rgba(255, 241, 207, .9); font-size: 22px; font-weight: 900; }
 /* 手机横屏可读性 */
 .page-title { font-size: 64px; }
 .filter-row view { font-size: 30px; }
 .poem-title { font-size: 40px; }
+.poem-title.long-title { font-size: 32px; letter-spacing: 1px; }
 .poem-author { font-size: 27px; }
 .poem-lines { font-size: 29px; gap: 10px; }
 .poem-open { font-size: 32px; }

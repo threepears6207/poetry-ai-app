@@ -231,7 +231,7 @@ const MAX_CHAT_RECORD_DURATION_MS = 30000
 let chatRequestToken = 0
 
 const poetAvatarImage = computed(() => {
-  return poetAvatarUrl.value || getPoetAvatarStaticUrl(getPoetName()) || '/static/孟浩然.png'
+  return poetAvatarUrl.value || getPoetAvatarStaticUrl(getPoetName()) || '/static/meng-haoran.png'
 })
 
 const messages = ref([])

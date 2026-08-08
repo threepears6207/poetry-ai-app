@@ -252,7 +252,7 @@ const loadingPoemLine = computed(() => {
 })
 
 const poetAvatarImage = computed(() => {
-  return poetAvatarUrl.value || getPoetAvatarStaticUrl(getPoetName()) || '/static/孟浩然.png'
+  return poetAvatarUrl.value || getPoetAvatarStaticUrl(getPoetName()) || '/static/meng-haoran.png'
 })
 
 const currentFrame = computed(() => {

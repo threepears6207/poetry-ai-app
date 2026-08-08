@@ -1,0 +1,695 @@
+import LlmConfig from 'com.vivo.llmsdk.LlmConfig'
+import LlmManager from 'com.vivo.llmsdk.LlmManager'
+import Intent from 'android.content.Intent'
+import Uri from 'android.net.Uri'
+import Build from 'android.os.Build'
+import Environment from 'android.os.Environment'
+import Settings from 'android.provider.Settings'
+import Bitmap from 'android.graphics.Bitmap'
+import BitmapFactory from 'android.graphics.BitmapFactory'
+import File from 'java.io.File'
+import Pattern from 'java.util.regex.Pattern'
+import JSONObject from 'org.json.JSONObject'
+import JSONArray from 'org.json.JSONArray'
+import { UTSAndroid } from 'io.dcloud.uts'
+import { ShiyaImageAnalysisNative } from 'uts.sdk.modules.shiyaImageAnalysis'
+import {
+  AuditGeneratedText,
+  DeviceModelCallback,
+  DeviceModelState,
+  InitializeImageModel,
+  ImageVisionCallback,
+  ImageVisionState,
+  AnalyzeImage,
+  ImageAnalysis,
+  ImageAnalysisCallback,
+  ImageAnalysisResult,
+  ImageAnalysisState,
+  ImageContentType,
+  OpenModelStoragePermissionSettings,
+  TerminalPoem,
+  PrepareImageVision,
+  ReleaseImageModel,
+  TextAuditCallback,
+  TextAuditState,
+} from '../interface.uts'
+
+type AuditInitCallback = (available : boolean, code : number, message : string) => void
+
+const TEXT_AUDIT_TIMEOUT_MS : Int = 5000
+const SDK_SUCCESS : Int = 0
+const SDK_TIMEOUT : Int = 110006
+const MODEL_CONTEXT_TOKENS : Int = 4096
+const MODEL_OUTPUT_TOKENS : Int = 1024
+const MODEL_THREADS : Int = 4
+const MODEL_NPU_POWER : Int = 100
+const HAN_CHARACTER_PATTERN = Pattern.compile('[\\u4E00-\\u9FFF]')
+const INVALID_POEM_CHARACTER_PATTERN = Pattern.compile('[^\\u4E00-\\u9FFF，。！？、；：“”‘’（）《》\\s]')
+const FOOTNOTE_MARK_PATTERN = Pattern.compile('[\\u2460-\\u2473]')
+const LAYOUT_WHITESPACE_PATTERN = Pattern.compile('[\\t\\r\\n]')
+const ESCAPED_LAYOUT_MARK_PATTERN = Pattern.compile('\\\\[rnt]')
+
+let initState = 'not_started'
+let initCallbacks : Array<AuditInitCallback> = []
+let imageModel : LlmManager | null = null
+let imageModelPath = ''
+let imageModelInitState = 'not_started'
+let imageModelInitCallbacks : Array<DeviceModelCallback> = []
+let imageGenerating = false
+
+function finishInitialization(available : boolean, code : number, message : string) : void {
+  initState = available ? 'ready' : 'failed'
+  const callbacks = initCallbacks
+  initCallbacks = []
+  callbacks.forEach(function (callback) {
+    callback(available, code, message)
+  })
+}
+
+function ensureTextAuditReady(callback : AuditInitCallback) : void {
+  if (initState == 'ready') {
+    callback(true, SDK_SUCCESS, '')
+    return
+  }
+  if (initState == 'failed') {
+    callback(false, -1, '端侧文本审核初始化未成功')
+    return
+  }
+
+  initCallbacks.push(callback)
+  if (initState == 'initializing') return
+
+  const context = UTSAndroid.getAppContext()
+  if (context == null) {
+    finishInitialization(false, 110010, '缺少 Android Context，无法初始化端侧文本审核')
+    return
+  }
+
+  initState = 'initializing'
+  try {
+    ShiyaImageAnalysisNative.initializeTextModeration(
+      context,
+      function () {
+        finishInitialization(true, SDK_SUCCESS, '')
+      },
+      function (code : Int, message : string) {
+        console.error(`[shiya-image-analysis] text moderation init failed: ${code}`)
+        finishInitialization(false, code, '端侧文本审核初始化失败')
+      },
+    )
+  } catch (error) {
+    console.error(`[shiya-image-analysis] text moderation init error: ${error}`)
+    finishInitialization(false, -1, '端侧文本审核初始化异常')
+  }
+}
+
+function emitResult(callback : TextAuditCallback, state : TextAuditState, code : number, message : string) : void {
+  callback({ state: state, code: code, message: message })
+}
+
+function emitModelResult(callback : DeviceModelCallback, state : DeviceModelState, code : number, message : string) : void {
+  callback({ state: state, code: code, message: message })
+}
+
+function emitVisionResult(callback : ImageVisionCallback, state : ImageVisionState, code : number, message : string) : void {
+  callback({ state: state, code: code, message: message })
+}
+
+function emitImageAnalysisResult(callback : ImageAnalysisCallback, state : ImageAnalysisState, code : number, message : string, analysis : ImageAnalysis | null = null) : void {
+  callback({ state: state, code: code, message: message, analysis: analysis })
+}
+
+function finishImageModelInitialization(state : DeviceModelState, code : number, message : string) : void {
+  imageModelInitState = state == 'ready' ? 'ready' : 'failed'
+  const callbacks = imageModelInitCallbacks
+  imageModelInitCallbacks = []
+  callbacks.forEach(function (callback) {
+    emitModelResult(callback, state, code, message)
+  })
+}
+
+function hasModelStoragePermission() : boolean {
+  // Android 11+ protects the official model directory behind the all-files access grant.
+  if (Build.VERSION.SDK_INT >= 30) {
+    return Environment.isExternalStorageManager()
+  }
+  return true
+}
+
+function initializeImageModelInternal(modelPath : string, callback : DeviceModelCallback) : void {
+  if (imageModel != null && imageModelInitState == 'ready') {
+    if (imageModelPath == modelPath) {
+      emitModelResult(callback, 'ready', SDK_SUCCESS, '')
+    } else {
+      emitModelResult(callback, 'init_failed', -2, '当前模型已由另一条路径初始化，请先释放模型')
+    }
+    return
+  }
+
+  if (!hasModelStoragePermission()) {
+    emitModelResult(callback, 'permission_required', -3, '尚未授予模型文件访问权限')
+    return
+  }
+  if (modelPath.trim().length == 0 || !new File(modelPath).exists()) {
+    emitModelResult(callback, 'model_missing', -4, '未找到指定的端侧模型目录')
+    return
+  }
+
+  imageModelInitCallbacks.push(callback)
+  if (imageModelInitState == 'initializing') return
+
+  imageModelInitState = 'initializing'
+  UTSAndroid.getDispatcher('io').async(function (_) {
+    let manager : LlmManager | null = null
+    try {
+      manager = new LlmManager()
+      const config = new LlmConfig()
+      config.modelPath = modelPath
+      config.multimodal = true
+      config.nPredict = MODEL_OUTPUT_TOKENS
+      config.nCtx = MODEL_CONTEXT_TOKENS
+      config.nThreads = MODEL_THREADS
+      config.npuPower = MODEL_NPU_POWER
+
+      const resultCode = manager.init(config)
+      if (resultCode != SDK_SUCCESS) {
+        manager.release()
+        finishImageModelInitialization('init_failed', resultCode, '端侧图片理解模型初始化失败')
+        return
+      }
+
+      imageModel = manager
+      imageModelPath = modelPath
+      finishImageModelInitialization('ready', SDK_SUCCESS, '')
+    } catch (error) {
+      try { manager?.release() } catch (_) {}
+      console.error(`[shiya-image-analysis] image model init error: ${error}`)
+      finishImageModelInitialization('init_failed', -1, '端侧图片理解模型初始化异常')
+    }
+  }, null)
+}
+
+@UTSJS.keepAlive
+export const initializeImageModel : InitializeImageModel = function (modelPath : string, callback : DeviceModelCallback) : void {
+  initializeImageModelInternal(modelPath, callback)
+}
+
+export const releaseImageModel : ReleaseImageModel = function () : void {
+  const manager = imageModel
+  imageModel = null
+  imageModelPath = ''
+  imageModelInitState = 'released'
+  try { manager?.release() } catch (error) {
+    console.error(`[shiya-image-analysis] image model release error: ${error}`)
+  }
+}
+
+// The plugin never opens this screen by itself. A later, user-triggered test entry
+// can call this method when initializeImageModel returns permission_required.
+export const openModelStoragePermissionSettings : OpenModelStoragePermissionSettings = function () : void {
+  if (Build.VERSION.SDK_INT < 30) return
+  const context = UTSAndroid.getAppContext()
+  if (context == null) return
+  const intent = new Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION)
+  intent.setData(Uri.parse(`package:${context.packageName}`))
+  intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+  context.startActivity(intent)
+}
+
+function normalizeImagePath(imagePath : string) : string {
+  return imagePath.startsWith('file://') ? imagePath.replace('file://', '') : imagePath
+}
+
+function bitmapToRgb(bitmap : Bitmap) : ByteArray {
+  const width = bitmap.width
+  const height = bitmap.height
+  const pixels = new IntArray(width * height)
+  bitmap.getPixels(pixels, 0, width, 0, 0, width, height)
+
+  const rgb = new ByteArray(width * height * 3)
+  let pixelIndex : Int = 0
+  let rgbIndex : Int = 0
+  while (pixelIndex < pixels.size) {
+    const pixel = pixels[pixelIndex]
+    rgb[rgbIndex] = ((pixel >> 16) & 0xFF).toByte()
+    rgb[rgbIndex + 1] = ((pixel >> 8) & 0xFF).toByte()
+    rgb[rgbIndex + 2] = (pixel & 0xFF).toByte()
+    pixelIndex += 1
+    rgbIndex += 3
+  }
+  return rgb
+}
+
+// Prepares a local camera/album file for multimodal inference. This step stops at
+// callVit: it deliberately does not assemble a prompt or ask the language model
+// to generate text.
+@UTSJS.keepAlive
+export const prepareImageVision : PrepareImageVision = function (imagePath : string, callback : ImageVisionCallback) : void {
+  const manager = imageModel
+  if (manager == null || imageModelInitState != 'ready') {
+    emitVisionResult(callback, 'model_not_ready', -5, '端侧图片理解模型尚未就绪')
+    return
+  }
+
+  const localPath = normalizeImagePath(imagePath.trim())
+  if (localPath.length == 0 || !new File(localPath).isFile()) {
+    emitVisionResult(callback, 'image_unreadable', -6, '未找到可读取的本地图片')
+    return
+  }
+
+  UTSAndroid.getDispatcher('io').async(function (_) {
+    let bitmap : Bitmap | null = null
+    try {
+      const options = new BitmapFactory.Options()
+      options.inPreferredConfig = Bitmap.Config.ARGB_8888
+      bitmap = BitmapFactory.decodeFile(localPath, options)
+      if (bitmap == null || bitmap.width <= 0 || bitmap.height <= 0) {
+        emitVisionResult(callback, 'image_unreadable', -6, '本地图片无法解码')
+        return
+      }
+      if (imageModel !== manager) {
+        emitVisionResult(callback, 'model_not_ready', -5, '端侧图片理解模型已释放')
+        return
+      }
+
+      const rgb = bitmapToRgb(bitmap)
+      const resultCode = manager.callVit(rgb, bitmap.width, bitmap.height)
+      if (resultCode != SDK_SUCCESS) {
+        emitVisionResult(callback, 'vit_failed', resultCode, '图片视觉编码失败')
+        return
+      }
+      emitVisionResult(callback, 'prepared', SDK_SUCCESS, '')
+    } catch (error) {
+      console.error(`[shiya-image-analysis] image vision preparation error: ${error}`)
+      emitVisionResult(callback, 'image_unreadable', -1, '图片预处理异常')
+    } finally {
+      try { bitmap?.recycle() } catch (_) {}
+    }
+  }, null)
+}
+
+function imageAnalysisPrompt() : string {
+  const instruction = `只输出一个 JSON 对象，不要解释、Markdown、第二个 JSON 或任何其他文字。\n先判断图片中是否有清晰完整的古诗文字。只要能看出古诗题目、作者或朝代，以及两句及以上诗文，就必须按 poem_text 输出；即使汉字上方带拼音、图片有插画背景、下方有“译文”区域或诗句分行排版，也不能输出 scene。\n古诗输出 {"content_type":"poem_text","title":"诗名","author":"作者","dynasty":"唐","content":["原诗第一句","原诗第二句"],"confidence":0.9,"translation":"按原诗顺序完整解释全诗含义的一段儿童白话译文"}。title、author、content 必须来自图片中的古诗；忽略拼音、题注、编号、脚注和“译文”区域。图片未写 dynasty 但能依据诗名和作者确认时，自行补全标准朝代。dynasty 只能写“唐、宋、元、明、清”等，不要写“唐朝、清朝”。content 必须是数组，每个数组项只放原诗的一句；按原诗的逗号、句号、问号、感叹号或分号分句，不要把多句合并为一个数组项，不要带句末标点，不得混入译文、白话说明、题目、作者、朝代或拼音。confidence 必须是 0 到 1 的数字。translation 必须放在最后一个字段，必须是一个字符串；按原诗句子的先后顺序，用一段连贯、儿童能懂的白话完整解释全诗含义。不得照抄原文、不得照抄提示词、不得添加解释前缀。\n只有图片中没有古诗题目、作者或至少两句古诗正文时，才输出 {"content_type":"scene","objects":["山峰","海面"],"confidence":0.9}。objects 每一项必须是两个字及以上的具体词。\n不要输出 recognized_text、poem_draft、tags、theme_tags、knowledge_tags、age_level、age_range、difficulty、recommend_reason。所有 JSON 括号和引号必须闭合。`
+  return `[|Human|]:<im_start><image><im_end>${instruction}\n[|AI|]:`
+}
+
+function readStringArray(value : JSONArray, maxLength : Int) : Array<string> {
+  if (value.length() > maxLength) throw new Error('数组项目过多')
+  const result = new Array<string>()
+  let index : Int = 0
+  while (index < value.length()) {
+    const item = value.getString(index).trim()
+    if (item.length == 0) throw new Error('数组包含空字符串')
+    result.push(item)
+    index += 1
+  }
+  return result
+}
+
+function requireChinesePoemText(value : string, fieldName : string) : void {
+  const trimmed = value.trim()
+  if (trimmed.length == 0) throw new Error(`${fieldName} 不能为空`)
+  if (!HAN_CHARACTER_PATTERN.matcher(trimmed).find()) {
+    throw new Error(`${fieldName} 未包含可用汉字；实际值为「${trimmed}」`)
+  }
+  if (INVALID_POEM_CHARACTER_PATTERN.matcher(trimmed).find()) {
+    throw new Error(`${fieldName} 只能保留汉字和中文诗歌标点，不能包含拼音、英文字母、数字或教材脚注；实际值为「${trimmed}」`)
+  }
+}
+
+function cleanPoemLayoutMarks(value : string) : string {
+  const withoutEscapedLayoutMarks = ESCAPED_LAYOUT_MARK_PATTERN.matcher(value).replaceAll('')
+  const withoutFootnotes = FOOTNOTE_MARK_PATTERN.matcher(withoutEscapedLayoutMarks).replaceAll('')
+  return LAYOUT_WHITESPACE_PATTERN.matcher(withoutFootnotes).replaceAll('').trim()
+}
+
+function isGeneratedExplanationText(value : string) : boolean {
+  return value.indexOf('白话解释') >= 0 || value.indexOf('儿童能懂') >= 0 || value.indexOf('译文') >= 0
+}
+
+function isPoemLineSeparator(character : string) : boolean {
+  return character == '，' || character == '。' || character == '！' || character == '？' || character == '；'
+}
+
+function appendNormalizedPoemLine(lines : Array<string>, value : string) : void {
+  const line = cleanPoemLayoutMarks(value)
+  if (line.length > 0) {
+    lines.push(line)
+  }
+}
+
+function normalizePoemContentLines(value : string) : Array<string> {
+  const lines = new Array<string>()
+  let lineStart : Int = 0
+  let index : Int = 0
+  while (index < value.length) {
+    const character = value.charAt(index)
+    const nextCharacter = index + 1 < value.length ? value.charAt(index + 1) : ''
+    const isEscapedLineBreak = character == '\\' && (nextCharacter == 'n' || nextCharacter == 'r' || nextCharacter == 't')
+    if (isPoemLineSeparator(character) || character == '\n' || character == '\r' || isEscapedLineBreak) {
+      appendNormalizedPoemLine(lines, value.substring(lineStart, index))
+      if (isEscapedLineBreak) {
+        index += 1
+      }
+      lineStart = index + 1
+    }
+    index += 1
+  }
+  appendNormalizedPoemLine(lines, value.substring(lineStart))
+  return lines
+}
+
+function normalizeDynasty(value : string) : string {
+  const normalized = cleanPoemLayoutMarks(value)
+  if (normalized == '唐朝') return '唐'
+  if (normalized == '宋朝') return '宋'
+  if (normalized == '元朝') return '元'
+  if (normalized == '明朝') return '明'
+  if (normalized == '清朝') return '清'
+  if (normalized == '汉朝') return '汉'
+  if (normalized == '晋朝') return '晋'
+  if (normalized == '隋朝') return '隋'
+  return normalized
+}
+
+function hasUsablePoemContent(payload : JSONObject) : boolean {
+  if (!payload.has('content') || payload.isNull('content')) return false
+  if (payload.optJSONArray('content') != null) return true
+  return payload.optString('content', '').trim().length > 0
+}
+
+function hasCompleteTerminalPoem(payload : JSONObject) : boolean {
+  return payload.has('title') && payload.has('author') && payload.has('dynasty') && hasUsablePoemContent(payload)
+}
+
+function hasPoemSignal(payload : JSONObject) : boolean {
+  return payload.optString('content_type', '') == 'poem_text' || payload.has('title') || payload.has('author') || payload.has('dynasty') || hasUsablePoemContent(payload)
+}
+
+function readTerminalPoem(payload : JSONObject) : TerminalPoem {
+  const rawContent = new Array<string>()
+  const contentArray = payload.optJSONArray('content')
+  if (contentArray != null) {
+    const arrayItems = readStringArray(contentArray, 32)
+    arrayItems.forEach(function (item) {
+      rawContent.push(item)
+    })
+  } else {
+    const contentText = payload.getString('content').trim()
+    if (contentText.length == 0) throw new Error('古诗正文不能为空')
+    rawContent.push(contentText)
+    console.info('[shiya-image-analysis] accepted string-form poem content and normalized it to an array')
+  }
+  const content = new Array<string>()
+  let rawContentIndex : Int = 0
+  while (rawContentIndex < rawContent.length) {
+    const rawLine = rawContent[rawContentIndex]
+    if (isGeneratedExplanationText(rawLine)) {
+      console.info('[shiya-image-analysis] removed generated explanation from poem content')
+    } else {
+      const normalizedLines = normalizePoemContentLines(rawLine)
+      let lineIndex : Int = 0
+      while (lineIndex < normalizedLines.length) {
+        content.push(normalizedLines[lineIndex])
+        lineIndex += 1
+      }
+    }
+    rawContentIndex += 1
+  }
+  if (content.length == 0) throw new Error('古诗正文不能为空')
+  let contentIndex : Int = 0
+  while (contentIndex < content.length) {
+    requireChinesePoemText(content[contentIndex], `古诗正文第 ${contentIndex + 1} 句`)
+    contentIndex += 1
+  }
+  const title = payload.getString('title').trim()
+  const author = payload.getString('author').trim()
+  const dynasty = normalizeDynasty(payload.getString('dynasty'))
+  requireChinesePoemText(title, '诗名')
+  requireChinesePoemText(author, '作者')
+  requireChinesePoemText(dynasty, '朝代')
+  let translation = ''
+  if (payload.has('translation') && !payload.isNull('translation')) {
+    const candidateTranslation = cleanPoemLayoutMarks(payload.optString('translation', ''))
+    const joinedPoemContent = content.join('')
+    const isPromptPlaceholder = candidateTranslation == '简短白话译文或空字符串' || candidateTranslation == '用儿童能懂的完整白话解释全诗' || candidateTranslation == '按原诗顺序完整解释全诗含义的一段儿童白话译文' || candidateTranslation == '空字符串'
+    const isCopiedPoemText = candidateTranslation.length > 0 && joinedPoemContent.indexOf(candidateTranslation) >= 0
+    if (isPromptPlaceholder || isCopiedPoemText) {
+      console.info('[shiya-image-analysis] discarded placeholder or copied poem translation')
+    } else {
+      translation = candidateTranslation
+    }
+  }
+
+  return {
+    title: title,
+    author: author,
+    dynasty: dynasty,
+    content: content,
+    translation: translation,
+  }
+}
+
+function parseImageAnalysis(rawText : string) : ImageAnalysis {
+  const payload = new JSONObject(rawText)
+  let confidence = 0.9
+  if (payload.has('confidence') && !payload.isNull('confidence')) {
+    confidence = payload.getDouble('confidence')
+    if (confidence < 0 || confidence > 1) throw new Error('置信度不在 0 到 1 范围内')
+  } else {
+    console.info('[shiya-image-analysis] confidence missing; using default 0.9')
+  }
+
+  // A complete readable poem wins over the model's type word. This avoids a
+  // wrong `scene` label discarding otherwise usable title/author/body facts.
+  if (hasCompleteTerminalPoem(payload)) {
+    return {
+      content_type: 'poem_text',
+      poem: readTerminalPoem(payload),
+      objects: new Array<string>(),
+      confidence: confidence,
+    }
+  }
+
+  if (hasPoemSignal(payload)) {
+    throw new Error('识别到部分古诗字段，但题目、作者、朝代或正文格式不完整；已保留原始模型输出用于诊断，不再误判为场景')
+  }
+
+  let objects = new Array<string>()
+  const objectsPayload = payload.optJSONArray('objects')
+  if (objectsPayload != null) {
+    objects = readStringArray(objectsPayload, 6)
+  }
+  // Everything that is not a complete confirmed poem is safely returned as a
+  // scene. An empty clue list is allowed here so a partial scene response does
+  // not turn into a device-side JSON failure; the backend can ask for retake.
+  return {
+    content_type: 'scene',
+    poem: null,
+    objects: objects,
+    confidence: confidence,
+  }
+}
+
+function removeTerminalEndMarker(rawText : string) : string {
+  const markerIndex = rawText.indexOf('[end of text]')
+  if (markerIndex < 0) return rawText.trim()
+  console.info('[shiya-image-analysis] removed terminal [end of text] marker before JSON validation')
+  return rawText.substring(0, markerIndex).trim()
+}
+
+// The terminal model can append a second response or an end marker after a
+// complete object. Keep the first balanced JSON object instead of coupling the
+// parser to one particular broken tail such as `]}}`.
+function extractFirstCompleteJsonObject(rawText : string) : string {
+  const normalized = removeTerminalEndMarker(rawText)
+  let startIndex : Int = -1
+  let probeIndex : Int = 0
+  while (probeIndex < normalized.length) {
+    if (normalized.charAt(probeIndex) == '{') {
+      startIndex = probeIndex
+      break
+    }
+    probeIndex += 1
+  }
+  if (startIndex < 0) throw new Error('模型输出中未找到 JSON 对象')
+
+  let depth : Int = 0
+  let inString = false
+  let escaped = false
+  let index : Int = startIndex
+  while (index < normalized.length) {
+    const character = normalized.charAt(index)
+    if (inString) {
+      if (escaped) {
+        escaped = false
+      } else if (character == '\\') {
+        escaped = true
+      } else if (character == '"') {
+        inString = false
+      }
+    } else if (character == '"') {
+      inString = true
+    } else if (character == '{') {
+      depth += 1
+    } else if (character == '}') {
+      depth -= 1
+      if (depth == 0) {
+        const objectText = normalized.substring(startIndex, index + 1)
+        if (index + 1 < normalized.length) {
+          console.info('[shiya-image-analysis] ignored text after the first complete JSON object')
+        }
+        return objectText
+      }
+    }
+    index += 1
+  }
+  throw new Error('模型输出中的 JSON 对象未闭合')
+}
+
+function parseTerminalImageAnalysis(rawText : string) : ImageAnalysis {
+  return parseImageAnalysis(extractFirstCompleteJsonObject(rawText))
+}
+
+// Audit only descriptive, newly generated fields. Auditing the complete JSON
+// made known classical poem text look like an unsafe model answer and blocked it.
+function buildAuditableAnalysisText(analysis : ImageAnalysis) : string {
+  const auditableParts = new Array<string>()
+  if (analysis.content_type == 'poem_text' && analysis.poem != null) {
+    if (analysis.poem.translation.length > 0) {
+      auditableParts.push(analysis.poem.translation)
+    }
+  } else {
+    analysis.objects.forEach(function (objectName) {
+      auditableParts.push(objectName)
+    })
+  }
+  return auditableParts.join('\n')
+}
+
+// Runs only after callVit. Raw model text remains inside this plugin until it has
+// passed the vivo text audit and the schema checks below.
+@UTSJS.keepAlive
+export const analyzeImage : AnalyzeImage = function (imagePath : string, callback : ImageAnalysisCallback) : void {
+  if (imageGenerating) {
+    emitImageAnalysisResult(callback, 'generation_busy', -7, '正在分析上一张图片')
+    return
+  }
+
+  prepareImageVision(imagePath, function (visionResult) {
+    if (visionResult.state != 'prepared') {
+      const state : ImageAnalysisState = visionResult.state == 'model_not_ready' ? 'model_not_ready' : (visionResult.state == 'vit_failed' ? 'vit_failed' : 'image_unreadable')
+      emitImageAnalysisResult(callback, state, visionResult.code, visionResult.message)
+      return
+    }
+
+    const manager = imageModel
+    if (manager == null || imageModelInitState != 'ready') {
+      emitImageAnalysisResult(callback, 'model_not_ready', -5, '端侧图片理解模型尚未就绪')
+      return
+    }
+
+    imageGenerating = true
+    let rawText = ''
+    try {
+      ShiyaImageAnalysisNative.generate(manager, imageAnalysisPrompt(),
+        function (token : string) {
+          rawText += token
+        },
+        function () {
+          let analysis : ImageAnalysis | null = null
+          try {
+            console.info('[shiya-image-analysis] raw model output: ' + rawText)
+            analysis = parseTerminalImageAnalysis(rawText)
+          } catch (error) {
+            imageGenerating = false
+            console.error(`[shiya-image-analysis] image analysis JSON validation error: ${error}`)
+            console.error(`[shiya-image-analysis] raw model output for diagnosis: ${rawText}`)
+            emitImageAnalysisResult(callback, 'invalid_result', -8, `图片理解结果格式不符合约定：${error}`)
+            return
+          }
+
+          if (analysis == null) return
+          const validatedAnalysis = analysis
+          const auditableText = buildAuditableAnalysisText(validatedAnalysis)
+          if (auditableText.trim().length == 0) {
+            imageGenerating = false
+            emitImageAnalysisResult(callback, 'success', SDK_SUCCESS, '', validatedAnalysis)
+            return
+          }
+          auditGeneratedText(auditableText, function (auditResult) {
+            imageGenerating = false
+            console.info(`[shiya-image-analysis] text audit result: state=${auditResult.state}, code=${auditResult.code}, message=${auditResult.message}`)
+            if (auditResult.state != 'passed') {
+              emitImageAnalysisResult(callback, 'audit_rejected', auditResult.code, '图片理解结果未通过端侧文本审核')
+              return
+            }
+            try {
+              emitImageAnalysisResult(callback, 'success', SDK_SUCCESS, '', validatedAnalysis)
+            } catch (error) {
+              console.error(`[shiya-image-analysis] image analysis JSON validation error: ${error}`)
+              console.error(`[shiya-image-analysis] raw model output for diagnosis: ${rawText}`)
+              emitImageAnalysisResult(callback, 'invalid_result', -8, `图片理解结果格式不符合约定：${error}`)
+            }
+          })
+        },
+        function (code : Int, message : string) {
+          imageGenerating = false
+          console.error(`[shiya-image-analysis] image generation failed: ${code}`)
+          emitImageAnalysisResult(callback, 'generation_failed', code, '端侧图片理解生成失败')
+        },
+      )
+    } catch (error) {
+      imageGenerating = false
+      console.error(`[shiya-image-analysis] image generation call error: ${error}`)
+      emitImageAnalysisResult(callback, 'generation_failed', -1, '端侧图片理解调用异常')
+    }
+  })
+}
+
+// This is deliberately a gate, not a text-returning API: unreviewed model output
+// must never cross this boundary into the app UI or the backend.
+@UTSJS.keepAlive
+export const auditGeneratedText : AuditGeneratedText = function (text : string, callback : TextAuditCallback) : void {
+  if (text.trim().length == 0) {
+    emitResult(callback, 'error', 110002, '待审核文本为空')
+    return
+  }
+
+  ensureTextAuditReady(function (available, initCode, initMessage) {
+    if (!available) {
+      emitResult(callback, 'unavailable', initCode, initMessage)
+      return
+    }
+
+    try {
+      ShiyaImageAnalysisNative.moderateText(text, TEXT_AUDIT_TIMEOUT_MS, function (responseCode : Int, responseData : string) {
+          if (responseCode != SDK_SUCCESS) {
+            const state = responseCode == SDK_TIMEOUT ? 'timeout' : 'unavailable'
+            emitResult(callback, state, responseCode, '端侧文本审核调用失败')
+            return
+          }
+
+          try {
+            const payload = new JSONObject(responseData)
+            const result = payload.getInt('result')
+            if (result == 0) {
+              emitResult(callback, 'passed', SDK_SUCCESS, '')
+            } else if (result == 1) {
+              emitResult(callback, 'suspicious', SDK_SUCCESS, '模型输出存在风险，已拦截')
+            } else if (result == 2) {
+              emitResult(callback, 'blocked', SDK_SUCCESS, '模型输出未通过审核，已拦截')
+            } else {
+              emitResult(callback, 'error', 110007, '端侧文本审核返回了未知结果')
+            }
+          } catch (error) {
+            console.error(`[shiya-image-analysis] text moderation result parse error: ${error}`)
+            emitResult(callback, 'error', 110007, '端侧文本审核结果解析失败')
+          }
+      })
+    } catch (error) {
+      console.error(`[shiya-image-analysis] text moderation call error: ${error}`)
+      emitResult(callback, 'error', -1, '端侧文本审核调用异常')
+    }
+  })
+}

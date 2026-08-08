@@ -177,6 +177,7 @@
 <script setup>
 import { computed, ref, onMounted, onUnmounted } from 'vue'
 import { API, LOCAL_POEMS, normalizeAssetUrl } from '@/utils/api.js'
+import { isPcmCaptureActive, startPcmCapture, stopPcmCapture } from '@/utils/pcm-recorder.js'
 
 const DESIGN_WIDTH = 1672
 const DESIGN_HEIGHT = 770
@@ -1363,8 +1364,73 @@ const submitCurrentLineScore = async (tempFilePath) => {
   readFeedback.value = `⏳ 正在给第 ${lineIndex + 1} 句评分...`
 
   const audioBase64 = await fileToBase64(tempFilePath)
-  const res = await API.scoreReading(audioBase64, line, 'mp3')
+  const res = await API.scoreReading(audioBase64, line)
   await handleReadingScoreResult(res, lineIndex)
+}
+
+const isAndroidApp = () => {
+  // #ifdef APP-PLUS
+  try {
+    return uni.getSystemInfoSync()?.platform === 'android'
+  } catch (err) {
+    return false
+  }
+  // #endif
+
+  // #ifndef APP-PLUS
+  return false
+  // #endif
+}
+
+const stopNativePcmReading = async () => {
+  clearRecordStopTimer()
+  const lineIndex = getCurrentLineIndex()
+  const line = getReadingLines()[lineIndex] || ''
+  const pcmBase64 = stopPcmCapture()
+
+  isRecording.value = false
+  if (!pcmBase64 || !line) {
+    isScoring.value = false
+    readFeedback.value = '没有录到有效声音，请重新读一次。'
+    uni.showToast({ title: '没有录到声音', icon: 'none' })
+    return
+  }
+
+  try {
+    isScoring.value = true
+    readFeedback.value = `⏳ 正在判断第 ${lineIndex + 1} 句是否读对...`
+    const res = await API.scoreReading(pcmBase64, line)
+    await handleReadingScoreResult(res, lineIndex)
+  } catch (err) {
+    console.log('PCM 跟读评分失败：', err)
+    activeReadLine.value = lineIndex
+    readFeedback.value = err?.data?.message || err?.message || '评分暂不可用，请重新试一次。'
+    uni.showToast({ title: '评分失败，请重试', icon: 'none' })
+  } finally {
+    isScoring.value = false
+  }
+}
+
+const startNativePcmReading = async (lineIndex, line) => {
+  await startPcmCapture({
+    onError: (error) => {
+      clearRecordStopTimer()
+      isRecording.value = false
+      isScoring.value = false
+      activeReadLine.value = lineIndex
+      console.log('PCM 跟读录音失败：', error)
+      readFeedback.value = error?.message || '录音失败，请重新试一次。'
+    }
+  })
+
+  isRecording.value = true
+  activeReadLine.value = lineIndex
+  readFeedback.value = `🎙️ 正在录第 ${lineIndex + 1} 句，请大声读：${line}`
+  recordStopTimer.value = setTimeout(() => {
+    if (isPcmCaptureActive()) {
+      void stopNativePcmReading()
+    }
+  }, MAX_RECORD_DURATION_MS)
 }
 
 const requestRecordPermission = () => {
@@ -1505,8 +1571,7 @@ const startBrowserRecording = async (lineIndex, line) => {
       readFeedback.value = `⏳ 正在给第 ${lineIndex + 1} 句评分...`
 
       const audioBase64 = await blobToBase64(audioBlob)
-      const audioFormat = getAudioFormatFromMimeType(audioBlob.type)
-      const res = await API.scoreReading(audioBase64, line, audioFormat)
+      const res = await API.scoreReading(audioBase64, line)
       await handleReadingScoreResult(res, lineIndex)
     } catch (err) {
       console.log('浏览器当前句跟读评分失败：', err)
@@ -1597,6 +1662,11 @@ const initRecorderManager = () => {
 const stopCurrentRecording = () => {
   clearRecordStopTimer()
 
+  if (isPcmCaptureActive()) {
+    void stopNativePcmReading()
+    return
+  }
+
   if (browserMediaRecorder.value) {
     try {
       if (browserMediaRecorder.value.state !== 'inactive') {
@@ -1658,30 +1728,11 @@ const recordReading = async () => {
   readFeedback.value = `🎙️ 正在请求麦克风权限，请允许后朗读第 ${lineIndex + 1} 句`
 
   try {
-    if (!canUseUniRecorderManager()) {
-      await startBrowserRecording(lineIndex, line)
-      return
+    if (!isAndroidApp()) {
+      throw new Error('vivo 跟读识别当前仅支持 Android 真机，请使用自定义调试基座测试')
     }
 
-    const recorder = initRecorderManager()
-
-    recorder.start({
-      duration: MAX_RECORD_DURATION_MS,
-      sampleRate: 16000,
-      numberOfChannels: 1,
-      encodeBitRate: 96000,
-      format: 'mp3'
-    })
-
-    // 部分端不会立即触发 onStart，先把按钮状态切到录音中；失败会走 onError 或 catch 恢复。
-    isRecording.value = true
-    readFeedback.value = `🎙️ 正在录第 ${lineIndex + 1} 句，请大声读：${line}`
-
-    recordStopTimer.value = setTimeout(() => {
-      if (isRecording.value) {
-        stopCurrentRecording()
-      }
-    }, MAX_RECORD_DURATION_MS)
+    await startNativePcmReading(lineIndex, line)
   } catch (err) {
     clearRecordStopTimer()
     isRecording.value = false

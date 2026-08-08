@@ -388,6 +388,56 @@ GET /recommend?user_id=test_user&limit=5
 
 ---
 
+## 11. 云端古诗补全
+
+- 接口路径：POST `/poem/complete`
+- 功能：仅对端侧已确认的 `poem_text` 调用云端模型，补齐完整诗歌资料。
+- 负责人：陈俪姗
+- 范围：不检索诗库、不去重、不写入数据库、不返回 `poem_id`；正式入库仍由 `/poems/resolve` 负责。
+
+请求示例：
+
+```json
+{
+  "content_type": "poem_text",
+  "confidence": 0.95,
+  "poem": {
+    "title": "春晓",
+    "author": "孟浩然",
+    "dynasty": "唐",
+    "content": ["春眠不觉晓", "处处闻啼鸟", "夜来风雨声", "花落知多少"],
+    "translation": ""
+  },
+  "objects": []
+}
+```
+
+成功时返回完整诗歌资料：
+
+```json
+{
+  "success": true,
+  "status": "complete",
+  "poem": {
+    "title": "春晓",
+    "author": "孟浩然",
+    "dynasty": "唐",
+    "content": ["春眠不觉晓", "处处闻啼鸟", "夜来风雨声", "花落知多少"],
+    "translation": "……",
+    "tags": ["春天", "鸟鸣"],
+    "age_level": "age_3_4",
+    "age_range": "3-4岁",
+    "difficulty": 1,
+    "theme_tags": ["春天", "自然观察"],
+    "knowledge_tags": ["背诵积累", "画面理解"]
+  }
+}
+```
+
+`scene` 不调用云端，前端应改走 `/poems/candidates`；云端失败时返回 `success: false` 和可读的 `message`。
+
+---
+
 ## 通用规范
 
 陈誉文负责的新接口详细字段和示例见：

@@ -47,7 +47,7 @@
           <button class="modal-close" @tap.stop="showLottery = false" aria-label="关闭"></button>
           <view class="lottery-copy">
             <text class="lottery-kicker">抽到啦！</text>
-            <text class="lottery-title" :class="{ 'long-title': isLongPoemTitle(dailyPoem.title) }">{{ dailyPoem.title }}</text>
+            <text class="lottery-title" :class="{ 'long-title': isLongPoemTitle(dailyPoem.title), 'extra-long-title': isExtraLongPoemTitle(dailyPoem.title) }">{{ dailyPoem.title }}</text>
             <text class="lottery-author">{{ dailyPoem.dynasty }} · {{ dailyPoem.author }}</text>
             <text class="lottery-line">{{ dailyLine }}</text>
           </view>
@@ -89,6 +89,7 @@ const showLottery = ref(false)
 const pressedEntry = ref('')
 const dailyPoem = ref(LOCAL_POEMS[0])
 const isLongPoemTitle = (title = '') => Array.from(String(title).replace(/\s/g, '')).length > 4
+const isExtraLongPoemTitle = (title = '') => Array.from(String(title).replace(/\s/g, '')).length > 6
 const dailyLine = computed(() => {
   const content = dailyPoem.value?.content
   if (!Array.isArray(content)) return String(content || '')
@@ -131,8 +132,8 @@ const loadDailyPoem = async () => {
 }
 
 const drawDailyPoem = async () => {
-  await loadDailyPoem()
   showLottery.value = true
+  await loadDailyPoem()
 }
 
 const activateEntry = (name, action) => {
@@ -187,7 +188,7 @@ onShow(() => {
 <style scoped>
 * { box-sizing: border-box; }
 button::after { border: 0; }
-.page-root { width: 100vw; height: 100vh; overflow: hidden; display: flex; align-items: center; justify-content: center; background: #172421; font-family: "STKaiti", "KaiTi", "PingFang SC", serif; }
+.page-root { width: 100vw; height: 100vh; overflow: hidden; display: flex; align-items: center; justify-content: center; background: #172421; font-family: "ShiyaZhenKai", "STKaiti", "KaiTi", "PingFang SC", serif; font-synthesis: none; }
 .town { position: relative; width: 1672px; height: 770px; flex: 0 0 auto; overflow: hidden; transform-origin: center; }
 .town-bg { position: absolute; inset: 0; width: 100%; height: 100%; }
 .brand { position: absolute; left: 18px; top: 0; width: 400px; height: 180px; z-index: 20; filter: drop-shadow(0 6px 5px rgba(84, 54, 24, .2)); }
@@ -224,6 +225,7 @@ button::after { border: 0; }
 .lottery-kicker { position: absolute; left: 175px; right: 175px; top: 40px; height: 86px; display: flex; align-items: center; justify-content: center; font-size: 42px; font-weight: 900; }
 .lottery-title { position: absolute; left: 145px; right: 145px; top: 180px; font-size: 72px; font-weight: 900; letter-spacing: 12px; }
 .lottery-title.long-title { font-size: 56px; letter-spacing: 4px; }
+.lottery-title.extra-long-title { font-size: 48px; letter-spacing: 1px; }
 .lottery-author { position: absolute; left: 170px; right: 170px; top: 282px; font-size: 30px; font-weight: 800; }
 .lottery-line { position: absolute; left: 120px; right: 180px; top: 345px; font-size: 24px; color: #8d623a; }
 .lottery-actions { position: absolute; left: 126px; right: 126px; bottom: 70px; height: 82px; display: flex; gap: 39px; }
@@ -235,6 +237,7 @@ button::after { border: 0; }
 .lottery-kicker { font-size: 52px; }
 .lottery-title { font-size: 78px; }
 .lottery-title.long-title { font-size: 60px; letter-spacing: 3px; }
+.lottery-title.extra-long-title { font-size: 52px; letter-spacing: 1px; }
 .lottery-author { font-size: 38px; }
 .lottery-line { font-size: 34px; }
 .scroll-button { font-size: 36px; }

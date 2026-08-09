@@ -3,17 +3,19 @@
     <view class="catalog" :style="scaleStyle">
       <image class="catalog-bg" src="/static/final-ui/stamp-page.png" mode="scaleToFill" />
       <button class="back-hotspot art-back" @tap="goBack" aria-label="返回"><image src="/static/final-ui/nav-back.png" mode="aspectFit" /></button>
-      <view class="page-title">集 章 墙</view>
+      <view class="page-title">集章墙</view>
 
       <view class="card-grid">
         <view v-for="poem in visiblePoems" :key="poem.id" class="poem-card" :class="{ locked: !poem.unlocked }" @tap="openPoem(poem)">
           <image class="card-bg" src="/static/final-ui/collection-card-replacement.png" mode="scaleToFill" />
-          <view class="card-name" :class="{ 'long-title': isLongPoemTitle(poem.title) }">{{ poem.title }}</view>
+          <view class="card-name" :class="{ 'long-title': isLongPoemTitle(poem.title), 'extra-long-title': isExtraLongPoemTitle(poem.title) }">{{ poem.title }}</view>
           <image class="card-scene" :src="poem.sceneImage" mode="aspectFill" />
           <view v-if="!poem.unlocked" class="lock-mark">尚未点亮</view>
           <view class="card-author">{{ poem.dynasty }} · {{ poem.author }}</view>
         </view>
       </view>
+
+      <view class="collection-tip">去“练一练”巩固古诗，就能点亮诗卡并获得小红花哦！</view>
 
       <button class="page-arrow left" :disabled="pageIndex === 0" @tap="pageIndex--" aria-label="上一页"></button>
       <button class="page-arrow right" :disabled="pageIndex >= maxPage" @tap="pageIndex++" aria-label="下一页"></button>
@@ -36,6 +38,7 @@ const catalogPoems = ref([])
 const pageIndex = ref(0)
 const PAGE_SIZE = 4
 const isLongPoemTitle = (title = '') => Array.from(String(title).replace(/\s/g, '')).length > 4
+const isExtraLongPoemTitle = (title = '') => Array.from(String(title).replace(/\s/g, '')).length > 6
 
 const allPoems = computed(() => catalogPoems.value.map(poem => ({
   ...poem,
@@ -112,33 +115,38 @@ onShow(loadCollection)
 <style scoped>
 * { box-sizing: border-box; }
 button::after { border: 0; }
-.page-root { width: 100vw; height: 100vh; overflow: hidden; display: flex; align-items: center; justify-content: center; background: #172421; font-family: "STKaiti", "KaiTi", serif; }
+.page-root { width: 100vw; height: 100vh; overflow: hidden; display: flex; align-items: center; justify-content: center; background: #172421; font-family: "ShiyaZhenKai", "STKaiti", "KaiTi", serif; font-synthesis: none; }
 .catalog { position: relative; width: 1672px; height: 770px; flex: 0 0 auto; transform-origin: center; overflow: hidden; }
 .catalog-bg { position: absolute; inset: 0; width: 100%; height: 100%; }
 .back-hotspot { position: absolute; left: 24px; top: 14px; }
 .art-back { z-index: 70; width: 120px; height: 120px; padding: 0; border: 0; background: transparent; }
 .art-back image { width: 100%; height: 100%; }
-.page-title { position: absolute; left: 570px; top: 42px; width: 532px; height: 78px; display: flex; align-items: center; justify-content: center; color: #744319; font-size: 46px; font-weight: 900; letter-spacing: 14px; }
-.card-grid { position: absolute; left: 246px; top: 145px; width: 1180px; height: 570px; display: flex; justify-content: center; align-items: flex-start; gap: 33px; }
+.page-title { position: absolute; left: 570px; top: 35px; width: 532px; height: 78px; display: flex; align-items: center; justify-content: center; color: #744319; font-size: 46px; font-weight: 900; letter-spacing: 14px; }
+.card-grid { position: absolute; left: 246px; top: 230px; width: 1180px; height: 273px; display: flex; justify-content: center; align-items: flex-start; gap: 33px; }
 .poem-card { position: relative; width: 270px; height: 273px; overflow: visible; transition: transform .16s; }
 .poem-card:active { transform: translateY(6px) scale(.98); }
-.poem-card.locked { filter: grayscale(.76); opacity: .68; }
+.poem-card.locked { filter: none; opacity: 1; }
+.poem-card.locked .card-scene { filter: grayscale(1); opacity: .48; }
 .card-bg { position: absolute; inset: 0; width: 270px; height: 273px; }
-.card-name { position: absolute; left: 62px; right: 62px; top: 25px; height: 40px; display: flex; align-items: center; justify-content: center; color: #744319; font-size: 24px; font-weight: 900; }
+.card-name { position: absolute; left: 62px; right: 62px; top: 32px; height: 40px; display: flex; align-items: center; justify-content: center; color: #744319; font-size: 24px; font-weight: 900; }
 .card-name.long-title { left: 42px; right: 42px; font-size: 20px; }
+.card-name.extra-long-title { left: 34px; right: 34px; font-size: 17px; letter-spacing: 0; }
 .card-scene { position: absolute; left: 42px; top: 82px; width: 186px; height: 105px; border: 3px solid rgba(133, 84, 42, .42); border-radius: 5px; background: #ead9b8; }
-.lock-mark { position: absolute; left: 38px; right: 38px; top: 176px; text-align: center; color: #6f6b60; font-size: 18px; font-weight: 900; }
-.card-author { position: absolute; left: 28px; width: 145px; bottom: 24px; height: 34px; display: flex; align-items: center; justify-content: center; color: #81572f; font-size: 18px; font-weight: 800; white-space: nowrap; }
+.lock-mark { position: absolute; left: 38px; right: 38px; top: 112px; height: 46px; display: flex; align-items: center; justify-content: center; text-align: center; color: #75471f; -webkit-text-stroke: 1px #fff1cf; paint-order: stroke fill; text-shadow: 0 1px 2px rgba(255, 241, 207, .95); font-size: 18px; font-weight: 900; z-index: 4; }
+.card-author { position: absolute; left: 25px; width: 145px; bottom: 28px; height: 34px; display: flex; align-items: center; justify-content: center; color: #81572f; font-size: 18px; font-weight: 800; white-space: nowrap; }
 .page-arrow { position: absolute; top: 352px; width: 96px; height: 96px; padding: 0; border: 0; background: transparent; }
 .page-arrow.left { left: 78px; }
 .page-arrow.right { right: 78px; }
 .page-arrow[disabled] { opacity: .25; }
+.collection-tip { position: absolute; left: 370px; top: 535px; width: 932px; text-align: center; color: #80562e; -webkit-text-stroke: 1px #fff1cf; paint-order: stroke fill; text-shadow: 0 1px 2px rgba(255, 241, 207, .9); font-size: 24px; font-weight: 900; }
 .page-number { position: absolute; left: 570px; bottom: 4px; width: 532px; height: 44px; display: flex; align-items: center; justify-content: center; text-align: center; color: #855326; -webkit-text-stroke: 1px #fff1cf; paint-order: stroke fill; text-shadow: 0 1px 2px rgba(255, 241, 207, .9); font-size: 22px; font-weight: 900; }
 /* 手机横屏可读性 */
 .page-title { font-size: 60px; }
-.card-name { font-size: 34px; }
-.card-name.long-title { font-size: 27px; }
+.card-name { font-size: 30px; }
+.card-name.long-title { font-size: 25px; }
+.card-name.extra-long-title { font-size: 21px; letter-spacing: 0; }
 .lock-mark { font-size: 28px; }
 .card-author { font-size: 20px; }
 .page-number { font-size: 30px; }
+.collection-tip { font-size: 32px; }
 </style>

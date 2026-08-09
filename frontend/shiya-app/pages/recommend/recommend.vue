@@ -3,7 +3,7 @@
     <view class="search-page" :style="scaleStyle">
       <image class="page-bg" src="/static/final-ui/search-page.png" mode="scaleToFill" />
       <button class="back-hotspot art-back" @tap="goHome" aria-label="返回"><image src="/static/final-ui/nav-back.png" mode="aspectFit" /></button>
-      <view class="page-title">找 古 诗</view>
+      <view class="page-title">找古诗</view>
 
       <button class="search-trigger" @tap="openSearchDialog" aria-label="打开搜索">
         <text>诗名、作者或主题</text>
@@ -19,7 +19,7 @@
         <view v-for="poem in visiblePoems" :key="poem.id" class="poem-card" @tap="selectPoem(poem)">
           <image src="/static/final-ui/poem-card-transparent.png" mode="scaleToFill" />
           <view class="poem-content">
-            <view class="poem-title" :class="{ 'long-title': isLongPoemTitle(poem.title) }">{{ poem.title }}</view>
+            <view class="poem-title" :class="{ 'long-title': isLongPoemTitle(poem.title), 'extra-long-title': isExtraLongPoemTitle(poem.title) }">{{ poem.title }}</view>
             <view class="poem-author">{{ poem.dynasty }} · {{ poem.author }}</view>
             <scroll-view class="poem-lines" scroll-y :show-scrollbar="false">
               <text v-for="line in poemLines(poem)" :key="line">{{ line }}</text>
@@ -80,6 +80,7 @@ const filters = [
   { label: '动物', value: '动物' }
 ]
 const isLongPoemTitle = (title = '') => Array.from(String(title).replace(/\s/g, '')).length > 4
+const isExtraLongPoemTitle = (title = '') => Array.from(String(title).replace(/\s/g, '')).length > 6
 
 const updateScale = () => {
   try {
@@ -172,7 +173,7 @@ onUnmounted(() => {
 <style scoped>
 * { box-sizing: border-box; }
 button::after { border: 0; }
-.page-root { width: 100vw; height: 100vh; overflow: hidden; display: flex; align-items: center; justify-content: center; background: #172421; font-family: "STKaiti", "KaiTi", serif; }
+.page-root { width: 100vw; height: 100vh; overflow: hidden; display: flex; align-items: center; justify-content: center; background: #172421; font-family: "ShiyaZhenKai", "STKaiti", "KaiTi", serif; font-synthesis: none; }
 .search-page { position: relative; width: 1672px; height: 770px; flex: 0 0 auto; transform-origin: center; overflow: hidden; }
 .page-bg { position: absolute; inset: 0; width: 100%; height: 100%; }
 .back-hotspot { position: absolute; left: 24px; top: 14px; }
@@ -180,7 +181,7 @@ button::after { border: 0; }
 .art-back image, .page-arrow image { width: 100%; height: 100%; }
 .page-title { position: absolute; left: 570px; top: 35px; width: 532px; height: 96px; display: flex; align-items: center; justify-content: center; color: #704117; font-size: 56px; font-weight: 900; letter-spacing: 14px; }
 .search-trigger { position: absolute; right: 38px; top: 22px; width: 385px; height: 80px; padding: 0 24px 0 76px; border: 0; background: transparent; color: #8a7764; font: 700 27px/80px "PingFang SC", sans-serif; text-align: left; }
-.filter-row { position: absolute; left: 250px; right: 250px; top: 158px; display: flex; justify-content: center; gap: 20px; }
+.filter-row { position: absolute; left: 250px; right: 250px; top: 145px; display: flex; justify-content: center; gap: 20px; }
 .filter-row view { min-width: 100px; height: 42px; padding: 0 18px; display: flex; align-items: center; justify-content: center; color: #85562b; font-size: 21px; font-weight: 900; }
 .filter-row view.active { color: #65390f; border-bottom: 4px solid #b8792e; }
 .poem-grid { position: absolute; left: 208px; top: 210px; width: 1256px; height: 620px; display: flex; justify-content: center; gap: 42px; }
@@ -188,8 +189,9 @@ button::after { border: 0; }
 .poem-card:active { transform: translateY(7px) scale(.97); }
 .poem-card > image { position: absolute; left: -20px; top: -8px; width: 312px; height: 509px; filter: drop-shadow(0 8px 8px rgba(70, 43, 18, .18)); }
 .poem-content { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; color: #6f411b; }
-.poem-title { position: absolute; left: 28px; right: 28px; top: 9px; height: 70px; display: flex; align-items: center; justify-content: center; font-size: 34px; font-weight: 900; letter-spacing: 5px; }
+.poem-title { position: absolute; left: 28px; right: 28px; top: 9px; height: 70px; display: flex; align-items: center; justify-content: center; text-align: center; white-space: nowrap; font-size: 34px; font-weight: 900; letter-spacing: 5px; }
 .poem-title.long-title { font-size: 28px; letter-spacing: 1px; }
+.poem-title.extra-long-title { left: 50%; right: auto; width: 6em; height: 82px; transform: translateX(-50%); align-content: center; white-space: normal; word-break: break-all; line-height: 1.12; font-size: 24px; letter-spacing: 0; }
 .poem-author { position: absolute; left: 28px; right: 28px; top: 104px; text-align: center; font-size: 22px; font-weight: 800; color: #8d5c30; }
 .poem-lines { position: absolute; left: 1px; right: 22px; top: 157px; height: 184px; overflow-y: auto; font-size: 23px; font-weight: 700; line-height: 1.25; }
 .poem-lines text { display: block; width: 100%; text-align: center; white-space: nowrap; }
@@ -200,12 +202,13 @@ button::after { border: 0; }
 .page-arrow { position: absolute; top: 395px; width: 96px; height: 96px; border: 0; background: transparent; padding: 0; }
 .page-arrow.left { left: 102px; }
 .page-arrow.right { right: 102px; }
-.result-count { position: absolute; left: 720px; bottom: 48px; width: 235px; text-align: center; color: #76502b; -webkit-text-stroke: 1px #fff1cf; paint-order: stroke fill; text-shadow: 0 1px 2px rgba(255, 241, 207, .9); font-size: 22px; font-weight: 900; }
+.result-count { position: absolute; left: 720px; bottom: 30px; width: 235px; text-align: center; color: #76502b; -webkit-text-stroke: 1px #fff1cf; paint-order: stroke fill; text-shadow: 0 1px 2px rgba(255, 241, 207, .9); font-size: 22px; font-weight: 900; }
 /* 手机横屏可读性 */
 .page-title { font-size: 64px; }
 .filter-row view { font-size: 30px; }
 .poem-title { font-size: 40px; }
 .poem-title.long-title { font-size: 32px; letter-spacing: 1px; }
+.poem-title.extra-long-title { font-size: 27px; letter-spacing: 0; }
 .poem-author { font-size: 27px; }
 .poem-lines { font-size: 29px; gap: 10px; }
 .poem-open { font-size: 32px; }

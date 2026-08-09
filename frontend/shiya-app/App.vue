@@ -40,6 +40,14 @@
 </script>
 
 <style>
+	@font-face {
+		font-family: "ShiyaZhenKai";
+		src: url("~@/static/fonts/LXGWZhenKaiGB-Regular.ttf") format("truetype");
+		font-style: normal;
+		font-weight: 400;
+		font-display: swap;
+	}
+
 	/* 避免 App/H5 真机横屏缩放时根节点的默认白底露出一条边。 */
 	html,
 	body,

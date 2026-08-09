@@ -1102,7 +1102,8 @@ button::after {
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  font-family: "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  font-family: "ShiyaZhenKai", "STKaiti", "KaiTi", "PingFang SC", serif;
+  font-synthesis: none;
 }
 
 .video-app {

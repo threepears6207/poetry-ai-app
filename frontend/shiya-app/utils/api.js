@@ -4,7 +4,7 @@
 // 1. 后端基础地址
 // =====================================================
 // 电脑浏览器本机联调：使用 127.0.0.1
-const BASE_URL = 'http://192.168.3.29:8000'
+const BASE_URL = 'http://192.168.3.18:8000'
 export const LIVE_ASR_STREAM_URL = `${BASE_URL.replace(/^http/, 'ws')}/asr/stream`
 
 // 手机真机联调时，不要用 127.0.0.1。

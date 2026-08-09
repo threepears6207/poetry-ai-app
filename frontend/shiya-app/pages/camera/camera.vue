@@ -2,14 +2,32 @@
   <view class="page-root final-camera-root">
     <view class="camera-app final-camera-app" :style="appScaleStyle">
       <view v-if="pageState === 'camera'" class="final-mode-page">
-        <image class="final-page-bg" src="/static/final-ui/town-home.png" mode="scaleToFill" />
+        <view class="camera-home-scene" aria-hidden="true">
+          <image class="camera-town-bg" src="/static/final-ui/town-bg.png" mode="scaleToFill" />
+          <view class="camera-home-brand">
+            <image src="/static/final-ui/brand-logo.png" mode="widthFix" />
+          </view>
+          <view class="camera-home-age">
+            <image src="/static/final-ui/age.png" mode="scaleToFill" />
+            <text>{{ homeAgeText }}</text>
+          </view>
+          <view class="camera-home-parent">
+            <image src="/static/final-ui/parent.png" mode="scaleToFill" />
+            <text>家长端</text>
+          </view>
+          <view class="camera-home-entry camera-home-camera"><image src="/static/final-ui/town-camera.png" mode="scaleToFill" /></view>
+          <view class="camera-home-entry camera-home-today"><image src="/static/final-ui/town-today.png" mode="scaleToFill" /></view>
+          <view class="camera-home-entry camera-home-search"><image src="/static/final-ui/town-search.png" mode="scaleToFill" /></view>
+          <view class="camera-home-entry camera-home-practice"><image src="/static/final-ui/town-practice.png" mode="scaleToFill" /></view>
+          <view class="camera-home-entry camera-home-stamps"><image src="/static/final-ui/town-stamps.png" mode="scaleToFill" /></view>
+        </view>
         <view class="camera-popup-mask">
           <view class="camera-choice-popup">
             <image src="/static/final-ui/camera-choice-transparent.png" mode="scaleToFill" />
             <view class="camera-popup-title">拍 一 拍</view>
             <view class="camera-popup-tip">
               <text>拍一拍，找诗意：</text>
-              <text>课本诗句和眼前风景都可以拍哦~</text>
+              <text>课本诗句和眼前风景都可以拍哦</text>
             </view>
             <button class="popup-close-hotspot" @tap="goBack" aria-label="关闭"></button>
             <button class="popup-action album-hotspot" :disabled="recognizing" @tap="chooseAlbumAndRecognize" aria-label="相册"></button>
@@ -24,10 +42,10 @@
         <image class="final-page-bg" src="/static/final-ui/camera-result-page.png" mode="scaleToFill" />
         <button class="result-back-hotspot result-back-native" @tap="pageState = 'camera'" aria-label="返回"></button>
         <view class="result-page-title">诗芽为你找到了这些古诗</view>
-        <view class="result-subtitle">点击诗卡，打开画卷继续学习</view>
+        <view class="result-subtitle">点击你想学习的诗，打开画卷开始学习吧</view>
         <view class="result-cards">
           <view v-for="(poem, index) in resultCandidates" :key="poem.id" class="result-poem-card" :class="{ best: index === resultCandidates.length - 1 }" @tap="selectResult(poem)">
-            <view class="candidate-title" :class="{ 'long-title': isLongPoemTitle(poem.title) }">{{ poem.title }}</view>
+            <view class="candidate-title" :class="{ 'long-title': isLongPoemTitle(poem.title), 'extra-long-title': isExtraLongPoemTitle(poem.title) }">{{ poem.title }}</view>
             <view class="candidate-author">{{ poem.dynasty }} · {{ poem.author }}</view>
             <view class="candidate-lines">
               <text v-for="line in getCandidateLines(poem)" :key="line">{{ line }}</text>
@@ -44,19 +62,23 @@
 <script setup>
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { API } from '@/utils/api.js'
+// #ifdef APP-PLUS
 import {
   analyzeImage,
   initializeImageModel,
   openModelStoragePermissionSettings,
   releaseImageModel,
 } from '@/uni_modules/shiya-image-analysis'
+// #endif
 
 const DESIGN_WIDTH = 1672
 const DESIGN_HEIGHT = 770
 const appScale = ref(1)
+const homeAgeText = ref('4 岁')
 
 const appScaleStyle = computed(() => `transform: scale(${appScale.value});`)
 const isLongPoemTitle = (title = '') => Array.from(String(title).replace(/\s/g, '')).length > 4
+const isExtraLongPoemTitle = (title = '') => Array.from(String(title).replace(/\s/g, '')).length > 6
 
 const updateAppScale = () => {
   try {
@@ -77,6 +99,7 @@ const handleAppResize = () => {
 
 onMounted(() => {
   updateAppScale()
+  homeAgeText.value = uni.getStorageSync('shiYaChildAgeText') || '4 岁'
 
   if (typeof uni.onWindowResize === 'function') {
     uni.onWindowResize(handleAppResize)
@@ -88,7 +111,9 @@ onUnmounted(() => {
     uni.offWindowResize(handleAppResize)
   }
 
+  // #ifdef APP-PLUS
   releaseImageModel()
+  // #endif
 })
 
 const DEFAULT_COMPETITION_MODEL_PATH = '/sdcard/1225/1.7.0.4_1225_mtk9500'
@@ -410,11 +435,28 @@ const handleOcrResult = async (res) => {
       : String(poem.content || '').split(/[，,。\n]/).filter(Boolean)
   }
 
+  const rawCandidates = Array.isArray(res.candidates) ? res.candidates : []
+  const loadedCandidates = await Promise.all(
+    rawCandidates
+      .filter(candidate => candidate?.id || candidate?.poem_id)
+      .slice(0, 3)
+      .map(loadPoemDetail)
+  )
+  const otherCandidates = loadedCandidates.filter(
+    candidate => String(candidate.id) !== String(matchedPoem.value.id)
+  )
+  resultCandidates.value = [...otherCandidates.slice(0, 2), matchedPoem.value]
+
   sceneTags.value = res.scene_tags || poem.tags || []
   matchType.value = res.match_type || res.mode || 'text'
   pageState.value = 'result'
 
   toast(`识别到《${matchedPoem.value.title}》`)
+}
+
+const recognizeByBase64 = async (imageBase64) => {
+  const res = await API.recognizePoemImage(imageBase64)
+  await handleOcrResult(res)
 }
 
 const ensureImageModelReady = () => {
@@ -487,6 +529,19 @@ const recognizeByLocalImage = async (imagePath) => {
   await handleCandidateResult(candidates)
 }
 
+const recognizeSelectedImage = async (chooseResult) => {
+  // #ifdef APP-PLUS
+  const imagePath = getNativeImagePath(chooseResult)
+  if (!imagePath) throw new Error('没有获取到图片路径')
+  await recognizeByLocalImage(imagePath)
+  // #endif
+
+  // #ifndef APP-PLUS
+  const imageBase64 = await fileToBase64(chooseResult)
+  await recognizeByBase64(imageBase64)
+  // #endif
+}
+
 const chooseCameraBySystem = () => {
   return new Promise((resolve, reject) => {
     uni.chooseImage({
@@ -512,9 +567,7 @@ const shootAndRecognize = async () => {
       title: '识别中...'
     })
 
-    const imagePath = getNativeImagePath(photoRes)
-    if (!imagePath) throw new Error('没有获取到图片路径')
-    await recognizeByLocalImage(imagePath)
+    await recognizeSelectedImage(photoRes)
   } catch (err) {
     console.log('拍照识诗失败：', err)
 
@@ -546,9 +599,7 @@ const chooseAlbumAndRecognize = async () => {
       title: '识别中...'
     })
 
-    const imagePath = getNativeImagePath(chooseRes)
-    if (!imagePath) throw new Error('没有获取到图片路径')
-    await recognizeByLocalImage(imagePath)
+    await recognizeSelectedImage(chooseRes)
   } catch (err) {
     console.log('相册识诗失败：', err)
 
@@ -591,7 +642,8 @@ button::after {
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  font-family: "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  font-family: "ShiyaZhenKai", "STKaiti", "KaiTi", "PingFang SC", serif;
+  font-synthesis: none;
   color: #5b508d;
 }
 .camera-app {
@@ -1128,7 +1180,8 @@ button[disabled] {
 
 /* 最终版插画界面：业务逻辑仍沿用原 OCR 与相册/相机实现。 */
 .final-camera-root {
-  font-family: "STKaiti", "KaiTi", "PingFang SC", serif;
+  font-family: "ShiyaZhenKai", "STKaiti", "KaiTi", "PingFang SC", serif;
+  font-synthesis: none;
 }
 .final-camera-app {
   position: relative;
@@ -1148,6 +1201,29 @@ button[disabled] {
   width: 100%;
   height: 100%;
 }
+.final-mode-page { isolation: isolate; }
+.camera-home-scene { position: absolute; inset: 0; width: 100%; height: 100%; overflow: hidden; pointer-events: none; -webkit-filter: blur(7px); filter: blur(7px); transform: scale(1.018); transform-origin: center; }
+.camera-town-bg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.camera-home-brand { position: absolute; left: 18px; top: 0; width: 400px; height: 180px; z-index: 20; filter: drop-shadow(0 6px 5px rgba(84, 54, 24, .2)); }
+.camera-home-brand image { width: 100%; }
+.camera-home-age,
+.camera-home-parent { position: absolute; top: 24px; height: 72px; z-index: 40; display: flex; align-items: center; justify-content: center; color: #744318; font-family: "PingFang SC", sans-serif; font-size: 34px; font-weight: 900; }
+.camera-home-age { right: 216px; width: 178px; padding-right: 20px; }
+.camera-home-parent { right: 30px; width: 168px; }
+.camera-home-age image,
+.camera-home-parent image { position: absolute; inset: 0; width: 100%; height: 100%; z-index: -1; }
+.camera-home-entry { position: absolute; z-index: 5; }
+.camera-home-entry image { position: absolute; max-width: none; max-height: none; }
+.camera-home-camera { left: 109px; top: 149px; width: 440px; height: 330px; }
+.camera-home-camera image { left: 0; top: 0; width: 440px; height: 330px; }
+.camera-home-today { left: 606px; top: 83px; width: 447px; height: 463px; z-index: 9; }
+.camera-home-today image { left: -232px; top: -22px; width: 900px; height: 500px; }
+.camera-home-search { left: 105px; top: 395px; width: 521px; height: 294px; }
+.camera-home-search image { left: 0; top: 0; width: 521px; height: 294px; }
+.camera-home-practice { left: 1149px; top: 188px; width: 335px; height: 270px; }
+.camera-home-practice image { left: 0; top: 0; width: 335px; height: 270px; }
+.camera-home-stamps { left: 1120px; top: 412px; width: 450px; height: 250px; }
+.camera-home-stamps image { left: 0; top: 0; width: 450px; height: 250px; }
 .final-page-bg {
   position: absolute;
   inset: 0;
@@ -1157,15 +1233,17 @@ button[disabled] {
 .camera-popup-mask {
   position: absolute;
   inset: 0;
+  z-index: 1000;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(55, 46, 30, .38);
-  -webkit-backdrop-filter: blur(5px);
-          backdrop-filter: blur(5px);
+  background: rgba(55, 46, 30, .34);
+  -webkit-backdrop-filter: none;
+          backdrop-filter: none;
 }
 .camera-choice-popup {
   position: relative;
+  z-index: 1001;
   width: 790px;
   height: 584px;
 }
@@ -1221,7 +1299,7 @@ button[disabled] {
 }
 .back-hotspot { left: 508px; width: 202px;
 }
-.recognizing-tip { position: absolute; left: 230px; bottom: 31px; width: 330px; text-align: center; color: #7a4c22; font-size: 18px; font-weight: 900;
+.recognizing-tip { position: absolute; left: 230px; bottom: 200px; width: 330px; text-align: center; color: #7a4c22; font-size: 18px; font-weight: 900;
 }
 .final-back-hotspot {
   position: absolute;
@@ -1280,31 +1358,34 @@ button[disabled] {
 }
 .capture-tip { position: absolute; left: 558px; bottom: 96px; width: 555px; text-align: center; color: #815a35; font-size: 20px; font-weight: 800;
 }
-.result-back-hotspot { position: absolute; left: 28px; top: 25px;
+.result-back-hotspot { position: absolute; left: 226px; top: 72px;
 }
-.result-back-native { z-index: 70; width: 120px; height: 120px; padding: 0; border: 0; background: transparent; }
+.result-back-native { z-index: 70; width: 142px; height: 112px; padding: 0; border: 0; background: transparent; }
 .art-back { z-index: 70; width: 120px; height: 120px; padding: 0; border: 0; background: transparent; }
 .art-back image { width: 100%; height: 100%; }
-.result-page-title { position: absolute; left: 525px; top: 86px; width: 625px; text-align: center; color: #744319; font-size: 45px; font-weight: 900; letter-spacing: 4px;
+.result-page-title { position: absolute; left: 525px; top: 68px; width: 625px; text-align: center; color: #744319; font-size: 35px; font-weight: 900; letter-spacing: 3px;
 }
-.result-subtitle { position: absolute; left: 515px; top: 189px; width: 645px; text-align: center; color: #9a714b; font-size: 22px; font-weight: 800;
+.result-subtitle { position: absolute; left: 515px; top: 163px; width: 645px; text-align: center; color: #9a714b; font-size: 22px; font-weight: 800;
 }
-.result-cards { position: absolute; left: 264px; top: 235px; width: 1142px; height: 470px; display: flex; gap: 34px;
+.result-cards { position: absolute; left: 264px; top: 230px; width: 1142px; height: 470px; display: flex; gap: 34px;
 }
-.result-poem-card { position: relative; flex: 1; padding: 26px 28px 18px; display: flex; flex-direction: column; align-items: center; color: #704117;
+.result-poem-card { position: relative; flex: 1; padding: 8px 28px 18px; display: flex; flex-direction: column; align-items: center; color: #704117;
 }
 .result-poem-card.best { transform: none;
 }
+.result-poem-card:first-child { transform: translateX(10px); }
+.result-poem-card:last-child { transform: translateX(-10px); }
 .candidate-title { width: 100%; height: 68px; display: flex; align-items: center; justify-content: center; font-size: 38px; font-weight: 900; letter-spacing: 7px;
 }
 .candidate-title.long-title { font-size: 31px; letter-spacing: 2px; }
+.candidate-title.extra-long-title { font-size: 27px; letter-spacing: 0; }
 .candidate-author { width: 190px; height: 48px; display: flex; align-items: center; justify-content: center; font-size: 20px; color: #8a5b2f; font-weight: 800;
 }
-.candidate-lines { margin-top: 22px; display: flex; flex-direction: column; align-items: center; gap: 9px; font-size: 24px; font-weight: 800;
+.candidate-lines { margin-top: 22px; display: flex; flex-direction: column; align-items: center; gap: 9px; font-size: 24px; font-weight: 800; transform: translateY(-18px);
 }
 .candidate-tags { margin-top: auto; margin-bottom: 58px; font-size: 18px; color: #956a40; font-weight: 800;
 }
-.open-poem-button { position: absolute; left: 50px; right: 50px; bottom: 16px; width: auto; height: 54px; padding: 0; border: 0; background: transparent; color: #68401d; font-size: 23px; font-weight: 900;
+.open-poem-button { position: absolute; left: 50px; right: 50px; bottom: -10px; width: auto; height: 54px; padding: 0 0 10px; display: flex; align-items: center; justify-content: center; border: 3px solid #9b642d; border-radius: 15px; background: rgba(255, 239, 197, .58); box-shadow: inset 0 2px rgba(255,255,255,.5); color: #68401d; font-size: 23px; font-weight: 900;
 }
 
 
@@ -1312,10 +1393,11 @@ button[disabled] {
 .camera-popup-title { font-size: 46px; }
 .camera-popup-tip { font-size: 38px; }
 .recognizing-tip { font-size: 27px; }
-.result-page-title { font-size: 58px; }
+.result-page-title { font-size: 44px; }
 .result-subtitle { font-size: 32px; }
 .candidate-title { font-size: 46px; }
 .candidate-title.long-title { font-size: 36px; letter-spacing: 1px; }
+.candidate-title.extra-long-title { font-size: 30px; letter-spacing: 0; }
 .candidate-author { font-size: 30px; }
 .candidate-lines { font-size: 34px; }
 .candidate-tags { font-size: 27px; }

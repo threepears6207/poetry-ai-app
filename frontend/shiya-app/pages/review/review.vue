@@ -13,7 +13,7 @@
       <view v-else class="practice-card-row">
         <view v-for="poem in visibleReviewPoems" :key="poem.key" class="practice-poem-card" @tap="startReview(poem.key)">
           <image src="/static/final-ui/learned-poem-card.png" mode="scaleToFill" />
-          <view class="practice-card-title" :class="{ 'long-title': isLongPoemTitle(poem.title) }">{{ poem.title }}</view>
+          <view class="practice-card-title" :class="{ 'long-title': isLongPoemTitle(poem.title), 'extra-long-title': isExtraLongPoemTitle(poem.title) }">{{ poem.title }}</view>
           <view class="practice-card-author">{{ poem.author }}</view>
           <image class="practice-card-scene" :src="poem.sceneImage" mode="aspectFill" />
           <view class="practice-card-status">{{ poem.status }}</view>
@@ -48,7 +48,7 @@
               <view class="poem-info-emoji">{{ currentReviewPoem.icon }}</view>
 
               <view>
-                <view class="poem-info-title" :class="{ 'long-title': isLongPoemTitle(currentReviewPoem.title) }">{{ currentReviewPoem.title }}</view>
+                <view class="poem-info-title" :class="{ 'long-title': isLongPoemTitle(currentReviewPoem.title), 'extra-long-title': isExtraLongPoemTitle(currentReviewPoem.title) }">{{ currentReviewPoem.title }}</view>
                 <view class="poem-info-author">{{ currentReviewPoem.author }}</view>
               </view>
             </view>
@@ -185,6 +185,7 @@ const finalScale = ref(1)
 
 const finalScaleStyle = computed(() => `transform: scale(${finalScale.value});`)
 const isLongPoemTitle = (title = '') => Array.from(String(title).replace(/\s/g, '')).length > 4
+const isExtraLongPoemTitle = (title = '') => Array.from(String(title).replace(/\s/g, '')).length > 6
 
 const updateAppScale = () => {
   try {
@@ -2590,7 +2591,7 @@ button::after {
   flex: 0 0 auto;
   overflow: hidden;
   transform-origin: center;
-  font-family: "STKaiti", "KaiTi", "PingFang SC", serif;
+  font-family: "ShiyaZhenKai", "STKaiti", "KaiTi", "PingFang SC", serif;
 }
 
 .practice-final-bg {
@@ -2620,7 +2621,7 @@ button::after {
   justify-content: center;
   color: #714217;
   font-size: 49px;
-  font-weight: 900;
+  font-weight: 400;
   letter-spacing: 14px;
   z-index: 5;
 }
@@ -2658,19 +2659,21 @@ button::after {
 
 .practice-poem-card:active { transform: scale(.93); }
 .practice-poem-card > image { position: absolute; left: 0; top: 0; width: 100%; height: 470px; }
-.practice-card-title { position: absolute; left: 42px; right: 42px; top: 66px; text-align: center; color: #704117; font-size: 31px; font-weight: 900; letter-spacing: 4px; }
+.practice-card-title { position: absolute; left: 42px; right: 42px; top: 58px; text-align: center; color: #704117; font-size: 31px; font-weight: 400; letter-spacing: 4px; }
 .practice-card-title.long-title { font-size: 28px; letter-spacing: 1px; }
-.practice-card-author { position: absolute; left: 42px; right: 42px; top: 110px; text-align: center; color: #95683c; font-size: 18px; font-weight: 800; }
-.practice-poem-card > .practice-card-scene { position: absolute; left: 44px; top: 150px; width: 198px; height: 125px; z-index: 2; border: 3px solid rgba(133, 84, 42, .48); border-radius: 6px; background: #ead9b8; }
-.practice-card-status { position: absolute; left: 48px; right: 48px; top: 280px; height: 46px; display: flex; align-items: center; justify-content: center; color: #83542a; font-size: 18px; font-weight: 900; white-space: nowrap; }
-.practice-card-action { position: absolute; left: 48px; right: 48px; top: 334px; height: 44px; display: flex; align-items: center; justify-content: center; color: #704117; font-size: 19px; font-weight: 900; white-space: nowrap; }
-.practice-message { position: absolute; left: 386px; top: 360px; width: 900px; text-align: center; color: #77502b; font-size: 32px; font-weight: 900; }
-.practice-summary { position: absolute; left: 500px; bottom: 28px; width: 672px; text-align: center; color: #80562e; -webkit-text-stroke: 1px #fff1cf; paint-order: stroke fill; text-shadow: 0 1px 2px rgba(255, 241, 207, .9); font-size: 23px; font-weight: 900; }
+.practice-card-title.extra-long-title { font-size: 24px; letter-spacing: 0; }
+.practice-card-author { position: absolute; left: 42px; right: 42px; top: 110px; text-align: center; color: #95683c; font-size: 18px; font-weight: 400; }
+.practice-poem-card > .practice-card-scene { position: absolute; left: 49px; top: 145px; width: 188px; height: 118px; z-index: 2; border: 3px solid rgba(133, 84, 42, .48); border-radius: 6px; background: #ead9b8; }
+.practice-card-status { position: absolute; left: 48px; right: 48px; top: 280px; height: 46px; display: flex; align-items: center; justify-content: center; color: #83542a; font-size: 18px; font-weight: 400; white-space: nowrap; }
+.practice-card-action { position: absolute; left: 48px; right: 48px; top: 334px; height: 44px; display: flex; align-items: center; justify-content: center; color: #704117; font-size: 19px; font-weight: 400; white-space: nowrap; }
+.practice-message { position: absolute; left: 386px; top: 360px; width: 900px; text-align: center; color: #77502b; font-size: 32px; font-weight: 400; }
+.practice-summary { position: absolute; left: 500px; bottom: 28px; width: 672px; text-align: center; color: #80562e; -webkit-text-stroke: 1px #fff1cf; paint-order: stroke fill; text-shadow: 0 1px 2px rgba(255, 241, 207, .9); font-size: 23px; font-weight: 400; }
 
 /* 手机横屏可读性 */
 .practice-title-plaque { font-size: 56px; }
 .practice-card-title { font-size: 40px; }
 .practice-card-title.long-title { font-size: 32px; letter-spacing: 1px; }
+.practice-card-title.extra-long-title { font-size: 27px; letter-spacing: 0; }
 .practice-card-author { font-size: 28px; }
 .practice-card-status { font-size: 23px; }
 .practice-card-action { font-size: 23px; }
@@ -2678,7 +2681,7 @@ button::after {
 .practice-summary { font-size: 32px; }
 
 /* 新版跟读与连线页面：底图和组件由 final-ui 素材提供。 */
-.review-final-step { position: relative; width: 1672px; height: 770px; flex: 0 0 auto; overflow: hidden; transform-origin: center; background: transparent; font-family: "STKaiti", "KaiTi", serif; }
+.review-final-step { position: relative; width: 1672px; height: 770px; flex: 0 0 auto; overflow: hidden; transform-origin: center; background: transparent; font-family: "ShiyaZhenKai", "STKaiti", "KaiTi", serif; }
 .review-step-bg { position: absolute; inset: 0; width: 100%; height: 100%; }
 .review-final-step .page { position: absolute; inset: 0; padding: 0; display: block; overflow: hidden; }
 .review-final-step .topbar { position: absolute; inset: 0; height: auto; z-index: 80; pointer-events: none; }
@@ -2687,24 +2690,25 @@ button::after {
 
 .review-final-step .read-body { position: absolute; inset: 0; display: block; padding: 0; }
 .review-final-step .read-left { position: absolute; left: 110px; top: 78px; width: 430px; height: 620px; padding: 0; border: 0; border-radius: 0; background: transparent; box-shadow: none; }
-.review-final-step .poem-info-card { position: absolute; left: 72px; top: 12px; width: 350px; height: 150px; padding: 0; display: block; background: transparent; box-shadow: none; }
+.review-final-step .poem-info-card { position: absolute; left: 107px; top: 12px; width: 350px; height: 150px; padding: 0; display: block; background: transparent; box-shadow: none; }
 .review-final-step .poem-info-emoji { display: none; }
-.review-final-step .poem-info-title { position: absolute; left: 0; top: 8px; width: 350px; text-align: center; color: #704117; font-size: 42px; font-weight: 900; white-space: nowrap; }
+.review-final-step .poem-info-title { position: absolute; left: 0; top: 2px; width: 350px; text-align: center; color: #704117; font-size: 42px; font-weight: 400; white-space: nowrap; }
 .review-final-step .poem-info-title.long-title { font-size: 34px; }
-.review-final-step .poem-info-author { position: absolute; left: 0; top: 94px; width: 350px; text-align: center; color: #8b5d31; font-size: 27px; font-weight: 800; white-space: nowrap; }
-.review-final-step .read-poem-display { position: absolute; left: 55px; top: 205px; width: 390px; height: 385px; padding: 0; background: transparent; box-shadow: none; overflow-y: auto; }
-.review-final-step .read-line { width: 100%; height: 72px; margin: 0; padding: 0 12px; display: flex; align-items: center; justify-content: center; border: 0; border-radius: 0; background: transparent; color: #704117; font-size: 32px; font-weight: 800; white-space: nowrap; transition: transform .15s, color .15s; }
+.review-final-step .poem-info-title.extra-long-title { font-size: 29px; letter-spacing: 0; }
+.review-final-step .poem-info-author { position: absolute; left: 0; top: 94px; width: 350px; text-align: center; color: #8b5d31; font-size: 27px; font-weight: 400; white-space: nowrap; }
+.review-final-step .read-poem-display { position: absolute; left: 90px; top: 205px; width: 390px; height: 385px; padding: 0; background: transparent; box-shadow: none; overflow-y: auto; }
+.review-final-step .read-line { width: 100%; height: 72px; margin: 0; padding: 0 12px; display: flex; align-items: center; justify-content: center; border: 0; border-radius: 0; background: transparent; color: #704117; font-size: 32px; font-weight: 400; white-space: nowrap; transition: transform .15s, color .15s; }
 .review-final-step .read-line.active { border: 0; background: rgba(235,164,65,.16); color: #d66f2c; transform: scale(1.04); }
 .review-final-step .read-line.completed { background: rgba(127,190,153,.13); }
 .review-final-step .read-right { position: absolute; left: 705px; top: 123px; width: 820px; height: 565px; padding: 0; display: block; border: 0; border-radius: 0; background: transparent; box-shadow: none; }
-.read-scene-image { position: absolute; left: 0; top: 22px; width: 600px; height: 300px; }
+.read-scene-image { position: absolute; left: 35px; top: 45px; width: 600px; height: 300px; }
 .review-final-step .score-card { position: absolute; right: 32px; top: 18px; width: 210px; height: 75px; padding: 8px; border-radius: 12px; background: rgba(255,248,226,.86); box-shadow: 0 4px 12px rgba(91,57,23,.15); z-index: 4; }
 .review-final-step .score-value, .review-final-step .score-empty { font-size: 20px; }
 .review-final-step .stars { font-size: 22px; }
 .review-final-step .read-buttons { position: absolute; left: 75px; top: 390px; width: 670px; height: 82px; display: flex; gap: 28px; }
 .review-final-step .read-btn { flex: 1; height: 82px; padding: 0; border: 0; background: transparent; box-shadow: none; color: transparent; }
 .review-final-step .read-btn.recording { color: #8b3d2b; background: rgba(255,255,255,.38); }
-.review-final-step .read-feedback { position: absolute; left: 100px; top: 527px; width: 355px; height: 70px; padding: 5px 22px; display: flex; align-items: center; justify-content: center; background: transparent; box-shadow: none; color: #80562e; font-size: 19px; line-height: 1.35; text-align: center; white-space: pre-line; overflow: hidden; }
+.review-final-step .read-feedback { position: absolute; left: 150px; top: 520px; width: 410px; height: 82px; padding: 5px 22px; display: flex; align-items: center; justify-content: center; background: transparent; box-shadow: none; color: #80562e; font-size: 24px; line-height: 1.24; text-align: center; white-space: pre-line; overflow: hidden; }
 .review-final-step .complete-btn-row { position: absolute; left: 142px; top: 516px; width: 535px; height: 78px; }
 .review-final-step .complete-btn { width: 100%; height: 78px; padding: 0; border: 0; background: transparent; box-shadow: none; color: transparent; }
 
@@ -2715,13 +2719,13 @@ button::after {
 .review-final-step .match-col:first-child { left: 150px; }
 .review-final-step .match-col:last-child { right: 150px; }
 .review-final-step .match-col-label { display: none; }
-.review-final-step .match-card { position: relative; width: 570px; height: 100px; margin: 0; padding: 0 95px; display: flex; align-items: center; justify-content: center; border: 0; border-radius: 0; background: transparent; box-shadow: none; color: #704117; font-size: 29px; font-weight: 900; white-space: nowrap; overflow: visible; }
+.review-final-step .match-card { position: relative; width: 570px; height: 100px; margin: 0; padding: 0 95px; display: flex; align-items: center; justify-content: center; border: 0; border-radius: 0; background: transparent; box-shadow: none; color: #704117; font-size: 29px; font-weight: 400; white-space: nowrap; overflow: visible; }
 .review-final-step .match-card-bg { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 0; }
 .review-final-step .match-card-text { position: relative; z-index: 1; }
 .review-final-step .line-index { display: none; }
 .review-final-step .match-card.selected { transform: scale(1.035); filter: brightness(1.05); }
 .review-final-step .match-card.matched { opacity: .48; transform: none; }
-.review-final-step .match-feedback { position: absolute; left: 360px; bottom: 20px; width: 952px; height: 105px; padding: 0 70px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; box-shadow: none; color: #704117; font-size: 28px; font-weight: 900; z-index: 20; }
+.review-final-step .match-feedback { position: absolute; left: 360px; bottom: 20px; width: 952px; height: 105px; padding: 0 70px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; box-shadow: none; color: #704117; font-size: 28px; font-weight: 400; z-index: 20; }
 .review-final-step .match-feedback image { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 0; }
 .review-final-step .match-feedback text { position: relative; z-index: 1; text-align: center; }
 .review-final-step .complete-overlay { z-index: 90; }

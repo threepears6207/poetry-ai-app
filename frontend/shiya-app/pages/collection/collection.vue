@@ -12,6 +12,7 @@
           <image class="card-scene" :src="poem.sceneImage" mode="aspectFill" />
           <view v-if="!poem.unlocked" class="lock-mark">尚未点亮</view>
           <view class="card-author">{{ poem.dynasty }} · {{ poem.author }}</view>
+          <image v-if="poem.unlocked" class="card-flower" src="/static/final-ui/flower.png" mode="aspectFit" />
         </view>
       </view>
 
@@ -122,7 +123,7 @@ button::after { border: 0; }
 .art-back { z-index: 70; width: 120px; height: 120px; padding: 0; border: 0; background: transparent; }
 .art-back image { width: 100%; height: 100%; }
 .page-title { position: absolute; left: 570px; top: 35px; width: 532px; height: 78px; display: flex; align-items: center; justify-content: center; color: #744319; font-size: 46px; font-weight: 900; letter-spacing: 14px; }
-.card-grid { position: absolute; left: 246px; top: 230px; width: 1180px; height: 273px; display: flex; justify-content: center; align-items: flex-start; gap: 33px; }
+.card-grid { position: absolute; left: 246px; top: 230px; width: 1180px; height: 273px; display: flex; justify-content: center; align-items: flex-start; gap: 28px; }
 .poem-card { position: relative; width: 270px; height: 273px; overflow: visible; transition: transform .16s; }
 .poem-card:active { transform: translateY(6px) scale(.98); }
 .poem-card.locked { filter: none; opacity: 1; }
@@ -134,12 +135,13 @@ button::after { border: 0; }
 .card-scene { position: absolute; left: 42px; top: 82px; width: 186px; height: 105px; border: 3px solid rgba(133, 84, 42, .42); border-radius: 5px; background: #ead9b8; }
 .lock-mark { position: absolute; left: 38px; right: 38px; top: 112px; height: 46px; display: flex; align-items: center; justify-content: center; text-align: center; color: #75471f; -webkit-text-stroke: 1px #fff1cf; paint-order: stroke fill; text-shadow: 0 1px 2px rgba(255, 241, 207, .95); font-size: 18px; font-weight: 900; z-index: 4; }
 .card-author { position: absolute; left: 25px; width: 145px; bottom: 28px; height: 34px; display: flex; align-items: center; justify-content: center; color: #81572f; font-size: 18px; font-weight: 800; white-space: nowrap; }
+.card-flower { position: absolute; right: 36px; bottom: 22px; width: 50px; height: 50px; z-index: 5; filter: drop-shadow(0 3px 3px rgba(112, 65, 23, .24)); }
 .page-arrow { position: absolute; top: 352px; width: 96px; height: 96px; padding: 0; border: 0; background: transparent; }
 .page-arrow.left { left: 78px; }
 .page-arrow.right { right: 78px; }
 .page-arrow[disabled] { opacity: .25; }
-.collection-tip { position: absolute; left: 370px; top: 535px; width: 932px; text-align: center; color: #80562e; -webkit-text-stroke: 1px #fff1cf; paint-order: stroke fill; text-shadow: 0 1px 2px rgba(255, 241, 207, .9); font-size: 24px; font-weight: 900; }
-.page-number { position: absolute; left: 570px; bottom: 4px; width: 532px; height: 44px; display: flex; align-items: center; justify-content: center; text-align: center; color: #855326; -webkit-text-stroke: 1px #fff1cf; paint-order: stroke fill; text-shadow: 0 1px 2px rgba(255, 241, 207, .9); font-size: 22px; font-weight: 900; }
+.collection-tip { position: absolute; left: 370px; top: 550px; width: 932px; text-align: center; color: #5f3518; -webkit-text-stroke: 1px #fff1cf; paint-order: stroke fill; text-shadow: 0 1px 2px rgba(255, 241, 207, .9); font-size: 24px; font-weight: 900; }
+.page-number { position: absolute; left: 570px; bottom: 120px; width: 532px; height: 44px; display: flex; align-items: center; justify-content: center; text-align: center; color: #5f3518; -webkit-text-stroke: 1px #fff1cf; paint-order: stroke fill; text-shadow: 0 1px 2px rgba(255, 241, 207, .9); font-size: 22px; font-weight: 900; }
 /* 手机横屏可读性 */
 .page-title { font-size: 60px; }
 .card-name { font-size: 30px; }

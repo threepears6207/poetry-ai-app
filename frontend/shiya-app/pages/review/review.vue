@@ -29,7 +29,7 @@
       </button>
 
       <view class="practice-summary">
-        已学 {{ currentStats.total }} 首　·　已掌握 {{ currentStats.mastered }} 首　·　待巩固 {{ currentStats.learning }} 首
+        已学习 {{ currentStats.total }} 首·已巩固 {{ currentStats.consolidated }} 首·待巩固 {{ currentStats.learning }} 首
       </view>
     </view>
 
@@ -58,7 +58,11 @@
                 v-for="(line, index) in currentReviewPoem.lines"
                 :key="line"
                 class="read-line"
-                :class="{ active: activeReadLine === index, completed: completedReadLines.includes(index) }"
+                :class="{
+                  active: activeReadLine === index,
+                  completed: completedReadLines.includes(index),
+                  locked: activeReadLine !== index
+                }"
                 @tap="selectReadLine(index)"
               >
                 {{ line }}
@@ -84,6 +88,11 @@
               </view>
             </view>
 
+            <button v-if="allReadLinesPassed" class="read-next-stage" @tap="goMatch">
+              <image src="/static/final-ui/primary_button.png" mode="scaleToFill" />
+              <text>下一关</text>
+            </button>
+
             <view class="read-buttons">
               <button class="read-btn play-btn" @tap="playReading">
                 {{ isReading ? '⏹ 停止范读' : '🔊 听范读' }}
@@ -102,15 +111,6 @@
               {{ readFeedback }}
             </view>
 
-            <view class="complete-btn-row">
-              <button
-                class="complete-btn"
-                :class="{ disabled: !allReadLinesPassed }"
-                @tap="allReadLinesPassed ? goMatch() : toastNeedRecord()"
-              >
-                {{ allReadLinesPassed ? '下一步：连连看' : '请先逐句完成跟读' }}
-              </button>
-            </view>
           </view>
         </view>
 
@@ -157,16 +157,19 @@
           </view>
 
           <view class="match-feedback" :class="{ success: matchSuccess }">
-            <image src="/static/final-ui/practice-line-tip.png" mode="scaleToFill" />
             <text>{{ matchFeedback }}</text>
           </view>
 
           <view v-if="matchedIds.length === currentPairs.length" class="complete-overlay">
-            <view class="complete-emoji">🏆</view>
-            <view class="complete-text">{{ resultSubmitText }}</view>
-            <button class="complete-btn" :disabled="isSubmittingResult" @tap="backToMain">
-              {{ isSubmittingResult ? '正在保存...' : '返回巩固主页' }}
-            </button>
+            <view class="complete-card">
+              <view class="complete-emoji">🏆</view>
+              <view class="complete-title">恭喜巩固完成！</view>
+              <view class="complete-text">{{ resultSubmitText }}</view>
+              <view class="complete-actions">
+                <button class="complete-action secondary" :disabled="isSubmittingResult" @tap="goHomeAfterReview">返回主页</button>
+                <button class="complete-action primary" :disabled="isSubmittingResult" @tap="backToMain">继续练习</button>
+              </view>
+            </view>
           </view>
         </view>
       </view>
@@ -342,9 +345,11 @@ const splitLineToPair = (line = '', index = 0) => {
     }
   }
 
-  const splitIndex = cleanLine.length <= 3
-    ? Math.max(1, cleanLine.length - 1)
-    : Math.min(2, cleanLine.length - 1)
+  const splitIndex = cleanLine.length === 7
+    ? 4
+    : cleanLine.length <= 3
+      ? Math.max(1, cleanLine.length - 1)
+      : Math.min(2, cleanLine.length - 1)
 
   return {
     id: index + 1,
@@ -360,11 +365,15 @@ const buildPairsFromLines = (lines = []) => {
 const normalizePairs = (pairs = [], lines = []) => {
   if (Array.isArray(pairs) && pairs.length) {
     return pairs
-      .map((item, index) => ({
-        id: Number(item.id || index + 1),
-        left: String(item.left || item.start || item.front || '').trim(),
-        right: String(item.right || item.end || item.back || '').trim()
-      }))
+      .map((item, index) => {
+        const left = String(item.left || item.start || item.front || '').trim()
+        const right = String(item.right || item.end || item.back || '').trim()
+        const combined = `${left}${right}`.replace(/[，,。；;！!？?\s]/g, '')
+
+        return combined.length === 7
+          ? splitLineToPair(combined, index)
+          : { id: Number(item.id || index + 1), left, right }
+      })
       .filter(item => item.left || item.right)
   }
 
@@ -530,6 +539,10 @@ const normalizeReviewPoem = (rawItem = {}, index = 0) => {
     practice_count: practiceCount,
     next_review_date: poem.next_review_date || poem.nextReviewDate || '',
     due_today: Boolean(poem.due_today ?? poem.dueToday ?? false),
+    reading_completed: Boolean(poem.reading_completed ?? poem.readingCompleted ?? false),
+    connection_completed: Boolean(poem.connection_completed ?? poem.connectionCompleted ?? false),
+    collection_state: poem.collection_state || poem.collectionState || 'gray',
+    flower_count: Number(poem.flower_count || poem.flowerCount || 0),
     lines,
     pairs
   }
@@ -557,7 +570,11 @@ const mergePoemStatus = (poem = {}, statusPayload = {}) => {
     status,
     practice_count: practiceCount,
     next_review_date: data?.next_review_date ?? poem.next_review_date ?? '',
-    due_today: Boolean(data?.due_today ?? poem.due_today ?? false)
+    due_today: Boolean(data?.due_today ?? poem.due_today ?? false),
+    reading_completed: Boolean(data?.reading_completed ?? poem.reading_completed ?? false),
+    connection_completed: Boolean(data?.connection_completed ?? poem.connection_completed ?? false),
+    collection_state: data?.collection_state ?? poem.collection_state ?? 'gray',
+    flower_count: Number(data?.flower_count ?? poem.flower_count ?? 0)
   }
 }
 
@@ -579,6 +596,8 @@ const EMPTY_REVIEW_POEM = {
 
 // 巩固页只能展示 /consolidation/list 返回的已学习诗歌。
 // 接口失败时不再塞入本地演示诗歌，避免未学习诗歌出现在巩固页。
+// 完整列表用于累计统计；待巩固子集才显示成可练习诗卡。
+const allReviewPoems = ref([])
 const reviewPoems = ref([])
 const reviewPageIndex = ref(0)
 const REVIEW_PAGE_SIZE = 4
@@ -609,7 +628,17 @@ const currentReadSceneImage = computed(() => {
 })
 
 const selectReadLine = (index) => {
-  activeReadLine.value = Number(index) || 0
+  const selectedIndex = Number(index) || 0
+
+  if (selectedIndex !== activeReadLine.value) {
+    uni.showToast({
+      title: `请先完成第 ${activeReadLine.value + 1} 句`,
+      icon: 'none'
+    })
+    return
+  }
+
+  activeReadLine.value = selectedIndex
   readSceneFailed.value = false
 }
 
@@ -626,14 +655,12 @@ const rightPairs = computed(() => {
 })
 
 const currentStats = computed(() => {
-  const total = reviewPoems.value.length
-  const mastered = reviewPoems.value.filter(item => item.status === '已掌握').length
-  const consolidated = reviewPoems.value.filter(item => item.status === '已巩固').length
-  const pending = reviewPoems.value.filter(item => item.status === '待巩固').length
+  const total = allReviewPoems.value.length
+  const consolidated = allReviewPoems.value.filter(item => item.collection_state === 'color').length
+  const pending = Math.max(0, total - consolidated)
 
   return {
     total,
-    mastered,
     consolidated,
     learning: pending
   }
@@ -641,12 +668,12 @@ const currentStats = computed(() => {
 
 const resultSubmitText = computed(() => {
   if (isSubmittingResult.value) return '正在保存巩固结果...'
-  if (resultSubmitted.value) return '巩固完成！结果已保存啦！'
-  return '巩固完成！跟读和连连看都完成啦！'
+  if (resultSubmitted.value) return '这首古诗已经点亮，继续保持哦！'
+  return '跟读和连连看都完成啦！'
 })
 
 const updateReviewPoem = (key, updater) => {
-  reviewPoems.value = reviewPoems.value.map(item => {
+  const updateList = list => list.map(item => {
     if (item.key !== key) return item
 
     return typeof updater === 'function'
@@ -656,6 +683,9 @@ const updateReviewPoem = (key, updater) => {
           ...updater
         }
   })
+
+  reviewPoems.value = updateList(reviewPoems.value)
+  allReviewPoems.value = updateList(allReviewPoems.value)
 }
 
 const hydrateSinglePoemDetail = async (poem, index = 0) => {
@@ -738,9 +768,8 @@ const loadConsolidationList = async () => {
     const res = await API.getConsolidationList()
     const list = extractArrayPayload(res)
 
-    reviewPoems.value = list
-      .map((item, index) => normalizeReviewPoem(item, index))
-      .filter(poem => poem.status === '待巩固' || poem.due_today)
+    allReviewPoems.value = list.map((item, index) => normalizeReviewPoem(item, index))
+    reviewPoems.value = allReviewPoems.value.filter(poem => poem.collection_state !== 'color')
     reviewPageIndex.value = 0
 
     if (reviewPoems.value.length) {
@@ -752,6 +781,7 @@ const loadConsolidationList = async () => {
     console.log('加载巩固列表失败：', err)
 
     reviewPoems.value = []
+    allReviewPoems.value = []
     currentReviewKey.value = ''
     listError.value = '巩固列表加载失败，请检查 /consolidation/list 接口'
   } finally {
@@ -1748,13 +1778,6 @@ const recordReading = async () => {
   }
 }
 
-const toastNeedRecord = () => {
-  uni.showToast({
-    title: '请先逐句完成跟读',
-    icon: 'none'
-  })
-}
-
 const goMatch = () => {
   stopReadingAudio()
 
@@ -1854,7 +1877,7 @@ const selectRight = (id) => {
   }
 }
 
-const backToMain = () => {
+const backToMain = async () => {
   stopReadingAudio()
 
   reviewStep.value = 'main'
@@ -1874,6 +1897,13 @@ const backToMain = () => {
   isRecording.value = false
   isScoring.value = false
   readFeedback.value = DEFAULT_READ_FEEDBACK
+
+  await loadConsolidationList()
+}
+
+const goHomeAfterReview = () => {
+  stopReadingAudio()
+  uni.reLaunch({ url: '/pages/index/index' })
 }
 
 onMounted(() => {
@@ -2536,26 +2566,46 @@ button::after {
 .complete-overlay {
   position: absolute;
   inset: 0;
-  background: rgba(255, 255, 255, 0.92);
+  background: rgba(48, 31, 16, 0.46);
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 12px;
   border-radius: 0;
   z-index: 10;
 }
 
-.complete-emoji {
-  font-size: 56px;
+.complete-card {
+  width: 560px;
+  min-height: 330px;
+  padding: 30px 42px 34px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  border: 7px solid #a66a2d;
+  border-radius: 30px;
+  background: #fff0c8;
+  box-shadow: 0 28px 65px rgba(45, 27, 12, .45);
 }
 
+.complete-emoji {
+  font-size: 64px;
+}
+
+.complete-title { color: #704117; font-size: 38px; font-weight: 700; }
+
 .complete-text {
-  font-size: 20px;
-  font-weight: 900;
-  color: #5b508d;
+  font-size: 25px;
+  font-weight: 400;
+  color: #795536;
   text-align: center;
 }
+
+.complete-actions { margin-top: 10px; display: flex; gap: 24px; }
+.complete-action { width: 190px; height: 66px; border: 0; border-radius: 999px; font-size: 24px; font-weight: 600; }
+.complete-action.secondary { color: #704117; background: #fff9e8; box-shadow: 0 6px 0 #d3aa70; }
+.complete-action.primary { color: #fff8e7; background: #a66a2d; box-shadow: 0 6px 0 #704117; }
 .list-message {
   min-height: 96px;
   border-radius: 20px;
@@ -2667,7 +2717,7 @@ button::after {
 .practice-card-status { position: absolute; left: 48px; right: 48px; top: 280px; height: 46px; display: flex; align-items: center; justify-content: center; color: #83542a; font-size: 18px; font-weight: 400; white-space: nowrap; }
 .practice-card-action { position: absolute; left: 48px; right: 48px; top: 334px; height: 44px; display: flex; align-items: center; justify-content: center; color: #704117; font-size: 19px; font-weight: 400; white-space: nowrap; }
 .practice-message { position: absolute; left: 386px; top: 360px; width: 900px; text-align: center; color: #77502b; font-size: 32px; font-weight: 400; }
-.practice-summary { position: absolute; left: 500px; bottom: 28px; width: 672px; text-align: center; color: #80562e; -webkit-text-stroke: 1px #fff1cf; paint-order: stroke fill; text-shadow: 0 1px 2px rgba(255, 241, 207, .9); font-size: 23px; font-weight: 400; }
+.practice-summary { position: absolute; left: 500px; bottom: 45px; width: 672px; text-align: center; color: #5f3518; -webkit-text-stroke: 1px #fff1cf; paint-order: stroke fill; text-shadow: 0 1px 2px rgba(255, 241, 207, .9); font-size: 23px; font-weight: 400; }
 
 /* 手机横屏可读性 */
 .practice-title-plaque { font-size: 56px; }
@@ -2692,41 +2742,45 @@ button::after {
 .review-final-step .read-left { position: absolute; left: 110px; top: 78px; width: 430px; height: 620px; padding: 0; border: 0; border-radius: 0; background: transparent; box-shadow: none; }
 .review-final-step .poem-info-card { position: absolute; left: 107px; top: 12px; width: 350px; height: 150px; padding: 0; display: block; background: transparent; box-shadow: none; }
 .review-final-step .poem-info-emoji { display: none; }
-.review-final-step .poem-info-title { position: absolute; left: 0; top: 2px; width: 350px; text-align: center; color: #704117; font-size: 42px; font-weight: 400; white-space: nowrap; }
+.review-final-step .poem-info-title { position: absolute; left: 0; top: 15px; width: 350px; text-align: center; color: #704117; font-size: 42px; font-weight: 400; white-space: nowrap; }
 .review-final-step .poem-info-title.long-title { font-size: 34px; }
 .review-final-step .poem-info-title.extra-long-title { font-size: 29px; letter-spacing: 0; }
-.review-final-step .poem-info-author { position: absolute; left: 0; top: 94px; width: 350px; text-align: center; color: #8b5d31; font-size: 27px; font-weight: 400; white-space: nowrap; }
+.review-final-step .poem-info-author { position: absolute; left: 0; top: 100px; width: 350px; text-align: center; color: #8b5d31; font-size: 27px; font-weight: 400; white-space: nowrap; }
 .review-final-step .read-poem-display { position: absolute; left: 90px; top: 205px; width: 390px; height: 385px; padding: 0; background: transparent; box-shadow: none; overflow-y: auto; }
 .review-final-step .read-line { width: 100%; height: 72px; margin: 0; padding: 0 12px; display: flex; align-items: center; justify-content: center; border: 0; border-radius: 0; background: transparent; color: #704117; font-size: 32px; font-weight: 400; white-space: nowrap; transition: transform .15s, color .15s; }
 .review-final-step .read-line.active { border: 0; background: rgba(235,164,65,.16); color: #d66f2c; transform: scale(1.04); }
 .review-final-step .read-line.completed { background: rgba(127,190,153,.13); }
+.review-final-step .read-line.locked { opacity: .62; }
 .review-final-step .read-right { position: absolute; left: 705px; top: 123px; width: 820px; height: 565px; padding: 0; display: block; border: 0; border-radius: 0; background: transparent; box-shadow: none; }
 .read-scene-image { position: absolute; left: 35px; top: 45px; width: 600px; height: 300px; }
 .review-final-step .score-card { position: absolute; right: 32px; top: 18px; width: 210px; height: 75px; padding: 8px; border-radius: 12px; background: rgba(255,248,226,.86); box-shadow: 0 4px 12px rgba(91,57,23,.15); z-index: 4; }
-.review-final-step .score-value, .review-final-step .score-empty { font-size: 20px; }
+.review-final-step .read-next-stage { position: absolute; right: -6px; top: -102px; width: 245px; height: 76px; padding: 0; border: 0; background: transparent; color: #704117; font-size: 27px; font-weight: 600; z-index: 82; }
+.review-final-step .read-next-stage image { position: absolute; inset: 0; width: 100%; height: 100%; }
+.review-final-step .read-next-stage text { position: relative; z-index: 1; }
+.review-final-step .score-value, .review-final-step .score-empty { font-size: 30px; }
 .review-final-step .stars { font-size: 22px; }
-.review-final-step .read-buttons { position: absolute; left: 75px; top: 390px; width: 670px; height: 82px; display: flex; gap: 28px; }
+.review-final-step .read-buttons { position: absolute; left: -30px; top: 407px; width: 760px; height: 90px; display: flex; gap: 34px; }
 .review-final-step .read-btn { flex: 1; height: 82px; padding: 0; border: 0; background: transparent; box-shadow: none; color: transparent; }
 .review-final-step .read-btn.recording { color: #8b3d2b; background: rgba(255,255,255,.38); }
 .review-final-step .read-feedback { position: absolute; left: 150px; top: 520px; width: 410px; height: 82px; padding: 5px 22px; display: flex; align-items: center; justify-content: center; background: transparent; box-shadow: none; color: #80562e; font-size: 24px; line-height: 1.24; text-align: center; white-space: pre-line; overflow: hidden; }
-.review-final-step .complete-btn-row { position: absolute; left: 142px; top: 516px; width: 535px; height: 78px; }
-.review-final-step .complete-btn { width: 100%; height: 78px; padding: 0; border: 0; background: transparent; box-shadow: none; color: transparent; }
 
 .review-final-step .match-body { position: absolute; inset: 0; padding: 0; display: block; }
 .review-final-step .match-instruction { display: none; }
 .review-final-step .match-columns { position: absolute; inset: 0; display: block; }
-.review-final-step .match-col { position: absolute; top: 168px; width: 570px; display: flex; flex-direction: column; gap: 14px; }
-.review-final-step .match-col:first-child { left: 150px; }
-.review-final-step .match-col:last-child { right: 150px; }
+.review-final-step .match-col { position: absolute; top: 135px; width: 560px; display: flex; flex-direction: column; gap: 10px; }
+.review-final-step .match-col:first-child { left: 250px; }
+.review-final-step .match-col:last-child { right: 250px; }
 .review-final-step .match-col-label { display: none; }
-.review-final-step .match-card { position: relative; width: 570px; height: 100px; margin: 0; padding: 0 95px; display: flex; align-items: center; justify-content: center; border: 0; border-radius: 0; background: transparent; box-shadow: none; color: #704117; font-size: 29px; font-weight: 400; white-space: nowrap; overflow: visible; }
-.review-final-step .match-card-bg { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 0; }
-.review-final-step .match-card-text { position: relative; z-index: 1; }
+.review-final-step .match-card { position: relative; width: 420px; height: 105px; min-height: 105px; max-height: 105px; flex: 0 0 105px; margin: 0 0 0 70px; padding: 0 20px; display: flex; align-items: center; justify-content: center; border: 0; border-radius: 0; background: transparent; box-shadow: none; color: #704117; font-size: 42px; font-weight: 400; white-space: nowrap; overflow: visible; }
+/* 两张素材透明边界不同：按可见边框校准为相同的约 420×105px。 */
+.review-final-step .left-card .match-card-bg { position: absolute; left: -21px; top: -56px; width: 461px; height: 223px; z-index: 0; }
+.review-final-step .right-card .match-card-bg { position: absolute; left: -16px; top: -43px; width: 452px; height: 197px; z-index: 0; }
+.review-final-step .match-card-bg { pointer-events: none; }
+.review-final-step .match-card-text { position: relative; z-index: 1; transform: translateY(12px); pointer-events: none; }
 .review-final-step .line-index { display: none; }
 .review-final-step .match-card.selected { transform: scale(1.035); filter: brightness(1.05); }
 .review-final-step .match-card.matched { opacity: .48; transform: none; }
-.review-final-step .match-feedback { position: absolute; left: 360px; bottom: 20px; width: 952px; height: 105px; padding: 0 70px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; box-shadow: none; color: #704117; font-size: 28px; font-weight: 400; z-index: 20; }
-.review-final-step .match-feedback image { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 0; }
+.review-final-step .match-feedback { position: absolute; left: 360px; bottom: 20px; width: 952px; height: 105px; padding: 0 70px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; box-shadow: none; color: #704117; font-size: 34px; font-weight: 400; z-index: 20; }
 .review-final-step .match-feedback text { position: relative; z-index: 1; text-align: center; }
 .review-final-step .complete-overlay { z-index: 90; }
 </style>

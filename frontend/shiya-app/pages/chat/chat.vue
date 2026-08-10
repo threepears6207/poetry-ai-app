@@ -1352,11 +1352,14 @@ const handleNext = async () => {
   stopChatReplyAudio(false)
 
   const now = new Date()
-  const today = `${now.getFullYear()}-${now.getMonth() + 1}-${now.getDate()}`
+  const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
   let suppressedToday = uni.getStorageSync('shiYaSkipReviewGuideDate') === today
   try {
     const reminder = await API.getReminderStatus()
-    suppressedToday = Boolean(reminder?.practice_prompt_suppressed)
+    // 后端抑制状态必须明确属于今天，避免旧缓存/旧服务响应让弹窗永久消失。
+    if (reminder?.date === today) {
+      suppressedToday = suppressedToday || Boolean(reminder.practice_prompt_suppressed)
+    }
   } catch (err) {
     console.log('读取今日巩固提醒状态失败，使用本地状态：', err)
   }
@@ -1371,7 +1374,7 @@ const handleNext = async () => {
 const rememberReviewGuideChoice = async () => {
   if (!skipReviewGuideToday.value) return
   const now = new Date()
-  uni.setStorageSync('shiYaSkipReviewGuideDate', `${now.getFullYear()}-${now.getMonth() + 1}-${now.getDate()}`)
+  uni.setStorageSync('shiYaSkipReviewGuideDate', `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`)
   try {
     await API.suppressPracticeReminderToday()
   } catch (err) {
@@ -1384,6 +1387,8 @@ const goReview = async () => {
   showReviewGuide.value = false
   uni.navigateTo({
     url: '/pages/review/review',
+    animationType: 'fade-in',
+    animationDuration: 100,
     fail: () => {
       if (typeof window !== 'undefined') {
         window.location.href = '#/pages/review/review'

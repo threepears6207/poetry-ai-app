@@ -202,7 +202,7 @@ button::after { border: 0; }
 .page-arrow { position: absolute; top: 395px; width: 96px; height: 96px; border: 0; background: transparent; padding: 0; }
 .page-arrow.left { left: 102px; }
 .page-arrow.right { right: 102px; }
-.result-count { position: absolute; left: 720px; bottom: 30px; width: 235px; text-align: center; color: #76502b; -webkit-text-stroke: 1px #fff1cf; paint-order: stroke fill; text-shadow: 0 1px 2px rgba(255, 241, 207, .9); font-size: 22px; font-weight: 900; }
+.result-count { position: absolute; left: 720px; bottom: 30px; width: 235px; text-align: center; color: #573116; -webkit-text-stroke: 1px #fff1cf; paint-order: stroke fill; text-shadow: 0 1px 2px rgba(255, 241, 207, .9); font-size: 22px; font-weight: 900; }
 /* 手机横屏可读性 */
 .page-title { font-size: 64px; }
 .filter-row view { font-size: 30px; }

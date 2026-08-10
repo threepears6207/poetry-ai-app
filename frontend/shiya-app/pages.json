@@ -4,56 +4,64 @@
       "path": "pages/index/index",
       "style": {
         "navigationBarTitleText": "诗芽小学堂",
-        "navigationStyle": "custom"
+        "navigationStyle": "custom",
+        "app-plus": { "animationType": "fade-in", "animationDuration": 100 }
       }
     },
     {
       "path": "pages/camera/camera",
       "style": {
         "navigationBarTitleText": "拍照识别",
-        "navigationStyle": "custom"
+        "navigationStyle": "custom",
+        "app-plus": { "animationType": "fade-in", "animationDuration": 100 }
       }
     },
     {
       "path": "pages/study/study",
       "style": {
         "navigationBarTitleText": "动画播放",
-        "navigationStyle": "custom"
+        "navigationStyle": "custom",
+        "app-plus": { "animationType": "fade-in", "animationDuration": 100 }
       }
     },
     {
       "path": "pages/chat/chat",
       "style": {
         "navigationBarTitleText": "诗人对话",
-        "navigationStyle": "custom"
+        "navigationStyle": "custom",
+        "app-plus": { "animationType": "fade-in", "animationDuration": 100 }
       }
     },
     {
       "path": "pages/recommend/recommend",
       "style": {
         "navigationBarTitleText": "诗芽推荐",
-        "navigationStyle": "custom"
+        "navigationStyle": "custom",
+        "app-plus": { "animationType": "fade-in", "animationDuration": 100 }
       }
     },
     {
       "path": "pages/review/review",
       "style": {
         "navigationBarTitleText": "巩固练习",
-        "navigationStyle": "custom"
+        "navigationStyle": "custom",
+        "app-plus": { "animationType": "fade-in", "animationDuration": 100 }
       }
     },
     {
       "path": "pages/collection/collection",
       "style": {
         "navigationBarTitleText": "集章墙",
-        "navigationStyle": "custom"
+        "navigationStyle": "custom",
+        "app-plus": { "animationType": "fade-in", "animationDuration": 100 }
       }
     },
     {
       "path": "pages/parent/parent",
       "style": {
         "navigationBarTitleText": "家长端",
-        "navigationStyle": "custom"
+        "navigationStyle": "custom",
+        "app-plus": { "animationType": "fade-in", "animationDuration": 100 }
       }
     }
   ],

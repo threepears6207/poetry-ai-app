@@ -274,11 +274,30 @@ def get_consolidation_list(user_id="test_user"):
     try:
         rows = connection.execute(
             """
-            SELECT c.*, p.title, p.author, p.dynasty, p.tags_json
-            FROM consolidations AS c
-            JOIN poems AS p ON p.id = c.poem_id
-            WHERE c.user_id = ?
-            ORDER BY c.id
+            SELECT
+                COALESCE(c.id, 0) AS id,
+                learned.user_id AS user_id,
+                learned.poem_id AS poem_id,
+                COALESCE(c.status, '待巩固') AS status,
+                COALESCE(c.practice_count, 0) AS practice_count,
+                COALESCE(c.next_review_date, '') AS next_review_date,
+                COALESCE(c.reading_completed, 0) AS reading_completed,
+                COALESCE(c.connection_completed, 0) AS connection_completed,
+                COALESCE(c.collection_state, 'gray') AS collection_state,
+                COALESCE(c.flower_count, 0) AS flower_count,
+                COALESCE(c.created_at, learned.learned_at) AS created_at,
+                COALESCE(c.updated_at, learned.learned_at) AS updated_at,
+                p.title, p.author, p.dynasty, p.tags_json
+            FROM (
+                SELECT user_id, poem_id, MAX(created_at) AS learned_at
+                FROM learning_records
+                WHERE user_id = ?
+                GROUP BY user_id, poem_id
+            ) AS learned
+            JOIN poems AS p ON p.id = learned.poem_id
+            LEFT JOIN consolidations AS c
+                ON c.poem_id = learned.poem_id AND c.user_id = learned.user_id
+            ORDER BY learned.learned_at DESC, p.id
             """,
             (user_id,),
         ).fetchall()
@@ -304,7 +323,8 @@ def get_consolidation_list(user_id="test_user"):
         "user_id": user_id,
         "total_count": len(result),
         "mastered_count": sum(item["status"] == "已掌握" for item in result),
-        "pending_count": sum(item["status"] == "待巩固" for item in result),
+        "consolidated_count": sum(item["collection_state"] == "color" for item in result),
+        "pending_count": sum(item["collection_state"] != "color" for item in result),
         "due_today_count": sum(bool(item["due_today"]) for item in result),
         "data": result,
     }

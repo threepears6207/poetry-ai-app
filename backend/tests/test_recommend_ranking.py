@@ -24,24 +24,23 @@ class RecommendRankingTests(unittest.TestCase):
         value.update(updates)
         return value
 
-    def test_due_review_is_prioritized_over_new_content(self):
+    def test_due_review_poem_is_excluded_from_recommendations(self):
         poems = [poem("due", "待温习", ["月亮"]), poem("new", "新诗", ["春天"])]
         context = self.context(
             learned_ids={"due"},
             consolidations={"due": {"status": "待巩固", "next_review_date": ""}},
         )
         result = rank_recommendations(poems, context, "age_3_4")
-        self.assertEqual(result[0]["id"], "due")
-        self.assertEqual(result[0]["recommend_type"], "review")
+        self.assertEqual([item["id"] for item in result], ["new"])
+        self.assertEqual(result[0]["recommend_type"], "new")
 
-    def test_weak_reading_item_is_recalled(self):
+    def test_weak_and_mastered_learned_poems_are_both_excluded(self):
         poems = [poem("weak", "薄弱诗", ["月亮"]), poem("done", "已掌握", ["山水"])]
         context = self.context(
             learned_ids={"weak", "done"}, reading_scores={"weak": 50, "done": 95},
         )
         result = rank_recommendations(poems, context, "age_3_4")
-        self.assertEqual([item["id"] for item in result], ["weak"])
-        self.assertEqual(result[0]["review_state"], "weak")
+        self.assertEqual(result, [])
 
     def test_consecutive_same_theme_is_penalized(self):
         poems = [

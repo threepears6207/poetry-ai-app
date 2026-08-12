@@ -1,6 +1,6 @@
 import json
 from collections import Counter
-from datetime import date, datetime
+from datetime import datetime
 from typing import Optional
 
 from fastapi import APIRouter, Query
@@ -400,7 +400,6 @@ def rank_recommendations(
     last_poem = poem_map.get(context["recent_ids"][0]) if context["recent_ids"] else None
     last_tags = set(get_poem_learning_tags(last_poem)) if last_poem else set()
     last_author = last_poem.get("author") if last_poem else None
-    today = date.today().isoformat()
     ranked = []
 
     for poem in poems:
@@ -408,30 +407,12 @@ def rank_recommendations(
         if (
             poem.get("age_level") != age_level
             or poem_id in exclude_ids
+            or poem_id in context["learned_ids"]
             or not poem_matches_category(poem, category)
         ):
             continue
-        learned = poem_id in context["learned_ids"]
-        reading_score = context["reading_scores"].get(poem_id)
-        consolidation = context["consolidations"].get(poem_id, {})
-        next_review = consolidation.get("next_review_date") or ""
-        due_review = bool(
-            learned and (
-                consolidation.get("status") == "待巩固"
-                or (next_review and next_review <= today)
-            )
-        )
-        weak = reading_score is not None and reading_score < 75
-        if learned and not due_review and not weak:
-            continue
 
-        components = {"age_fit": 25.0}
-        if not learned:
-            components["new_content"] = 30.0
-        if due_review:
-            components["due_review"] = 45.0
-        if weak:
-            components["weak_item"] = min(35.0, 12.0 + (75 - reading_score) * 0.7)
+        components = {"age_fit": 25.0, "new_content": 30.0}
 
         tags = get_poem_learning_tags(poem)
         preference = min(15.0, sum(context["preference_counts"].get(tag, 0) * 3 for tag in tags))
@@ -450,11 +431,11 @@ def rank_recommendations(
         total = sum(components.values())
         item = {
             **poem,
-            **build_poem_card(poem, learned_state="learned" if learned else "unlearned"),
+            **build_poem_card(poem, learned_state="unlearned"),
             "content_preview": build_content_preview(poem),
             "recommend_score": round(total, 2),
-            "recommend_type": "review" if due_review or weak else "new",
-            "review_state": "due" if due_review else ("weak" if weak else "none"),
+            "recommend_type": "new",
+            "review_state": "none",
         }
         if debug:
             item["score_components"] = {
@@ -559,7 +540,7 @@ def recommend_poems(
         "poems": selected,
         "data": selected,
         "recommendations": selected,
-        "message": "已按适龄、待温习/薄弱项、近期偏好、难度递进和内容多样性排序",
+        "message": "已排除学过的古诗，并按适龄、近期偏好、难度递进和内容多样性排序",
     }
 
 

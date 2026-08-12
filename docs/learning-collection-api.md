@@ -9,6 +9,9 @@
 3. 诗句连线完成后提交 `connection`。
 4. 两项都完成时，服务端将 `collection_state` 改为 `color`，并把 `flower_count` 增加 1。
 5. 重复提交同一结果不会重复增加小红花。
+6. 首次解锁后按 1/3/7 天复习节奏推进；到达 `next_review_date` 后自动开启新一轮 `reading + connection`。
+7. 每轮两项都完成才增加 `practice_count`，第 3 轮完成后状态改为 `已掌握`。
+8. 后续复习不会重复增加小红花，彩卡不会退回灰色；未到复习日期的重复提交不会推进轮次。
 
 ## 提交分项进度
 
@@ -40,6 +43,8 @@
 ```
 
 旧接口 `POST /consolidation/result` 继续可用；`passed=true` 会按“朗读和连线均完成”处理。
+
+复习轮次开始后，响应中的 `reading_completed` 和 `connection_completed` 会按本轮进度重新计算，`collection_state` 始终保持 `color`。
 
 ## 集章墙
 

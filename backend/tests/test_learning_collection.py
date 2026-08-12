@@ -71,6 +71,50 @@ class LearningCollectionTests(unittest.TestCase):
         self.assertEqual(state["flower_count"], 1)
         self.assertEqual(state["practice_count"], 1)
 
+    def test_due_review_starts_new_cycle_and_advances_schedule(self):
+        self.progress("reading")
+        self.progress("connection")
+        connection = get_connection(self.db_path)
+        with connection:
+            connection.execute(
+                "UPDATE consolidations SET next_review_date='2026-08-01' "
+                "WHERE user_id='child' AND poem_id=?",
+                (self.poem_id,),
+            )
+        connection.close()
+
+        state, unlocked = self.progress("reading")
+        self.assertFalse(unlocked)
+        self.assertTrue(state["reading_completed"])
+        self.assertFalse(state["connection_completed"])
+        self.assertEqual(state["practice_count"], 1)
+
+        state, unlocked = self.progress("connection")
+        self.assertFalse(unlocked)
+        self.assertEqual(state["practice_count"], 2)
+        self.assertEqual(state["flower_count"], 1)
+        self.assertEqual(state["status"], "已巩固")
+
+    def test_third_completed_cycle_marks_poem_mastered(self):
+        self.progress("reading")
+        self.progress("connection")
+        for expected_count in (2, 3):
+            connection = get_connection(self.db_path)
+            with connection:
+                connection.execute(
+                    "UPDATE consolidations SET next_review_date='2026-08-01' "
+                    "WHERE user_id='child' AND poem_id=?",
+                    (self.poem_id,),
+                )
+            connection.close()
+            self.progress("reading")
+            state, _ = self.progress("connection")
+            self.assertEqual(state["practice_count"], expected_count)
+
+        self.assertEqual(state["status"], "已掌握")
+        self.assertEqual(state["collection_state"], "color")
+        self.assertEqual(state["flower_count"], 1)
+
 
 if __name__ == "__main__":
     unittest.main()

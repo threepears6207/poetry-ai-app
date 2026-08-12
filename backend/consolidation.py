@@ -165,26 +165,39 @@ def apply_practice_activity(data: PracticeProgressIn, db_path=None):
             item = create_consolidation_if_missing(
                 data.poem_id, user_id, connection=connection,
             )
-            reading_completed = bool(item["reading_completed"])
-            connection_completed = bool(item["connection_completed"])
+            was_color = item["collection_state"] == "color"
+            previous_cycle_complete = bool(
+                item["reading_completed"] and item["connection_completed"]
+            )
+            if was_color and previous_cycle_complete:
+                if not is_due_today(item["next_review_date"]):
+                    return item, False
+                # A due review starts a fresh two-activity cycle. The collection
+                # card stays colored, while the two required activities reset.
+                reading_completed = False
+                connection_completed = False
+            else:
+                reading_completed = bool(item["reading_completed"])
+                connection_completed = bool(item["connection_completed"])
             if data.activity == "reading":
                 reading_completed = bool(data.completed)
             else:
                 connection_completed = bool(data.completed)
 
-            was_color = item["collection_state"] == "color"
-            unlocked = reading_completed and connection_completed
-            collection_state = "color" if was_color or unlocked else "gray"
+            cycle_completed = reading_completed and connection_completed
+            collection_state = "color" if was_color or cycle_completed else "gray"
             flower_count = int(item["flower_count"])
             practice_count = int(item["practice_count"])
             status = item["status"]
             next_review_date = item["next_review_date"]
-            just_unlocked = unlocked and not was_color
-            if just_unlocked:
-                flower_count += 1
+            just_unlocked = cycle_completed and not was_color
+            cycle_advanced = cycle_completed and not previous_cycle_complete
+            if cycle_advanced:
                 practice_count += 1
                 status = "已掌握" if practice_count >= 3 else "已巩固"
                 next_review_date = date_after_days(get_next_interval_days(practice_count))
+            if just_unlocked:
+                flower_count = max(1, flower_count)
 
             connection.execute(
                 """

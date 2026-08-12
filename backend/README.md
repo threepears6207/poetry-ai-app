@@ -146,6 +146,7 @@ uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 
 - `POST /consolidation/progress` 分别记录 `reading` 和 `connection` 两类练习进度。
 - 两项均完成后，`collection_state` 从 `gray` 变为 `color`，首次解锁增加 `flower_count`。
+- 首次解锁后按 1/3/7 天开启新的两项练习周期；每轮完成推进 `practice_count`，第 3 轮标记为“已掌握”，彩卡和小红花不重复累加。
 - `GET /collection/wall` 只返回已学诗，并由服务端给出灰卡、彩卡和小红花状态。
 - `GET /reminders/status` 返回当天是否显示练习提醒；`POST /reminders/suppress-today` 仅暂停当天提醒，次日恢复资格。
 - `GET /parent/overview` 聚合今日学习、待温习数量、练习完成情况和近期学习记录。

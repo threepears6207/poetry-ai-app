@@ -290,6 +290,56 @@ def search_candidates(request: ImageAnalysisInput, db_path=None):
     }
 
 
+def search_candidates_with_cloud_completion(request: ImageAnalysisInput, db_path=None):
+    """Search locally first, then complete and resolve an unknown terminal poem."""
+    result = search_candidates(request, db_path)
+    if result.get("success") or request.content_type != "poem_text":
+        return result
+
+    # Import lazily so scene requests and local hits never load or call cloud code.
+    from poem_completion import PoemCompletionError, complete_poem_from_terminal_analysis
+    from poem_catalog import (
+        ResolvePoemsRequest,
+        VerifiedPoemCandidate,
+        resolve_verified_poems,
+    )
+    from tag_rules import normalize_poem_metadata
+
+    try:
+        completed = complete_poem_from_terminal_analysis(request.model_dump())
+        poem = normalize_poem_metadata(completed["poem"])
+        resolved = resolve_verified_poems(
+            ResolvePoemsRequest(candidates=[VerifiedPoemCandidate(**poem)]),
+            db_path,
+        )
+    except (PoemCompletionError, KeyError, TypeError, ValueError) as error:
+        return {
+            "success": False,
+            "status": "retake",
+            "error_code": "cloud_completion_failed",
+            "message": str(error),
+            "poems": [],
+        }
+
+    if not resolved.get("poems"):
+        return {
+            "success": False,
+            "status": "retake",
+            "error_code": "cloud_completion_rejected",
+            "rejected": resolved.get("rejected", []),
+            "poems": [],
+        }
+
+    poem = resolved["poems"][0]
+    return {
+        "success": True,
+        "status": "ok",
+        "error_code": None,
+        "completion_source": "cloud",
+        "poems": [build_poem_card(poem)],
+    }
+
+
 @router.post("/poems/candidates")
 def find_poem_candidates(request: ImageAnalysisInput):
-    return search_candidates(request)
+    return search_candidates_with_cloud_completion(request)

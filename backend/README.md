@@ -139,6 +139,7 @@ uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 - 文字场景优先按标题、作者和诗句匹配，风景场景按标签匹配。
 - 确切文字命中可返回 1 首；风景检索返回 2—3 首可靠候选。低置信度或无可靠结果时不凑数。
 - 低置信度或无可靠结果时返回重新拍摄状态，不强行推荐。
+- `poem_text` 本地无可靠命中时调用 `poem_completion.py` 云端补全；结果通过标签规范化和 resolve 质量门禁后复用或写入正式 `poems` 表。`scene` 不调用云端补全。
 - `POST /poems/resolve` 复用已有诗；云端补全且校验通过的新诗直接写入 `poems`，返回 `poem_301+` 统一编号。调用方不再传 `source_name` 或 `verification_status`，两者由后端作为内部审计字段维护。
 
 ### 学习巩固、集章墙和提醒

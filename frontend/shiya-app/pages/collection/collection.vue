@@ -136,7 +136,27 @@ button::after { border: 0; }
 .lock-mark { position: absolute; left: 38px; right: 38px; top: 112px; height: 46px; display: flex; align-items: center; justify-content: center; text-align: center; color: #75471f; -webkit-text-stroke: 1px #fff1cf; paint-order: stroke fill; text-shadow: 0 1px 2px rgba(255, 241, 207, .95); font-size: 18px; font-weight: 900; z-index: 4; }
 .card-author { position: absolute; left: 25px; width: 145px; bottom: 28px; height: 34px; display: flex; align-items: center; justify-content: center; color: #81572f; font-size: 18px; font-weight: 800; white-space: nowrap; }
 .card-flower { position: absolute; right: 36px; bottom: 22px; width: 50px; height: 50px; z-index: 5; filter: drop-shadow(0 3px 3px rgba(112, 65, 23, .24)); }
-.page-arrow { position: absolute; top: 352px; width: 96px; height: 96px; padding: 0; border: 0; background: transparent; }
+.page-arrow {
+  position: absolute;
+  top: 352px;
+  width: 96px;
+  height: 96px;
+  padding: 0;
+  border: 0;
+  outline: none;
+  box-shadow: none;
+  background: transparent;
+  -webkit-tap-highlight-color: transparent;
+}
+.page-arrow::after,
+.page-arrow:focus,
+.page-arrow:active,
+.page-arrow[disabled] {
+  border: 0;
+  outline: none;
+  box-shadow: none;
+  background: transparent;
+}
 .page-arrow.left { left: 78px; }
 .page-arrow.right { right: 78px; }
 .page-arrow[disabled] { opacity: .25; }

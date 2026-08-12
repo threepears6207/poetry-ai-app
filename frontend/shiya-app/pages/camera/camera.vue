@@ -1288,6 +1288,21 @@ button[disabled] {
   padding: 0;
   border: 0;
   background: transparent;
+  outline: none;
+  box-shadow: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.popup-close-hotspot::after,
+.popup-action::after,
+.popup-close-hotspot:focus,
+.popup-close-hotspot:active,
+.popup-action:focus,
+.popup-action:active,
+.popup-action[disabled] {
+  border: 0;
+  outline: none;
+  box-shadow: none;
+  background: transparent;
 }
 .popup-close-hotspot { right: 82px; top: 63px; width: 58px; height: 60px; border-radius: 50%;
 }

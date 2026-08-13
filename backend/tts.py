@@ -16,6 +16,14 @@ STATIC_DIR = BASE_DIR / "static"
 AUDIO_DIR = STATIC_DIR / "audio"
 AUDIO_DIR.mkdir(parents=True, exist_ok=True)
 
+FIXED_PROMPTS = {
+    "camera": {"text": "拍一拍找古诗", "audio_url": "/static/audio/prompts/camera-find-poem.mp3"},
+    "today": {"text": "学一首新诗", "audio_url": "/static/audio/prompts/today-new-poem.mp3"},
+    "search": {"text": "找你喜欢的诗", "audio_url": "/static/audio/prompts/find-favorite-poem.mp3"},
+    "practice": {"text": "读一读，练一练", "audio_url": "/static/audio/prompts/read-and-practice.mp3"},
+    "stamps": {"text": "看看小红花", "audio_url": "/static/audio/prompts/see-red-flowers.mp3"},
+}
+
 
 class TTSRequest(BaseModel):
     """普通朗读接口参数，保留旧版前端字段。"""
@@ -139,6 +147,12 @@ def _failure(message: str, **extra):
         "audio_url": "",
         **extra,
     }
+
+
+@router.get("/tts/prompts")
+def list_fixed_prompts():
+    """返回预制点读资源清单；该接口不会触发在线语音合成。"""
+    return {"success": True, "prompts": FIXED_PROMPTS}
 
 
 @router.post("/tts")

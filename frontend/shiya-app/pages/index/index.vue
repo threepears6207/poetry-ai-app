@@ -66,6 +66,7 @@ import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import { API, LOCAL_POEMS } from '@/utils/api.js'
 import { speakText } from '@/utils/speech.js'
+import { destroyFixedPrompts, playFixedPrompt, preloadFixedPrompts } from '@/utils/fixed-prompts.js'
 
 const DESIGN_WIDTH = 1672
 const DESIGN_HEIGHT = 770
@@ -137,35 +138,19 @@ const drawDailyPoem = async () => {
   showLottery.value = true
 }
 
-const activateEntry = (name, action) => {
+const activateEntry = async (name, action, promptKey = '') => {
   if (pressedEntry.value) return
   pressedEntry.value = name
-  setTimeout(() => {
-    pressedEntry.value = ''
-    action()
-  }, 150)
+  if (promptKey) await playFixedPrompt(promptKey)
+  pressedEntry.value = ''
+  action()
 }
 
-const openCamera = () => {
-  speakText('拍一拍')
-  activateEntry('camera', () => goPage('/pages/camera/camera'))
-}
-const openLottery = () => {
-  speakText('今天学什么')
-  activateEntry('today', drawDailyPoem)
-}
-const openSearch = () => {
-  speakText('找古诗')
-  activateEntry('search', () => goPage('/pages/recommend/recommend?mode=search'))
-}
-const openPractice = () => {
-  speakText('练一练')
-  activateEntry('practice', () => goPage('/pages/review/review'))
-}
-const openStamps = () => {
-  speakText('集章墙')
-  activateEntry('stamps', () => goPage('/pages/collection/collection'))
-}
+const openCamera = () => activateEntry('camera', () => goPage('/pages/camera/camera'), 'camera')
+const openLottery = () => activateEntry('today', drawDailyPoem, 'today')
+const openSearch = () => activateEntry('search', () => goPage('/pages/recommend/recommend?mode=search'), 'search')
+const openPractice = () => activateEntry('practice', () => goPage('/pages/review/review'), 'practice')
+const openStamps = () => activateEntry('stamps', () => goPage('/pages/collection/collection'), 'stamps')
 
 const drawAgain = async () => {
   try {
@@ -188,12 +173,14 @@ const handleResize = () => updateScale()
 
 onMounted(() => {
   updateScale()
+  preloadFixedPrompts()
   const saved = uni.getStorageSync('shiYaChildAgeText')
   if (ageList.includes(saved)) selectedAge.value = saved
   if (typeof uni.onWindowResize === 'function') uni.onWindowResize(handleResize)
 })
 
 onUnmounted(() => {
+  destroyFixedPrompts()
   if (typeof uni.offWindowResize === 'function') uni.offWindowResize(handleResize)
 })
 

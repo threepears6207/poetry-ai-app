@@ -9,6 +9,13 @@ import tts
 
 
 class TTSUnitTests(unittest.TestCase):
+    def test_fixed_prompts_use_short_prebuilt_copy(self):
+        response = tts.list_fixed_prompts()
+        self.assertEqual(response["prompts"]["camera"]["text"], "拍一拍找古诗")
+        self.assertEqual(response["prompts"]["today"]["text"], "学一首新诗")
+        self.assertEqual(response["prompts"]["search"]["text"], "找你喜欢的诗")
+        self.assertTrue(response["prompts"]["today"]["audio_url"].endswith(".mp3"))
+
     def test_prepare_poem_text_keeps_chinese_and_adds_pauses(self):
         result = tts.prepare_poem_text("床前明月光，疑是地上霜。举头望明月，低头思故乡。")
         self.assertEqual(result, "床前明月光，疑是地上霜。……举头望明月，低头思故乡。")

@@ -26,6 +26,14 @@
         "distribute" : {
             /* android打包配置 */
             "android" : {
+                "icons" : {
+                    "ldpi" : "static/app-icons/android-36.png",
+                    "mdpi" : "static/app-icons/android-48.png",
+                    "hdpi" : "static/app-icons/android-72.png",
+                    "xhdpi" : "static/app-icons/android-96.png",
+                    "xxhdpi" : "static/app-icons/android-144.png",
+                    "xxxhdpi" : "static/app-icons/android-192.png"
+                },
                 "permissions" : [
                     "<uses-permission android:name=\"android.permission.CHANGE_NETWORK_STATE\"/>",
                     "<uses-permission android:name=\"android.permission.MOUNT_UNMOUNT_FILESYSTEMS\"/>",
@@ -58,7 +66,31 @@
             },
             /* ios打包配置 */
             "ios" : {
-                "dSYMs" : false
+                "dSYMs" : false,
+                "icons" : {
+                    "appstore" : "static/app-icons/icon-1024.png",
+                    "iphone" : {
+                        "app@2x" : "static/app-icons/ios-120.png",
+                        "app@3x" : "static/app-icons/ios-180.png",
+                        "notification@2x" : "static/app-icons/ios-40.png",
+                        "notification@3x" : "static/app-icons/ios-60.png",
+                        "settings@2x" : "static/app-icons/ios-58.png",
+                        "settings@3x" : "static/app-icons/ios-87.png",
+                        "spotlight@2x" : "static/app-icons/ios-80.png",
+                        "spotlight@3x" : "static/app-icons/ios-120.png"
+                    },
+                    "ipad" : {
+                        "app" : "static/app-icons/ios-76.png",
+                        "app@2x" : "static/app-icons/ios-152.png",
+                        "proapp@2x" : "static/app-icons/ios-167.png",
+                        "notification" : "static/app-icons/ios-20.png",
+                        "notification@2x" : "static/app-icons/ios-40.png",
+                        "settings" : "static/app-icons/ios-29.png",
+                        "settings@2x" : "static/app-icons/ios-58.png",
+                        "spotlight" : "static/app-icons/ios-40.png",
+                        "spotlight@2x" : "static/app-icons/ios-80.png"
+                    }
+                }
             },
             /* SDK配置 */
             "sdkConfigs" : {}

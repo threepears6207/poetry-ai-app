@@ -105,7 +105,7 @@
             <view class="guide-title">太棒了！我们一起看完了</view>
 
             <view class="guide-text">
-              我是作者<text class="orange-text">{{ poemData.author }}</text>，想知道我写这首诗的时候在想什么吗？快来聊聊吧！
+              我是作者<text class="orange-text" @tap.stop="speakText(`${poemData.dynasty || ''}代，${poemData.author || ''}`)">{{ poemData.author }}</text>，想知道我写这首诗的时候在想什么吗？快来聊聊吧！
             </view>
 
             <view class="guide-buttons">
@@ -1646,6 +1646,10 @@ button::after {
 }
 
 .orange-text {
+  display: inline-flex;
+  min-height: 42px;
+  padding: 0 8px;
+  align-items: center;
   color: #ff8e53;
   font-weight: 900;
 }

@@ -22,11 +22,11 @@
 
         <view class="main-layout">
           <view class="poet-stage">
-            <view class="poet-name" @tap.stop="speakText(poemData.author)">{{ poemData.author }}</view>
+            <view class="poet-name" @tap.stop="speakText(`${poemData.dynasty || ''}代，${poemData.author || ''}`)">{{ poemData.author }}</view>
 
             <view class="left-poem-card">
               <view class="left-poem-title">正在学习《{{ poemData.title }}》</view>
-              <view class="left-poem-author">{{ poemData.dynasty }} · {{ poemData.author }}</view>
+              <view class="left-poem-author" @tap.stop="speakText(`${poemData.dynasty || ''}代，${poemData.author || ''}`)">{{ poemData.dynasty }} · {{ poemData.author }}</view>
             </view>
 
             <image class="poet-img-large" :src="poetAvatarImage" mode="aspectFill" @error="handlePoetAvatarError"></image>
@@ -1386,7 +1386,7 @@ const rememberReviewGuideChoice = async () => {
 const goReview = async () => {
   await rememberReviewGuideChoice()
   showReviewGuide.value = false
-  uni.navigateTo({
+  uni.redirectTo({
     url: '/pages/review/review',
     animationType: 'fade-in',
     animationDuration: 100,

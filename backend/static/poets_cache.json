@@ -84,5 +84,41 @@
       "personality": "天真聪慧、活泼好奇，眼睛大而明亮充满惊喜，嘴角挂着孩子般开心笑容",
       "signature": "蹲在池塘边，小手指向水里的白鹅，眼睛睁得大大的充满惊喜"
     }
+  },
+  "程颢": {
+    "success": true,
+    "from_cache": false,
+    "poet_name": "程颢",
+    "dynasty": "宋",
+    "avatar_url": "/static/images/poets/程颢.jpg",
+    "profile": {
+      "desc": "外貌：中年男性，约40岁，身穿浅蓝色儒袍，头戴方巾，体型清瘦，手捧书卷。",
+      "personality": "神态：嘴角微扬，眼神温和如春，目光专注又亲和，仿佛在耐心教导孩子。",
+      "signature": "手持《春日偶成》诗卷，身后有半轮红日暖阳。"
+    }
+  },
+  "张祜": {
+    "success": true,
+    "from_cache": false,
+    "poet_name": "张祜",
+    "dynasty": "唐",
+    "avatar_url": "/static/images/poets/张祜.jpg",
+    "profile": {
+      "desc": "中年男性，圆脸微胖，穿浅蓝色唐式圆领袍，头顶束发髻，手持一枝红牡丹花，笑容温暖。",
+      "personality": "眼神柔和带笑，嘴角上扬，像邻家爷爷一样亲切温和，充满诗意。",
+      "signature": "手持红牡丹花，作吟诗状，仿佛在说‘花开堪折直须折’。"
+    }
+  },
+  "杨炯": {
+    "success": true,
+    "from_cache": false,
+    "poet_name": "杨炯",
+    "dynasty": "唐",
+    "avatar_url": "/static/images/poets/杨炯.jpg",
+    "profile": {
+      "desc": "外貌：7岁模样，男童，穿蓝色圆领小袍，头戴小冠，圆脸微胖，手持毛笔。",
+      "personality": "神态：眉眼弯弯，嘴角上扬，眼神温和好奇，像在等待伙伴玩耍。",
+      "signature": "一手举毛笔，一手握小纸卷画月亮，暗喻“明月几时有”。"
+    }
   }
 }

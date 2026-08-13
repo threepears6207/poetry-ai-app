@@ -20,7 +20,7 @@
           <image src="/static/final-ui/poem-card-transparent.png" mode="scaleToFill" />
           <view class="poem-content">
             <view class="poem-title" :class="{ 'long-title': isLongPoemTitle(poem.title), 'extra-long-title': isExtraLongPoemTitle(poem.title) }" @tap.stop="speakText(poem.title)">{{ poem.title }}</view>
-            <view class="poem-author">{{ poem.dynasty }} · {{ poem.author }}</view>
+            <view class="poem-author" @tap.stop="speakPoemAuthor(poem)">{{ poem.dynasty }} · {{ poem.author }}</view>
             <scroll-view class="poem-lines" scroll-y :show-scrollbar="false">
               <text v-for="line in poemLines(poem)" :key="line" @tap.stop="speakText(line)">{{ line }}</text>
             </scroll-view>
@@ -47,7 +47,7 @@
           <scroll-view v-else class="dialog-results" scroll-y>
             <view v-for="poem in searchResults" :key="'search-' + poem.id" class="dialog-poem">
               <view class="dialog-poem-title" @tap.stop="speakText(poem.title)">{{ poem.title }}</view>
-              <view class="dialog-poem-author">{{ poem.dynasty }} · {{ poem.author }}</view>
+              <view class="dialog-poem-author" @tap.stop="speakPoemAuthor(poem)">{{ poem.dynasty }} · {{ poem.author }}</view>
               <view class="dialog-poem-preview" @tap.stop="speakText(poem.content_preview || poemLines(poem).join('，'))">{{ poem.content_preview || poemLines(poem).join('，') }}</view>
               <view class="dialog-poem-open" @tap.stop="selectPoem(poem)">打开画卷</view>
             </view>
@@ -92,6 +92,11 @@ const updateScale = () => {
 }
 
 const poemSearchText = (poem) => `${poem.title || ''}${poem.author || ''}${(poem.tags || []).join('')}${(poem.content || []).join('')}`
+const speakPoemAuthor = (poem) => {
+  const dynasty = String(poem?.dynasty || '').trim()
+  const author = String(poem?.author || '').trim()
+  speakText(`${dynasty}${dynasty && !dynasty.endsWith('代') ? '代' : ''}${dynasty && author ? '，' : ''}${author}`)
+}
 const filteredPoems = computed(() => {
   if (activeFilter.value === 'all') return results.value
   if (activeFilter.value === '动物') return results.value.filter(item => /鹅|鸟|动物|鱼|蜂|蝉/.test(poemSearchText(item)))

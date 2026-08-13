@@ -14,8 +14,8 @@
         <view v-for="poem in visibleReviewPoems" :key="poem.key" class="practice-poem-card">
           <image src="/static/final-ui/learned-poem-card.png" mode="scaleToFill" />
           <view class="practice-card-title" :class="{ 'long-title': isLongPoemTitle(poem.title), 'extra-long-title': isExtraLongPoemTitle(poem.title) }" @tap.stop="speakText(poem.title)">{{ poem.title }}</view>
-          <view class="practice-card-author">{{ poem.author }}</view>
-          <image class="practice-card-scene" :src="poem.sceneImage" mode="aspectFill" />
+          <view class="practice-card-author" @tap.stop="speakPoemAuthor(poem)">{{ poem.author }}</view>
+          <image class="practice-card-scene" :src="poem.sceneImage" mode="aspectFill" @tap.stop="startReview(poem.key)" />
           <view class="practice-card-status">{{ poem.status }}</view>
           <view class="practice-card-action" @tap.stop="startReview(poem.key)">开始练习</view>
         </view>
@@ -49,7 +49,7 @@
 
               <view>
                 <view class="poem-info-title" :class="{ 'long-title': isLongPoemTitle(currentReviewPoem.title), 'extra-long-title': isExtraLongPoemTitle(currentReviewPoem.title) }" @tap.stop="speakText(currentReviewPoem.title)">{{ currentReviewPoem.title }}</view>
-                <view class="poem-info-author">{{ currentReviewPoem.author }}</view>
+                <view class="poem-info-author" @tap.stop="speakPoemAuthor(currentReviewPoem)">{{ currentReviewPoem.author }}</view>
               </view>
             </view>
 
@@ -132,7 +132,7 @@
                   selected: selectedLeft === item.id,
                   matched: matchedIds.includes(item.id)
                 }"
-                @tap="selectLeft(item.id)"
+                @tap="selectLeftAndSpeak(item)"
               >
                 <image class="match-card-bg" src="/static/final-ui/practice-line-left.png" mode="scaleToFill" />
                 <text class="line-index">{{ item.id }}</text>
@@ -148,7 +148,7 @@
                 :key="'right-' + item.id"
                 class="match-card right-card"
                 :class="{ matched: matchedIds.includes(item.id) }"
-                @tap="selectRight(item.id)"
+                @tap="selectRightAndSpeak(item)"
               >
                 <image class="match-card-bg" src="/static/final-ui/practice-line-right.png" mode="scaleToFill" />
                 <text class="match-card-text">{{ item.right }}</text>
@@ -182,6 +182,16 @@ import { computed, ref, onMounted, onUnmounted } from 'vue'
 import { API, LOCAL_POEMS, normalizeAssetUrl } from '@/utils/api.js'
 import { speakText } from '@/utils/speech.js'
 import { isPcmCaptureActive, startPcmCapture, stopPcmCapture } from '@/utils/pcm-recorder.js'
+
+const speakPoemAuthor = (poem) => {
+  const dynasty = String(poem?.dynasty || '').trim()
+  const author = String(poem?.author || '').trim()
+  if (author.includes('·')) {
+    speakText(author.replace('·', '代，'))
+    return
+  }
+  speakText(`${dynasty}${dynasty && !dynasty.endsWith('代') ? '代' : ''}${dynasty && author ? '，' : ''}${author}`)
+}
 
 const DESIGN_WIDTH = 1672
 const DESIGN_HEIGHT = 770
@@ -1062,13 +1072,7 @@ const backAction = () => {
   stopReadingAudio()
 
   if (reviewStep.value === 'main') {
-    uni.navigateBack({
-      fail: () => {
-        if (typeof window !== 'undefined') {
-          window.location.href = '#/pages/index/index'
-        }
-      }
-    })
+    uni.reLaunch({ url: '/pages/index/index' })
   } else {
     backToMain()
   }
@@ -1815,6 +1819,11 @@ const selectLeft = (id) => {
   matchFeedback.value = `✅ 已选择第 ${id} 句「${pair.left}」，请点击右边正确结尾`
 }
 
+const selectLeftAndSpeak = (item) => {
+  speakText(item.left)
+  selectLeft(item.id)
+}
+
 const submitConsolidationPassed = async () => {
   // 如果跟读全部通过时成绩保存失败，连连看完成后再自动重试一次。
   if (!readingScoreSubmitted.value && allReadLinesPassed.value) {
@@ -1882,6 +1891,11 @@ const selectRight = (id) => {
     matchSuccess.value = false
     matchFeedback.value = `😅 这一句结尾不对哦，请重新完成第 ${expectedId} 句`
   }
+}
+
+const selectRightAndSpeak = (item) => {
+  speakText(item.right)
+  selectRight(item.id)
 }
 
 const backToMain = async () => {
@@ -2719,7 +2733,7 @@ button::after {
 .practice-card-title { position: absolute; left: 42px; right: 42px; top: 58px; text-align: center; color: #704117; font-size: 31px; font-weight: 400; letter-spacing: 4px; z-index: 5; }
 .practice-card-title.long-title { font-size: 28px; letter-spacing: 1px; }
 .practice-card-title.extra-long-title { font-size: 24px; letter-spacing: 0; }
-.practice-card-author { position: absolute; left: 42px; right: 42px; top: 110px; text-align: center; color: #95683c; font-size: 18px; font-weight: 400; }
+.practice-card-author { position: absolute; left: 30px; right: 30px; top: 92px; height: 55px; display: flex; align-items: center; justify-content: center; text-align: center; color: #95683c; font-size: 18px; font-weight: 400; z-index: 6; pointer-events: auto; }
 .practice-poem-card > .practice-card-scene { position: absolute; left: 49px; top: 145px; width: 188px; height: 118px; z-index: 2; border: 3px solid rgba(133, 84, 42, .48); border-radius: 6px; background: #ead9b8; }
 .practice-card-status { position: absolute; left: 48px; right: 48px; top: 280px; height: 46px; display: flex; align-items: center; justify-content: center; color: #83542a; font-size: 18px; font-weight: 400; white-space: nowrap; }
 .practice-card-action { position: absolute; left: 48px; right: 48px; top: 334px; height: 44px; display: flex; align-items: center; justify-content: center; color: #704117; font-size: 19px; font-weight: 400; white-space: nowrap; z-index: 5; }

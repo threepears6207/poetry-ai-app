@@ -48,7 +48,7 @@
           <view class="lottery-copy">
             <text class="lottery-kicker">抽到啦！</text>
             <text class="lottery-title" :class="{ 'long-title': isLongPoemTitle(dailyPoem.title), 'extra-long-title': isExtraLongPoemTitle(dailyPoem.title) }" @tap.stop="speakText(dailyPoem.title)">{{ dailyPoem.title }}</text>
-            <text class="lottery-author">{{ dailyPoem.dynasty }} · {{ dailyPoem.author }}</text>
+            <text class="lottery-author" @tap.stop="speakText(`${dailyPoem.dynasty || ''}代，${dailyPoem.author || ''}`)">{{ dailyPoem.dynasty }} · {{ dailyPoem.author }}</text>
             <text class="lottery-line">{{ dailyLine }}</text>
           </view>
           <view class="lottery-actions">
@@ -243,7 +243,7 @@ button::after { border: 0; }
 .lottery-title { position: absolute; left: 145px; right: 145px; top: 180px; font-size: 72px; font-weight: 900; letter-spacing: 12px; pointer-events: auto; }
 .lottery-title.long-title { font-size: 56px; letter-spacing: 4px; }
 .lottery-title.extra-long-title { font-size: 48px; letter-spacing: 1px; }
-.lottery-author { position: absolute; left: 170px; right: 170px; top: 282px; font-size: 30px; font-weight: 800; }
+.lottery-author { position: absolute; left: 150px; right: 150px; top: 265px; height: 64px; display: flex; align-items: center; justify-content: center; font-size: 30px; font-weight: 800; pointer-events: auto; z-index: 5; }
 .lottery-line { position: absolute; left: 120px; right: 180px; top: 345px; font-size: 24px; color: #8d623a; }
 .lottery-actions { position: absolute; left: 126px; right: 126px; bottom: 70px; height: 82px; display: flex; gap: 39px; }
 .scroll-button { flex: 1; height: 82px; padding: 0; border: 0; background: transparent; color: #623a17; font-size: 27px; font-weight: 900; }

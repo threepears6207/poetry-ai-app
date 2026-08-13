@@ -720,5 +720,167 @@
       "total_seconds": 30.535,
       "parallel_workers": 4
     }
+  },
+  "poem_100": {
+    "success": true,
+    "poem_title": "秋月",
+    "has_character": false,
+    "character_desc": "",
+    "recurring_elements": "",
+    "total_lines": 4,
+    "frames": [
+      {
+        "index": 0,
+        "line": "清溪流过碧山头",
+        "scene": "远景，画面中央一座碧绿的山头，左侧一条清澈的溪流从山顶蜿蜒流下，水面反射粼粼波光，山体草木茂盛，天空淡蓝",
+        "shot_type": "远景",
+        "image_url": "/static/images/poems/poem_100/frame_0.jpg",
+        "duration_ms": 3000,
+        "elapsed_seconds": 12.557
+      },
+      {
+        "index": 1,
+        "line": "空水澄鲜一色秋",
+        "scene": "中景，镜头拉远，溪流汇入山脚一片开阔水面，天空倒映在水中，水天相接处呈现纯净的淡蓝色，整个画面色调统一为秋日清朗的蓝绿色",
+        "shot_type": "中景",
+        "image_url": "/static/images/poems/poem_100/frame_1.jpg",
+        "duration_ms": 3000,
+        "elapsed_seconds": 18.348
+      },
+      {
+        "index": 2,
+        "line": "隔断红尘三十里",
+        "scene": "远景，从水边向远处望去，视野尽头是连绵的山峦和隐约的雾气，画面下方是清澈水面，上方是纯净天空，没有任何人烟或建筑，色调清冷宁静",
+        "shot_type": "远景",
+        "image_url": "/static/images/poems/poem_100/frame_2.jpg",
+        "duration_ms": 3000,
+        "elapsed_seconds": 14.962
+      },
+      {
+        "index": 3,
+        "line": "白云红叶两悠悠",
+        "scene": "中景，画面右侧一小片枫树林，红叶在风中轻轻摇曳，上方天空几朵白云缓缓飘动，白云与红叶高低呼应，色彩对比鲜明，整体氛围悠然",
+        "shot_type": "中景",
+        "image_url": "/static/images/poems/poem_100/frame_3.jpg",
+        "duration_ms": 3000,
+        "elapsed_seconds": 18.343
+      }
+    ],
+    "errors": [],
+    "from_cache": false,
+    "timings": {
+      "planning_seconds": 9.251,
+      "image_seconds": 19.671,
+      "total_seconds": 28.925,
+      "parallel_workers": 4
+    }
+  },
+  "poem_080": {
+    "success": true,
+    "poem_title": "题金陵渡",
+    "has_character": true,
+    "character_desc": "30岁，男性，身穿唐代青灰色宽袍大袖襕衫，腰间束带，头戴黑色幞头，身形清瘦，面容略带风霜。",
+    "recurring_elements": "",
+    "total_lines": 4,
+    "frames": [
+      {
+        "index": 0,
+        "line": "金陵津渡小山楼",
+        "scene": "远景：夜色下，一座两层木构小山楼矗立在江边渡口，楼体亮着暖黄灯火，江面宽阔深暗，对岸远山模糊。",
+        "shot_type": "远景",
+        "image_url": "/static/images/poems/poem_080/frame_0.jpg",
+        "duration_ms": 3000,
+        "elapsed_seconds": 19.568
+      },
+      {
+        "index": 1,
+        "line": "一宿行人自可愁",
+        "scene": "中景：楼内窗前，一位身穿青灰色襕衫的男性行人侧身站立，左手扶窗框，右手自然垂于身侧，眉头微蹙，眼角有细小泪珠，目光望向窗外江面，室内烛光昏黄。",
+        "shot_type": "中景",
+        "image_url": "/static/images/poems/poem_080/frame_1.jpg",
+        "duration_ms": 3000,
+        "elapsed_seconds": 15.518
+      },
+      {
+        "index": 2,
+        "line": "潮落夜江斜月里",
+        "scene": "主观视角：从行人所在窗口望出，夜江潮水退去露出湿润的岸滩，一弯斜月挂在天边，月光洒在江面上形成银色波光，江面深蓝静谧。",
+        "shot_type": "主观视角",
+        "image_url": "/static/images/poems/poem_080/frame_2.jpg",
+        "duration_ms": 3000,
+        "elapsed_seconds": 17.459
+      },
+      {
+        "index": 3,
+        "line": "两三星火是瓜州",
+        "scene": "远景：从行人视角，江对岸远处，两三点暖黄色的星火灯光在夜色中闪烁，隐约可见对岸的瓜州城轮廓，江面宽阔幽暗。",
+        "shot_type": "远景",
+        "image_url": "/static/images/poems/poem_080/frame_3.jpg",
+        "duration_ms": 3000,
+        "elapsed_seconds": 21.302
+      }
+    ],
+    "errors": [],
+    "from_cache": false,
+    "timings": {
+      "planning_seconds": 10.181,
+      "image_seconds": 22.145,
+      "total_seconds": 32.331,
+      "parallel_workers": 4
+    }
+  },
+  "poem_052": {
+    "success": true,
+    "poem_title": "夜送赵纵",
+    "has_character": true,
+    "character_desc": "30岁男性诗人，身着月白色宽袖长袍，头戴黑色幞头，发髻束于头顶，面容清瘦，身形修长",
+    "recurring_elements": "",
+    "total_lines": 4,
+    "frames": [
+      {
+        "index": 0,
+        "line": "赵氏连城璧",
+        "scene": "庭院中，诗人（左）与友人（右）相对而立，诗人双手捧起一块白玉，微微举高，头顶飘出白色半透明云朵气泡，气泡内画一块晶莹剔透的美玉。友人双手抱拳行礼，面带微笑",
+        "shot_type": "中景",
+        "image_url": "/static/images/poems/poem_052/frame_0.jpg",
+        "duration_ms": 3000,
+        "elapsed_seconds": 15.209
+      },
+      {
+        "index": 1,
+        "line": "由来天下传",
+        "scene": "同上场景，诗人双手收回胸前，做出赞叹的手势，眼中闪亮，头顶气泡中浮现几封书信和卷轴飘散开来，象征名声远播。友人微微低头，面露谦逊之色",
+        "shot_type": "近景",
+        "image_url": "/static/images/poems/poem_052/frame_1.jpg",
+        "duration_ms": 3000,
+        "elapsed_seconds": 16.779
+      },
+      {
+        "index": 2,
+        "line": "送君还旧府",
+        "scene": "水边码头，诗人（左）与友人（右）站在登船处，诗人右手轻拍友人的肩膀，左手垂于身侧，友人双手抱拳向诗人告别，身后一艘小船绳索已解开",
+        "shot_type": "中景",
+        "image_url": "/static/images/poems/poem_052/frame_2.jpg",
+        "duration_ms": 3000,
+        "elapsed_seconds": 13.478
+      },
+      {
+        "index": 3,
+        "line": "明月满前川",
+        "scene": "诗人独自站在岸边，面朝河面，双手交握于身前，目光望向远方渐行渐远的小船。满月高悬，银白色的月光将整条河面映成一片亮白色，河水泛着粼粼波光。诗人眼角有一颗小泪珠",
+        "shot_type": "远景",
+        "image_url": "/static/images/poems/poem_052/frame_3.jpg",
+        "duration_ms": 3000,
+        "elapsed_seconds": 11.534
+      }
+    ],
+    "errors": [],
+    "from_cache": false,
+    "timings": {
+      "planning_seconds": 8.611,
+      "image_seconds": 18.013,
+      "total_seconds": 26.627,
+      "parallel_workers": 4
+    }
   }
 }

@@ -3,7 +3,7 @@
     <view v-if="reviewStep === 'main'" class="practice-final-app" :style="finalScaleStyle">
       <image class="practice-final-bg" src="/static/final-ui/practice-page.png" />
       <button class="practice-back-hotspot art-back-large" @tap="backAction" aria-label="返回"><image src="/static/final-ui/nav-back.png" mode="aspectFit" /></button>
-      <view class="practice-title-plaque">
+      <view class="practice-title-plaque" @tap.stop="speakText('练一练')">
         <image src="/static/final-ui/primary_button.png" mode="scaleToFill" />
         <text>练一练</text>
       </view>
@@ -11,13 +11,13 @@
       <view v-if="isLoadingList" class="practice-message">正在准备巩固任务……</view>
       <view v-else-if="!reviewPoems.length" class="practice-message">学完古诗后，巩固任务会出现在这里</view>
       <view v-else class="practice-card-row">
-        <view v-for="poem in visibleReviewPoems" :key="poem.key" class="practice-poem-card" @tap="startReview(poem.key)">
+        <view v-for="poem in visibleReviewPoems" :key="poem.key" class="practice-poem-card">
           <image src="/static/final-ui/learned-poem-card.png" mode="scaleToFill" />
-          <view class="practice-card-title" :class="{ 'long-title': isLongPoemTitle(poem.title), 'extra-long-title': isExtraLongPoemTitle(poem.title) }">{{ poem.title }}</view>
+          <view class="practice-card-title" :class="{ 'long-title': isLongPoemTitle(poem.title), 'extra-long-title': isExtraLongPoemTitle(poem.title) }" @tap.stop="speakText(poem.title)">{{ poem.title }}</view>
           <view class="practice-card-author">{{ poem.author }}</view>
           <image class="practice-card-scene" :src="poem.sceneImage" mode="aspectFill" />
           <view class="practice-card-status">{{ poem.status }}</view>
-          <view class="practice-card-action">开始练习</view>
+          <view class="practice-card-action" @tap.stop="startReview(poem.key)">开始练习</view>
         </view>
       </view>
 
@@ -48,7 +48,7 @@
               <view class="poem-info-emoji">{{ currentReviewPoem.icon }}</view>
 
               <view>
-                <view class="poem-info-title" :class="{ 'long-title': isLongPoemTitle(currentReviewPoem.title), 'extra-long-title': isExtraLongPoemTitle(currentReviewPoem.title) }">{{ currentReviewPoem.title }}</view>
+                <view class="poem-info-title" :class="{ 'long-title': isLongPoemTitle(currentReviewPoem.title), 'extra-long-title': isExtraLongPoemTitle(currentReviewPoem.title) }" @tap.stop="speakText(currentReviewPoem.title)">{{ currentReviewPoem.title }}</view>
                 <view class="poem-info-author">{{ currentReviewPoem.author }}</view>
               </view>
             </view>
@@ -63,7 +63,7 @@
                   completed: completedReadLines.includes(index),
                   locked: activeReadLine !== index
                 }"
-                @tap="selectReadLine(index)"
+                @tap="speakReviewLine(index, line)"
               >
                 {{ line }}
               </view>
@@ -163,7 +163,7 @@
           <view v-if="matchedIds.length === currentPairs.length" class="complete-overlay">
             <view class="complete-card">
               <view class="complete-emoji">🏆</view>
-              <view class="complete-title">恭喜巩固完成！</view>
+              <view class="complete-title" @tap.stop="speakText('恭喜巩固完成')">恭喜巩固完成！</view>
               <view class="complete-text">{{ resultSubmitText }}</view>
               <view class="complete-actions">
                 <button class="complete-action secondary" :disabled="isSubmittingResult" @tap="goHomeAfterReview">返回主页</button>
@@ -180,6 +180,7 @@
 <script setup>
 import { computed, ref, onMounted, onUnmounted } from 'vue'
 import { API, LOCAL_POEMS, normalizeAssetUrl } from '@/utils/api.js'
+import { speakText } from '@/utils/speech.js'
 import { isPcmCaptureActive, startPcmCapture, stopPcmCapture } from '@/utils/pcm-recorder.js'
 
 const DESIGN_WIDTH = 1672
@@ -640,6 +641,11 @@ const selectReadLine = (index) => {
 
   activeReadLine.value = selectedIndex
   readSceneFailed.value = false
+}
+
+const speakReviewLine = (index, line) => {
+  selectReadLine(index)
+  speakText(line)
 }
 
 const currentPairs = computed(() => currentReviewPoem.value.pairs || [])
@@ -1866,6 +1872,7 @@ const selectRight = (id) => {
 
     if (matchedIds.value.length === currentPairs.value.length) {
       matchFeedback.value = '🎉 太棒了！四句古诗都按顺序完成了！'
+      speakText('恭喜巩固完成')
       submitConsolidationPassed()
     } else {
       matchFeedback.value = `🎉 第 ${id} 句正确！接下来完成第 ${matchedIds.value.length + 1} 句`
@@ -2709,13 +2716,13 @@ button::after {
 
 .practice-poem-card:active { transform: scale(.93); }
 .practice-poem-card > image { position: absolute; left: 0; top: 0; width: 100%; height: 470px; }
-.practice-card-title { position: absolute; left: 42px; right: 42px; top: 58px; text-align: center; color: #704117; font-size: 31px; font-weight: 400; letter-spacing: 4px; }
+.practice-card-title { position: absolute; left: 42px; right: 42px; top: 58px; text-align: center; color: #704117; font-size: 31px; font-weight: 400; letter-spacing: 4px; z-index: 5; }
 .practice-card-title.long-title { font-size: 28px; letter-spacing: 1px; }
 .practice-card-title.extra-long-title { font-size: 24px; letter-spacing: 0; }
 .practice-card-author { position: absolute; left: 42px; right: 42px; top: 110px; text-align: center; color: #95683c; font-size: 18px; font-weight: 400; }
 .practice-poem-card > .practice-card-scene { position: absolute; left: 49px; top: 145px; width: 188px; height: 118px; z-index: 2; border: 3px solid rgba(133, 84, 42, .48); border-radius: 6px; background: #ead9b8; }
 .practice-card-status { position: absolute; left: 48px; right: 48px; top: 280px; height: 46px; display: flex; align-items: center; justify-content: center; color: #83542a; font-size: 18px; font-weight: 400; white-space: nowrap; }
-.practice-card-action { position: absolute; left: 48px; right: 48px; top: 334px; height: 44px; display: flex; align-items: center; justify-content: center; color: #704117; font-size: 19px; font-weight: 400; white-space: nowrap; }
+.practice-card-action { position: absolute; left: 48px; right: 48px; top: 334px; height: 44px; display: flex; align-items: center; justify-content: center; color: #704117; font-size: 19px; font-weight: 400; white-space: nowrap; z-index: 5; }
 .practice-message { position: absolute; left: 386px; top: 360px; width: 900px; text-align: center; color: #77502b; font-size: 32px; font-weight: 400; }
 .practice-summary { position: absolute; left: 500px; bottom: 45px; width: 672px; text-align: center; color: #5f3518; -webkit-text-stroke: 1px #fff1cf; paint-order: stroke fill; text-shadow: 0 1px 2px rgba(255, 241, 207, .9); font-size: 23px; font-weight: 400; }
 

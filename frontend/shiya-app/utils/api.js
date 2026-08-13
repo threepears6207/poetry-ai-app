@@ -814,13 +814,14 @@ export const API = {
   // POST /tts
   // 当前学习页不使用该接口，保留封装方便以后扩展
   // -----------------------------------------------------
-  textToSpeech(text, voice = 'zh-CN-XiaoxiaoNeural') {
+  textToSpeech(text, voice = 'zh-CN-XiaoxiaoNeural', style = 'poem') {
     return request({
       url: '/tts',
       method: 'POST',
       data: {
         text,
-        voice
+        voice,
+        style
       },
       timeout: 60000
     })

@@ -1,4 +1,6 @@
 <script>
+	import { pauseBgm, syncBgmForCurrentPage } from '@/utils/bgm.js'
+
 	export default {
 		onLaunch: function() {
 			console.log('App Launch')
@@ -7,9 +9,11 @@
 		onShow: function() {
 			console.log('App Show')
 			this.lockLandscape()
+			setTimeout(syncBgmForCurrentPage, 0)
 		},
 		onHide: function() {
 			console.log('App Hide')
+			pauseBgm()
 		},
 		methods: {
 			lockLandscape() {

@@ -6,7 +6,7 @@
         <view class="topbar">
           <view class="back art-back-small" @tap.stop="goBack"><image src="/static/final-ui/nav-back.png" mode="aspectFit" /></view>
 
-          <view class="title-pill">
+          <view class="title-pill" @tap.stop="speakText('和诗人聊聊')">
             <view class="logo">🌱</view>
             <text>和诗人聊聊</text>
           </view>
@@ -22,7 +22,7 @@
 
         <view class="main-layout">
           <view class="poet-stage">
-            <view class="poet-name">{{ poemData.author }}</view>
+            <view class="poet-name" @tap.stop="speakText(poemData.author)">{{ poemData.author }}</view>
 
             <view class="left-poem-card">
               <view class="left-poem-title">正在学习《{{ poemData.title }}》</view>
@@ -147,6 +147,7 @@
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { onLoad, onUnload } from '@dcloudio/uni-app'
 import { API, getLocalPoemById, normalizeAssetUrl, getPoetAvatarStaticUrl } from '@/utils/api.js'
+import { speakText } from '@/utils/speech.js'
 import { isLiveAsrActive, startLiveAsr, stopLiveAsr } from '@/utils/live-asr.js'
 
 const DESIGN_WIDTH = 1672

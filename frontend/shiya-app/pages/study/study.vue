@@ -14,7 +14,7 @@
             <view class="loading-brush">🖌️</view>
           </view>
 
-          <view class="loading-title">正在为《{{ poemData.title }}》作画</view>
+          <view class="loading-title" @tap.stop="speakText(poemData.title)">正在为《{{ poemData.title }}》作画</view>
           <view class="loading-desc">{{ loadingMessage }}</view>
           <view class="loading-line">{{ loadingPoemLine }}</view>
 
@@ -32,7 +32,7 @@
       <view class="topbar">
         <button class="back-btn art-back-small" @tap="goBack"><image src="/static/final-ui/nav-back.png" mode="aspectFit" /></button>
 
-        <view class="title-pill">
+        <view class="title-pill" @tap.stop="speakText(poemData.title)">
           正在播放：{{ poemData.title }}
         </view>
 
@@ -86,8 +86,8 @@
         </button>
 
         <view class="subtitle-text">
-          <text class="active-text">{{ subtitleFirst }}</text>
-          <text v-if="subtitleSecond">，{{ subtitleSecond }}。</text>
+          <text class="active-text" @tap.stop="speakText(subtitleFirst)">{{ subtitleFirst }}</text>
+          <text v-if="subtitleSecond" @tap.stop="speakText(subtitleSecond)">，{{ subtitleSecond }}。</text>
         </view>
 
         <view class="progress-track">
@@ -123,6 +123,7 @@
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { onLoad, onUnload, onHide } from '@dcloudio/uni-app'
 import { API, getLocalPoemById, normalizeAssetUrl, getPoetAvatarStaticUrl } from '@/utils/api.js'
+import { speakText } from '@/utils/speech.js'
 
 const DESIGN_WIDTH = 844
 const DESIGN_HEIGHT = 390
@@ -764,6 +765,7 @@ const finishStudy = async () => {
   clearFrameTimers()
   await recordStudyOnce()
   showGuide.value = true
+  speakText('去和诗人聊聊吧')
 }
 
 const destroyAudioContext = () => {

@@ -3,7 +3,7 @@
     <view class="search-page" :style="scaleStyle">
       <image class="page-bg" src="/static/final-ui/search-page.png" mode="scaleToFill" />
       <button class="back-hotspot art-back" @tap="goHome" aria-label="返回"><image src="/static/final-ui/nav-back.png" mode="aspectFit" /></button>
-      <view class="page-title">找古诗</view>
+      <view class="page-title" @tap.stop="speakText('找古诗')">找古诗</view>
 
       <button class="search-trigger" @tap="openSearchDialog" aria-label="打开搜索">
         <text>诗名、作者或主题</text>
@@ -16,16 +16,16 @@
       <view v-if="loading" class="message">正在翻阅诗卷……</view>
       <view v-else-if="visiblePoems.length === 0" class="message">没有找到相关古诗，换个词试试吧</view>
       <view v-else class="poem-grid">
-        <view v-for="poem in visiblePoems" :key="poem.id" class="poem-card" @tap="selectPoem(poem)">
+        <view v-for="poem in visiblePoems" :key="poem.id" class="poem-card">
           <image src="/static/final-ui/poem-card-transparent.png" mode="scaleToFill" />
           <view class="poem-content">
-            <view class="poem-title" :class="{ 'long-title': isLongPoemTitle(poem.title), 'extra-long-title': isExtraLongPoemTitle(poem.title) }">{{ poem.title }}</view>
+            <view class="poem-title" :class="{ 'long-title': isLongPoemTitle(poem.title), 'extra-long-title': isExtraLongPoemTitle(poem.title) }" @tap.stop="speakText(poem.title)">{{ poem.title }}</view>
             <view class="poem-author">{{ poem.dynasty }} · {{ poem.author }}</view>
             <scroll-view class="poem-lines" scroll-y :show-scrollbar="false">
-              <text v-for="line in poemLines(poem)" :key="line">{{ line }}</text>
+              <text v-for="line in poemLines(poem)" :key="line" @tap.stop="speakText(line)">{{ line }}</text>
             </scroll-view>
 
-            <view class="poem-open">打开画卷</view>
+            <view class="poem-open" @tap.stop="selectPoem(poem)">打开画卷</view>
           </view>
         </view>
       </view>
@@ -37,7 +37,7 @@
       <view v-if="showSearchDialog" class="search-dialog-mask" @tap="showSearchDialog = false">
         <view class="search-dialog" @tap.stop>
           <button class="dialog-close" @tap="showSearchDialog = false">×</button>
-          <view class="dialog-title">搜索结果</view>
+          <view class="dialog-title" @tap.stop="speakText('搜索结果')">搜索结果</view>
           <view class="dialog-search-row">
             <input v-model="keyword" placeholder="输入诗名、诗人或主题" confirm-type="search" @confirm="doSearch" />
             <button @tap="doSearch">搜索</button>
@@ -45,10 +45,11 @@
           <view v-if="loading" class="dialog-message">正在翻阅诗卷……</view>
           <view v-else-if="!searchResults.length" class="dialog-message">输入诗名、作者或主题后点击搜索</view>
           <scroll-view v-else class="dialog-results" scroll-y>
-            <view v-for="poem in searchResults" :key="'search-' + poem.id" class="dialog-poem" @tap="selectPoem(poem)">
-              <view class="dialog-poem-title">{{ poem.title }}</view>
+            <view v-for="poem in searchResults" :key="'search-' + poem.id" class="dialog-poem">
+              <view class="dialog-poem-title" @tap.stop="speakText(poem.title)">{{ poem.title }}</view>
               <view class="dialog-poem-author">{{ poem.dynasty }} · {{ poem.author }}</view>
-              <view class="dialog-poem-preview">{{ poem.content_preview || poemLines(poem).join('，') }}</view>
+              <view class="dialog-poem-preview" @tap.stop="speakText(poem.content_preview || poemLines(poem).join('，'))">{{ poem.content_preview || poemLines(poem).join('，') }}</view>
+              <view class="dialog-poem-open" @tap.stop="selectPoem(poem)">打开画卷</view>
             </view>
           </scroll-view>
         </view>
@@ -60,6 +61,7 @@
 <script setup>
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { API, LOCAL_POEMS, searchLocalPoems } from '@/utils/api.js'
+import { speakText } from '@/utils/speech.js'
 
 const DESIGN_WIDTH = 1672
 const DESIGN_HEIGHT = 770
@@ -139,6 +141,7 @@ const doSearch = async () => {
 const goHome = () => uni.navigateBack({ fail: () => uni.reLaunch({ url: '/pages/index/index' }) })
 const selectPoem = (poem) => {
   if (!poem?.id) return
+  speakText(poem.title)
   API.getPoemDetail(poem.id).then(res => {
     if (res?.success && res.data) API.preloadGenerateImage(res.data)
   }).catch(() => {})
@@ -189,7 +192,7 @@ button::after { border: 0; }
 .poem-card:active { transform: translateY(7px) scale(.97); }
 .poem-card > image { position: absolute; left: -20px; top: -8px; width: 312px; height: 509px; filter: drop-shadow(0 8px 8px rgba(70, 43, 18, .18)); }
 .poem-content { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; color: #6f411b; }
-.poem-title { position: absolute; left: 28px; right: 28px; top: 9px; height: 70px; display: flex; align-items: center; justify-content: center; text-align: center; white-space: nowrap; font-size: 34px; font-weight: 900; letter-spacing: 5px; }
+.poem-title { position: absolute; left: 28px; right: 28px; top: 9px; height: 70px; display: flex; align-items: center; justify-content: center; text-align: center; white-space: nowrap; font-size: 34px; font-weight: 900; letter-spacing: 5px; z-index: 5; }
 .poem-title.long-title { font-size: 28px; letter-spacing: 1px; }
 .poem-title.extra-long-title { left: 50%; right: auto; width: 6em; height: 82px; transform: translateX(-50%); align-content: center; white-space: normal; word-break: break-all; line-height: 1.12; font-size: 24px; letter-spacing: 0; }
 .poem-author { position: absolute; left: 28px; right: 28px; top: 104px; text-align: center; font-size: 22px; font-weight: 800; color: #8d5c30; }
@@ -226,5 +229,6 @@ button::after { border: 0; }
 .dialog-poem-title { font-size: 32px; font-weight: 900; }
 .dialog-poem-author { margin-top: 5px; font-size: 23px; color: #926138; }
 .dialog-poem-preview { margin-top: 8px; font-size: 24px; }
+.dialog-poem-open { float: right; margin-top: 8px; color: #704117; font-size: 23px; font-weight: 900; }
 .dialog-message { padding-top: 90px; text-align: center; color: #82552d; font-size: 34px; font-weight: 900; }
 </style>

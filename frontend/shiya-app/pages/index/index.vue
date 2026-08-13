@@ -47,7 +47,7 @@
           <button class="modal-close" @tap.stop="showLottery = false" aria-label="关闭"></button>
           <view class="lottery-copy">
             <text class="lottery-kicker">抽到啦！</text>
-            <text class="lottery-title" :class="{ 'long-title': isLongPoemTitle(dailyPoem.title), 'extra-long-title': isExtraLongPoemTitle(dailyPoem.title) }">{{ dailyPoem.title }}</text>
+            <text class="lottery-title" :class="{ 'long-title': isLongPoemTitle(dailyPoem.title), 'extra-long-title': isExtraLongPoemTitle(dailyPoem.title) }" @tap.stop="speakText(dailyPoem.title)">{{ dailyPoem.title }}</text>
             <text class="lottery-author">{{ dailyPoem.dynasty }} · {{ dailyPoem.author }}</text>
             <text class="lottery-line">{{ dailyLine }}</text>
           </view>
@@ -65,6 +65,7 @@
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import { API, LOCAL_POEMS } from '@/utils/api.js'
+import { speakText } from '@/utils/speech.js'
 
 const DESIGN_WIDTH = 1672
 const DESIGN_HEIGHT = 770
@@ -132,8 +133,8 @@ const loadDailyPoem = async () => {
 }
 
 const drawDailyPoem = async () => {
-  showLottery.value = true
   await loadDailyPoem()
+  showLottery.value = true
 }
 
 const activateEntry = (name, action) => {
@@ -145,11 +146,26 @@ const activateEntry = (name, action) => {
   }, 150)
 }
 
-const openCamera = () => activateEntry('camera', () => goPage('/pages/camera/camera'))
-const openLottery = () => activateEntry('today', drawDailyPoem)
-const openSearch = () => activateEntry('search', () => goPage('/pages/recommend/recommend?mode=search'))
-const openPractice = () => activateEntry('practice', () => goPage('/pages/review/review'))
-const openStamps = () => activateEntry('stamps', () => goPage('/pages/collection/collection'))
+const openCamera = () => {
+  speakText('拍一拍')
+  activateEntry('camera', () => goPage('/pages/camera/camera'))
+}
+const openLottery = () => {
+  speakText('今天学什么')
+  activateEntry('today', drawDailyPoem)
+}
+const openSearch = () => {
+  speakText('找古诗')
+  activateEntry('search', () => goPage('/pages/recommend/recommend?mode=search'))
+}
+const openPractice = () => {
+  speakText('练一练')
+  activateEntry('practice', () => goPage('/pages/review/review'))
+}
+const openStamps = () => {
+  speakText('集章墙')
+  activateEntry('stamps', () => goPage('/pages/collection/collection'))
+}
 
 const drawAgain = async () => {
   try {
@@ -163,6 +179,7 @@ const drawAgain = async () => {
 
 const goStudy = () => {
   if (!dailyPoem.value?.id) return
+  speakText(dailyPoem.value?.title || '打开画卷')
   showLottery.value = false
   goPage(`/pages/study/study?poem_id=${dailyPoem.value.id}`)
 }
@@ -223,7 +240,7 @@ button::after { border: 0; }
 .modal-close { position: absolute; right: 8px; top: 48px; width: 72px; height: 72px; padding: 0; border: 0; background: transparent; z-index: 8; }
 .lottery-copy { position: absolute; inset: 0; color: #663c19; text-align: center; pointer-events: none; }
 .lottery-kicker { position: absolute; left: 175px; right: 175px; top: 40px; height: 86px; display: flex; align-items: center; justify-content: center; font-size: 42px; font-weight: 900; }
-.lottery-title { position: absolute; left: 145px; right: 145px; top: 180px; font-size: 72px; font-weight: 900; letter-spacing: 12px; }
+.lottery-title { position: absolute; left: 145px; right: 145px; top: 180px; font-size: 72px; font-weight: 900; letter-spacing: 12px; pointer-events: auto; }
 .lottery-title.long-title { font-size: 56px; letter-spacing: 4px; }
 .lottery-title.extra-long-title { font-size: 48px; letter-spacing: 1px; }
 .lottery-author { position: absolute; left: 170px; right: 170px; top: 282px; font-size: 30px; font-weight: 800; }

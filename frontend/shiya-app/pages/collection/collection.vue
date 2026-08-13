@@ -3,14 +3,14 @@
     <view class="catalog" :style="scaleStyle">
       <image class="catalog-bg" src="/static/final-ui/stamp-page.png" mode="scaleToFill" />
       <button class="back-hotspot art-back" @tap="goBack" aria-label="返回"><image src="/static/final-ui/nav-back.png" mode="aspectFit" /></button>
-      <view class="page-title">集章墙</view>
+      <view class="page-title" @tap.stop="speakText('集章墙')">集章墙</view>
 
       <view class="card-grid">
-        <view v-for="poem in visiblePoems" :key="poem.id" class="poem-card" :class="{ locked: !poem.unlocked }" @tap="openPoem(poem)">
-          <image class="card-bg" src="/static/final-ui/collection-card-replacement.png" mode="scaleToFill" />
-          <view class="card-name" :class="{ 'long-title': isLongPoemTitle(poem.title), 'extra-long-title': isExtraLongPoemTitle(poem.title) }">{{ poem.title }}</view>
-          <image class="card-scene" :src="poem.sceneImage" mode="aspectFill" />
-          <view v-if="!poem.unlocked" class="lock-mark">尚未点亮</view>
+        <view v-for="poem in visiblePoems" :key="poem.id" class="poem-card" :class="{ locked: !poem.unlocked }">
+          <image class="card-bg" src="/static/final-ui/collection-card-replacement.png" mode="scaleToFill" @tap="openPoem(poem)" />
+          <view class="card-name" :class="{ 'long-title': isLongPoemTitle(poem.title), 'extra-long-title': isExtraLongPoemTitle(poem.title) }" @tap.stop="speakText(poem.title)">{{ poem.title }}</view>
+          <image class="card-scene" :src="poem.sceneImage" mode="aspectFill" @tap="openPoem(poem)" />
+          <view v-if="!poem.unlocked" class="lock-mark" @tap="openPoem(poem)">尚未点亮</view>
           <view class="card-author">{{ poem.dynasty }} · {{ poem.author }}</view>
           <image v-if="poem.unlocked" class="card-flower" src="/static/final-ui/flower.png" mode="aspectFit" />
         </view>
@@ -29,6 +29,7 @@
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import { API, normalizeAssetUrl } from '@/utils/api.js'
+import { speakText } from '@/utils/speech.js'
 
 const DESIGN_WIDTH = 1672
 const DESIGN_HEIGHT = 770
@@ -96,9 +97,11 @@ const loadCollection = async () => {
 const goBack = () => uni.navigateBack({ fail: () => uni.reLaunch({ url: '/pages/index/index' }) })
 const openPoem = (poem) => {
   if (!poem.unlocked) {
+    speakText('尚未点亮')
     uni.showToast({ title: '完成巩固后就能点亮', icon: 'none' })
     return
   }
+  speakText(poem.title)
   uni.navigateTo({ url: `/pages/study/study?poem_id=${poem.id}` })
 }
 
@@ -129,7 +132,7 @@ button::after { border: 0; }
 .poem-card.locked { filter: none; opacity: 1; }
 .poem-card.locked .card-scene { filter: grayscale(1); opacity: .48; }
 .card-bg { position: absolute; inset: 0; width: 270px; height: 273px; }
-.card-name { position: absolute; left: 62px; right: 62px; top: 32px; height: 40px; display: flex; align-items: center; justify-content: center; color: #744319; font-size: 24px; font-weight: 900; }
+.card-name { position: absolute; left: 62px; right: 62px; top: 32px; height: 40px; display: flex; align-items: center; justify-content: center; color: #744319; font-size: 24px; font-weight: 900; z-index: 6; }
 .card-name.long-title { left: 42px; right: 42px; font-size: 20px; }
 .card-name.extra-long-title { left: 34px; right: 34px; font-size: 17px; letter-spacing: 0; }
 .card-scene { position: absolute; left: 42px; top: 82px; width: 186px; height: 105px; border: 3px solid rgba(133, 84, 42, .42); border-radius: 5px; background: #ead9b8; }

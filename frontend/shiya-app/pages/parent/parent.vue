@@ -5,7 +5,7 @@
         <view class="topbar">
           <view class="back art-back-small" @tap.stop="goBack"><image src="/static/final-ui/nav-back.png" mode="aspectFit" /></view>
 
-          <view class="title-pill">
+          <view class="title-pill" @tap.stop="speakText('家长端')">
             <view class="logo">🌱</view>
             <text>家长端</text>
           </view>
@@ -101,6 +101,7 @@
 <script setup>
 import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { API } from '@/utils/api.js'
+import { speakText } from '@/utils/speech.js'
 
 const DESIGN_WIDTH = 844
 const DESIGN_HEIGHT = 390

@@ -24,7 +24,7 @@
         <view class="camera-popup-mask">
           <view class="camera-choice-popup">
             <image src="/static/final-ui/camera-choice-transparent.png" mode="scaleToFill" />
-            <view class="camera-popup-title">拍 一 拍</view>
+            <view class="camera-popup-title" @tap.stop="speakText('拍一拍')">拍 一 拍</view>
             <view class="camera-popup-tip">
               <text>拍一拍，找诗意：</text>
               <text>课本诗句和眼前风景都可以拍哦</text>
@@ -41,7 +41,7 @@
       <view v-else class="final-result-page">
         <image class="final-page-bg" src="/static/final-ui/camera-result-page.png" mode="scaleToFill" />
         <button class="result-back-hotspot result-back-native" @tap="pageState = 'camera'" aria-label="返回"></button>
-        <view class="result-page-title">诗芽为你找到了这些古诗</view>
+        <view class="result-page-title" @tap.stop="speakText('诗芽为你找到了这些古诗')">诗芽为你找到了这些古诗</view>
         <view class="result-subtitle">点击你想学习的诗，打开画卷开始学习吧</view>
         <view class="result-cards">
           <view v-for="(poem, index) in resultCandidates" :key="poem.id" class="result-poem-card" :class="{ best: index === resultCandidates.length - 1 }" @tap="selectResult(poem)">
@@ -62,6 +62,7 @@
 <script setup>
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { API } from '@/utils/api.js'
+import { speakText } from '@/utils/speech.js'
 // #ifdef APP-PLUS
 import {
   analyzeImage,
@@ -558,6 +559,8 @@ const chooseCameraBySystem = () => {
 const shootAndRecognize = async () => {
   if (recognizing.value) return
 
+  speakText('拍照')
+
   recognizing.value = true
 
   try {
@@ -585,6 +588,8 @@ const shootAndRecognize = async () => {
 
 const chooseAlbumAndRecognize = async () => {
   if (recognizing.value) return
+
+  speakText('相册')
 
   recognizing.value = true
 

@@ -188,7 +188,7 @@ button::after { border: 0; }
 .art-back { z-index: 70; width: 120px; height: 120px; padding: 0; border: 0; background: transparent; }
 .art-back image, .page-arrow image { width: 100%; height: 100%; }
 .page-title { position: absolute; left: 570px; top: 35px; width: 532px; height: 96px; display: flex; align-items: center; justify-content: center; color: #704117; font-size: 56px; font-weight: 900; letter-spacing: 14px; }
-.search-trigger { position: absolute; right: 38px; top: 22px; width: 385px; height: 80px; padding: 0 24px 0 76px; border: 0; background: transparent; color: #8a7764; font: 700 27px/80px "PingFang SC", sans-serif; text-align: left; }
+.search-trigger { position: absolute; right: 38px; top: 20px; width: 385px; height: 80px; padding: 0 24px 0 76px; border: 0; background: transparent; color: #8a7764; font: 700 27px/80px "PingFang SC", sans-serif; text-align: left; }
 .filter-row { position: absolute; left: 250px; right: 250px; top: 145px; display: flex; justify-content: center; gap: 20px; }
 .filter-row view { min-width: 100px; height: 42px; padding: 0 18px; display: flex; align-items: center; justify-content: center; color: #85562b; font-size: 21px; font-weight: 900; }
 .filter-row view.active { color: #65390f; border-bottom: 4px solid #b8792e; }
@@ -234,6 +234,6 @@ button::after { border: 0; }
 .dialog-poem-title { font-size: 32px; font-weight: 900; }
 .dialog-poem-author { margin-top: 5px; font-size: 23px; color: #926138; }
 .dialog-poem-preview { margin-top: 8px; font-size: 24px; }
-.dialog-poem-open { float: right; margin-top: 8px; color: #704117; font-size: 23px; font-weight: 900; }
+.dialog-poem-open { float: right; margin-top: -80px; color: #704117; font-size: 23px; font-weight: 900; }
 .dialog-message { padding-top: 90px; text-align: center; color: #82552d; font-size: 34px; font-weight: 900; }
 </style>

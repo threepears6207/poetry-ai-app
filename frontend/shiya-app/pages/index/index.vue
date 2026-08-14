@@ -201,7 +201,7 @@ button::after { border: 0; }
 .age-control, .parent-control { position: relative; height: 72px; display: flex; align-items: center; justify-content: center; color: #744318; font-weight: 900; font-size: 25px; }
 .age-control { width: 178px; padding-right: 20px; }
 .parent-control { width: 168px; }
-.age-control image, .parent-control image { position: absolute; inset: 0; width: 100%; height: 100%; z-index: -1; }
+.age-control image, .parent-control image { position: absolute; inset: 0; width: 105%; height: 100%; z-index: -1; }
 .age-arrow { position: absolute; right: 29px; top: 19px; }
 .age-menu { position: absolute; right: 184px; top: 76px; width: 174px; padding: 10px; border: 4px solid #b9792f; border-radius: 20px; background: #fff1cb; box-shadow: 0 10px 25px rgba(61, 40, 18, .25); }
 .age-menu view { height: 50px; border-radius: 13px; display: flex; align-items: center; justify-content: center; color: #795126; font-size: 23px; font-weight: 900; }
@@ -236,7 +236,7 @@ button::after { border: 0; }
 .scroll-button { flex: 1; height: 82px; padding: 0; border: 0; background: transparent; color: #623a17; font-size: 27px; font-weight: 900; }
 .scroll-button.primary, .scroll-button.secondary { background: transparent; box-shadow: none; }
 /* 手机横屏可读性 */
-.age-control, .parent-control { font-size: 34px; }
+.age-control, .parent-control { font-size: 30px; }
 .age-menu view { font-size: 30px; }
 .lottery-kicker { font-size: 52px; }
 .lottery-title { font-size: 78px; }

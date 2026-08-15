@@ -7,7 +7,15 @@ __pycache__/
 *.pyo
 static/audio/chat/
 static/audio/tts_*.mp3
-static/videos/
+# 每首诗仅提交一条正式视频：static/videos/poems/<poem_id>/video.mp4。
+# 带供应商任务编号的历史/测试 MP4 一律留在本地。
+static/videos/*
+!static/videos/poems/
+static/videos/poems/*
+!static/videos/poems/*/
+static/videos/poems/*/*
+!static/videos/poems/*/video.mp4
+# 已废弃的本机历史任务记录；代码不再读取或写入该文件。
 static/video_tasks_cache.json
 server*.log
 data/*.db

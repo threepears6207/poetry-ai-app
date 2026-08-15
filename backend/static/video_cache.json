@@ -1,0 +1,35 @@
+{
+  "poems": {
+    "poem_001": { "group_id": "shared-poem_001" },
+    "poem_005": { "group_id": "shared-poem_005" },
+    "poem_007": { "group_id": "shared-poem_007" },
+    "poem_011": { "group_id": "shared-poem_011" },
+    "poem_015": { "group_id": "shared-poem_015" },
+    "poem_021": { "group_id": "shared-poem_021" },
+    "poem_022": { "group_id": "shared-poem_022" },
+    "poem_033": { "group_id": "shared-poem_033" },
+    "poem_163": { "group_id": "shared-poem_163" }
+  },
+  "tasks": {
+    "shared-poem_001": { "task_id": "shared-poem_001", "cache_key": "poem_001", "poem_id": "poem_001", "poem_title": "春晓", "model": "Doubao-Seedance-2.0-fast", "duration": 12, "ratio": "16:9", "status": "succeeded", "video_url": "/static/videos/poems/poem_001/video.mp4", "error": "", "created_at": "2026-08-11T17:55:25+08:00", "updated_at": "2026-08-11T18:01:06+08:00" },
+    "shared-poem_005": { "task_id": "shared-poem_005", "cache_key": "poem_005", "poem_id": "poem_005", "poem_title": "登鹳雀楼", "model": "Doubao-Seedance-2.0-fast", "duration": 12, "ratio": "16:9", "status": "succeeded", "video_url": "/static/videos/poems/poem_005/video.mp4", "error": "", "created_at": "2026-08-11T20:32:25+08:00", "updated_at": "2026-08-11T20:35:52+08:00" },
+    "shared-poem_007": { "task_id": "shared-poem_007", "cache_key": "poem_007", "poem_id": "poem_007", "poem_title": "赠汪伦", "model": "Doubao-Seedance-2.0-fast", "duration": 12, "ratio": "16:9", "status": "succeeded", "video_url": "/static/videos/poems/poem_007/video.mp4", "error": "", "created_at": "2026-08-12T23:53:30+08:00", "updated_at": "2026-08-12T23:56:29+08:00" },
+    "shared-poem_011": { "task_id": "shared-poem_011", "cache_key": "poem_011", "poem_id": "poem_011", "poem_title": "风", "model": "Doubao-Seedance-2.0-fast", "duration": 12, "ratio": "16:9", "status": "succeeded", "video_url": "/static/videos/poems/poem_011/video.mp4", "error": "", "created_at": "2026-08-14T21:51:01+08:00", "updated_at": "2026-08-14T22:16:46+08:00" },
+    "shared-poem_015": { "task_id": "shared-poem_015", "cache_key": "poem_015", "poem_id": "poem_015", "poem_title": "绝句", "model": "Doubao-Seedance-2.0-fast", "duration": 12, "ratio": "16:9", "status": "succeeded", "video_url": "/static/videos/poems/poem_015/video.mp4", "error": "", "created_at": "2026-08-14T21:46:47+08:00", "updated_at": "2026-08-14T21:49:45+08:00" },
+    "shared-poem_021": { "task_id": "shared-poem_021", "cache_key": "poem_021", "poem_id": "poem_021", "poem_title": "游子吟", "model": "Doubao-Seedance-2.0-fast", "duration": 12, "ratio": "16:9", "status": "succeeded", "video_url": "/static/videos/poems/poem_021/video.mp4", "error": "", "created_at": "2026-08-12T23:24:34+08:00", "updated_at": "2026-08-12T23:29:36+08:00" },
+    "shared-poem_022": { "task_id": "shared-poem_022", "cache_key": "poem_022", "poem_id": "poem_022", "poem_title": "池上", "model": "Doubao-Seedance-2.0-fast", "duration": 12, "ratio": "16:9", "status": "succeeded", "video_url": "/static/videos/poems/poem_022/video.mp4", "error": "", "created_at": "2026-08-14T22:22:50+08:00", "updated_at": "2026-08-14T22:25:03+08:00" },
+    "shared-poem_033": { "task_id": "shared-poem_033", "cache_key": "poem_033", "poem_id": "poem_033", "poem_title": "别卢秦卿", "model": "Doubao-Seedance-2.0-fast", "duration": 12, "ratio": "16:9", "status": "succeeded", "video_url": "/static/videos/poems/poem_033/video.mp4", "error": "", "created_at": "2026-08-15T15:47:57+08:00", "updated_at": "2026-08-15T15:59:51+08:00" },
+    "shared-poem_163": { "task_id": "shared-poem_163", "cache_key": "poem_163", "poem_id": "poem_163", "poem_title": "赋得古原草送别", "model": "Doubao-Seedance-2.0-fast", "duration": 12, "ratio": "16:9", "status": "succeeded", "video_url": "/static/videos/poems/poem_163/video.mp4", "error": "", "created_at": "2026-08-11T18:24:36+08:00", "updated_at": "2026-08-11T18:28:09+08:00" }
+  },
+  "groups": {
+    "shared-poem_001": { "group_id": "shared-poem_001", "cache_key": "poem_001", "poem_id": "poem_001", "poem_title": "春晓", "model": "Doubao-Seedance-2.0-fast", "duration": 12, "ratio": "16:9", "status": "succeeded", "segment_task_ids": ["shared-poem_001"], "error": "", "created_at": "2026-08-11T17:55:25+08:00", "updated_at": "2026-08-11T18:01:06+08:00" },
+    "shared-poem_005": { "group_id": "shared-poem_005", "cache_key": "poem_005", "poem_id": "poem_005", "poem_title": "登鹳雀楼", "model": "Doubao-Seedance-2.0-fast", "duration": 12, "ratio": "16:9", "status": "succeeded", "segment_task_ids": ["shared-poem_005"], "error": "", "created_at": "2026-08-11T20:32:25+08:00", "updated_at": "2026-08-11T20:35:52+08:00" },
+    "shared-poem_007": { "group_id": "shared-poem_007", "cache_key": "poem_007", "poem_id": "poem_007", "poem_title": "赠汪伦", "model": "Doubao-Seedance-2.0-fast", "duration": 12, "ratio": "16:9", "status": "succeeded", "segment_task_ids": ["shared-poem_007"], "error": "", "created_at": "2026-08-12T23:53:30+08:00", "updated_at": "2026-08-12T23:56:29+08:00" },
+    "shared-poem_011": { "group_id": "shared-poem_011", "cache_key": "poem_011", "poem_id": "poem_011", "poem_title": "风", "model": "Doubao-Seedance-2.0-fast", "duration": 12, "ratio": "16:9", "status": "succeeded", "segment_task_ids": ["shared-poem_011"], "error": "", "created_at": "2026-08-14T21:51:01+08:00", "updated_at": "2026-08-14T22:16:46+08:00" },
+    "shared-poem_015": { "group_id": "shared-poem_015", "cache_key": "poem_015", "poem_id": "poem_015", "poem_title": "绝句", "model": "Doubao-Seedance-2.0-fast", "duration": 12, "ratio": "16:9", "status": "succeeded", "segment_task_ids": ["shared-poem_015"], "error": "", "created_at": "2026-08-14T21:46:47+08:00", "updated_at": "2026-08-14T21:49:45+08:00" },
+    "shared-poem_021": { "group_id": "shared-poem_021", "cache_key": "poem_021", "poem_id": "poem_021", "poem_title": "游子吟", "model": "Doubao-Seedance-2.0-fast", "duration": 12, "ratio": "16:9", "status": "succeeded", "segment_task_ids": ["shared-poem_021"], "error": "", "created_at": "2026-08-12T23:24:34+08:00", "updated_at": "2026-08-12T23:29:36+08:00" },
+    "shared-poem_022": { "group_id": "shared-poem_022", "cache_key": "poem_022", "poem_id": "poem_022", "poem_title": "池上", "model": "Doubao-Seedance-2.0-fast", "duration": 12, "ratio": "16:9", "status": "succeeded", "segment_task_ids": ["shared-poem_022"], "error": "", "created_at": "2026-08-14T22:22:50+08:00", "updated_at": "2026-08-14T22:25:03+08:00" },
+    "shared-poem_033": { "group_id": "shared-poem_033", "cache_key": "poem_033", "poem_id": "poem_033", "poem_title": "别卢秦卿", "model": "Doubao-Seedance-2.0-fast", "duration": 12, "ratio": "16:9", "status": "succeeded", "segment_task_ids": ["shared-poem_033"], "error": "", "created_at": "2026-08-15T15:47:57+08:00", "updated_at": "2026-08-15T15:59:51+08:00" },
+    "shared-poem_163": { "group_id": "shared-poem_163", "cache_key": "poem_163", "poem_id": "poem_163", "poem_title": "赋得古原草送别", "model": "Doubao-Seedance-2.0-fast", "duration": 12, "ratio": "16:9", "status": "succeeded", "segment_task_ids": ["shared-poem_163"], "error": "", "created_at": "2026-08-11T18:24:36+08:00", "updated_at": "2026-08-11T18:28:09+08:00" }
+  }
+}

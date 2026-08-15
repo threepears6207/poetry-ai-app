@@ -186,12 +186,16 @@ onUnmounted(() => {
     uni.offWindowResize(handleAppResize)
   }
 
+  isChatPageActive = false
   poetAudioRequestToken += 1
+  chatRequestToken += 1
   stopChatReplyAudio(false)
 })
 
 onUnload(() => {
+  isChatPageActive = false
   poetAudioRequestToken += 1
+  chatRequestToken += 1
   stopLiveAsr()
   stopChatReplyAudio(false)
 })
@@ -217,6 +221,7 @@ const replyAudioContext = ref(null)
 const playingAudioMessageIndex = ref(-1)
 const currentReplyAudioUrl = ref('')
 let poetAudioRequestToken = 0
+let isChatPageActive = false
 
 const isVoiceRecording = ref(false)
 const isRecognizingVoice = ref(false)
@@ -509,7 +514,7 @@ const appendPoetMessage = (text, res = {}) => {
     audioState: audioUrl ? 'ready' : ''
   })
 
-  if (audioUrl) {
+  if (audioUrl && isChatPageActive) {
     playPoetAudio(audioUrl, messageIndex)
   }
 
@@ -521,7 +526,7 @@ const requestPoetMessageAudio = async (text, messageIndex) => {
 
   try {
     const res = await API.generatePoetSpeech(getPoetName(), text)
-    if (requestToken !== poetAudioRequestToken) return
+    if (!isChatPageActive || requestToken !== poetAudioRequestToken) return
 
     const audioUrl = normalizeChatAudioUrl(getChatReplyAudioPath(res))
     if (!res?.success || !audioUrl || !messages.value[messageIndex]) return
@@ -540,6 +545,7 @@ const requestPoetMessageAudio = async (text, messageIndex) => {
 
 
 onLoad(async (options) => {
+  isChatPageActive = true
   poemId.value = options.poem_id || 'poem_001'
   childAge.value = normalizeAge(
     options.age ||
@@ -617,6 +623,7 @@ const loadPoetAvatar = async () => {
 }
 
 const initPoetChat = async () => {
+  poetAudioRequestToken += 1
   stopChatReplyAudio(false)
 
   isReplying.value = true
@@ -634,6 +641,8 @@ const initPoetChat = async () => {
       age: childAge.value,
       include_audio: false
     })
+
+    if (!isChatPageActive) return
 
     if (res && res.success && res.reply) {
       const messageIndex = appendPoetMessage(res.reply, res)
@@ -660,6 +669,7 @@ const initPoetChat = async () => {
       ]
     }
   } catch (err) {
+    if (!isChatPageActive) return
     console.log('诗人开场白接口失败，使用本地开场白', err)
 
     const fallbackText = `小朋友你好，我是${poemData.value.dynasty || '唐'}代诗人${poemData.value.author}。你刚刚学习了《${poemData.value.title}》，现在可以问我问题。`
@@ -679,6 +689,9 @@ const initPoetChat = async () => {
 }
 
 const goBack = () => {
+  isChatPageActive = false
+  poetAudioRequestToken += 1
+  chatRequestToken += 1
   stopChatReplyAudio(false)
 
   const pages = typeof getCurrentPages === 'function' ? getCurrentPages() : []
@@ -1281,7 +1294,7 @@ const sendMessage = async () => {
       include_audio: false
     })
 
-    if (requestToken !== chatRequestToken) return
+    if (!isChatPageActive || requestToken !== chatRequestToken) return
 
     if (res && res.success && res.reply) {
       const messageIndex = appendPoetMessage(res.reply, res)
@@ -1314,7 +1327,7 @@ const sendMessage = async () => {
       })
     }
   } catch (err) {
-    if (requestToken !== chatRequestToken) return
+    if (!isChatPageActive || requestToken !== chatRequestToken) return
     console.log('AI 对话接口暂不可用，使用本地假回复', err)
 
     const fallbackText = fakeReply(text)
@@ -1332,7 +1345,7 @@ const sendMessage = async () => {
     })
   }
 
-  if (requestToken === chatRequestToken) {
+  if (isChatPageActive && requestToken === chatRequestToken) {
     isReplying.value = false
     canNext.value = true
     chatScrollTop.value += 360
@@ -1350,6 +1363,7 @@ const handleNext = async () => {
     return
   }
 
+  poetAudioRequestToken += 1
   stopChatReplyAudio(false)
 
   const now = new Date()
@@ -1401,6 +1415,10 @@ const goReview = async () => {
 const goHome = async () => {
   await rememberReviewGuideChoice()
   showReviewGuide.value = false
+  isChatPageActive = false
+  poetAudioRequestToken += 1
+  chatRequestToken += 1
+  stopChatReplyAudio(false)
   uni.reLaunch({ url: '/pages/index/index' })
 }
 

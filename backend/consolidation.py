@@ -241,7 +241,7 @@ def collection_wall_data(user_id="test_user", db_path=None):
     try:
         rows = connection.execute(
             """
-            SELECT p.id AS poem_id, p.title, p.author, p.dynasty,
+            SELECT p.id AS poem_id, p.title, p.author, p.dynasty, p.content_json,
                    p.age_level, p.difficulty,
                    COALESCE(c.reading_completed, 0) AS reading_completed,
                    COALESCE(c.connection_completed, 0) AS connection_completed,
@@ -263,6 +263,11 @@ def collection_wall_data(user_id="test_user", db_path=None):
         connection.close()
     poems = [dict(row) for row in rows]
     for poem in poems:
+        try:
+            content = json.loads(poem.pop("content_json") or "[]")
+        except (TypeError, json.JSONDecodeError):
+            content = []
+        poem["content"] = content if isinstance(content, list) else []
         poem["reading_completed"] = bool(poem["reading_completed"])
         poem["connection_completed"] = bool(poem["connection_completed"])
     return {

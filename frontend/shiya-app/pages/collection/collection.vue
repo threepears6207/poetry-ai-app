@@ -9,7 +9,27 @@
         <view v-for="poem in visiblePoems" :key="poem.id" class="poem-card" :class="{ locked: !poem.unlocked }">
           <image class="card-bg" src="/static/final-ui/collection-card-replacement.png" mode="scaleToFill" @tap="openPoem(poem)" />
           <view class="card-name" :class="{ 'long-title': isLongPoemTitle(poem.title), 'extra-long-title': isExtraLongPoemTitle(poem.title) }" @tap.stop="speakText(poem.title)">{{ poem.title }}</view>
-          <image class="card-scene" :src="poem.sceneImage" mode="aspectFill" @tap="openPoem(poem)" />
+          <video
+            v-if="poem.unlocked && poem.hasVideo"
+            class="card-scene"
+            :src="poem.videoUrl"
+            :autoplay="true"
+            :loop="true"
+            :muted="true"
+            :controls="false"
+            :show-center-play-btn="false"
+            :show-play-btn="false"
+            :show-progress="false"
+            :show-fullscreen-btn="false"
+            :enable-play-gesture="false"
+            :enable-progress-gesture="false"
+            :id="`collection-video-${poem.id}`"
+            object-fit="cover"
+            @click.stop="openPoem(poem)"
+            @pause="resumeCollectionVideo(poem.id)"
+          >
+          </video>
+          <image v-else class="card-scene" :src="poem.sceneImage" mode="aspectFill" @tap="openPoem(poem)" />
           <view v-if="!poem.unlocked" class="lock-mark" @tap="openPoem(poem)">尚未点亮</view>
           <view class="card-author">{{ poem.dynasty }} · {{ poem.author }}</view>
           <image v-if="poem.unlocked" class="card-flower" src="/static/final-ui/flower.png" mode="aspectFit" />
@@ -37,6 +57,7 @@ const scale = ref(1)
 const scaleStyle = computed(() => `transform: scale(${scale.value});`)
 const completedIds = ref(new Set())
 const catalogPoems = ref([])
+const poemVideoStates = ref({})
 const pageIndex = ref(0)
 const PAGE_SIZE = 4
 const isLongPoemTitle = (title = '') => Array.from(String(title).replace(/\s/g, '')).length > 4
@@ -45,7 +66,9 @@ const isExtraLongPoemTitle = (title = '') => Array.from(String(title).replace(/\
 const allPoems = computed(() => catalogPoems.value.map(poem => ({
   ...poem,
   sceneImage: normalizeAssetUrl(`/static/images/poems/${poem.id}/frame_0.jpg`),
-  unlocked: completedIds.value.has(String(poem.id))
+  unlocked: completedIds.value.has(String(poem.id)),
+  hasVideo: Boolean(poemVideoStates.value[String(poem.id)]?.video_url),
+  videoUrl: poemVideoStates.value[String(poem.id)]?.video_url || ''
 })))
 const maxPage = computed(() => Math.max(0, Math.ceil(allPoems.value.length / PAGE_SIZE) - 1))
 const visiblePoems = computed(() => allPoems.value.slice(pageIndex.value * PAGE_SIZE, pageIndex.value * PAGE_SIZE + PAGE_SIZE))
@@ -86,15 +109,36 @@ const loadCollection = async () => {
         .map(item => String(item.poem_id || item.id || ''))
         .filter(Boolean)
     )
+    const readyVideoStates = await API.getReadyPoemVideos()
+    await Promise.all(poems.map((poem) => API.refreshPoemVideo(poem)))
+    poemVideoStates.value = poems.reduce((states, poem) => {
+      const poemKey = String(poem.id || poem.poem_id || '')
+      const videoState = API.getStoredPoemVideo(poem) || readyVideoStates[poemKey]
+
+      if (poemKey && videoState) states[poemKey] = videoState
+      return states
+    }, {})
     pageIndex.value = Math.min(pageIndex.value, maxPage.value)
   } catch (err) {
     console.log('加载集章墙失败：', err)
     catalogPoems.value = []
     completedIds.value = new Set()
+    poemVideoStates.value = {}
   }
 }
 
 const goBack = () => uni.navigateBack({ fail: () => uni.reLaunch({ url: '/pages/index/index' }) })
+const resumeCollectionVideo = (poemId) => {
+  // App 原生 video 的双击暂停手势无法完全由 enable-play-gesture 关闭。
+  // 集章墙中的视频只是循环预览，因此任何暂停都立刻恢复播放。
+  setTimeout(() => {
+    try {
+      uni.createVideoContext(`collection-video-${poemId}`).play()
+    } catch (err) {
+      console.log('恢复集章墙视频预览失败：', err)
+    }
+  }, 0)
+}
 const openPoem = (poem) => {
   if (!poem.unlocked) {
     speakText('尚未点亮')
@@ -102,7 +146,11 @@ const openPoem = (poem) => {
     return
   }
   speakText(poem.title)
-  uni.navigateTo({ url: `/pages/study/study?poem_id=${poem.id}` })
+  // 学习页离线或详情接口短暂不可用时，仍要有完整诗句用于逐句朗读。
+  uni.setStorageSync(`study-poem:${poem.id}`, poem)
+  const poemTitle = encodeURIComponent(poem.title || '')
+  const poetName = encodeURIComponent(poem.author || '')
+  uni.navigateTo({ url: `/pages/study/study?poem_id=${poem.id}&poem_title=${poemTitle}&poet_name=${poetName}` })
 }
 
 const resize = () => updateScale()

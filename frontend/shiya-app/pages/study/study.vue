@@ -29,7 +29,7 @@
         </view>
       </view>
 
-      <view class="topbar">
+      <view v-if="!shouldShowStudyVideo" class="topbar">
         <button class="back-btn art-back-small" @tap="goBack"><image src="/static/final-ui/nav-back.png" mode="aspectFit" /></button>
 
         <view class="title-pill" @tap.stop="speakText(poemData.title)">
@@ -47,35 +47,71 @@
       </view>
 
       <view class="video-stage">
-        <image
-          v-for="(frame, index) in aiFrames"
-          :key="frame.frame_key || `${index}-${frame.image_url}`"
-          class="ai-frame-image"
-          :class="{ active: currentFrameIndex === index }"
-          :src="frame.image_url"
-          mode="aspectFill"
-          @error="handleFrameImageError(index, $event)"
-        ></image>
+        <template v-if="shouldShowStudyVideo">
+          <video
+            id="study-generated-poem-video"
+            class="generated-poem-video"
+            :src="studyVideoUrl"
+            :autoplay="true"
+            :loop="false"
+            :controls="false"
+            :show-center-play-btn="false"
+            :show-play-btn="false"
+            :show-progress="false"
+            :show-fullscreen-btn="false"
+            :enable-play-gesture="false"
+            :enable-progress-gesture="false"
+            @loadedmetadata="handleStudyVideoReady"
+            @play="handleStudyVideoReady"
+            @pause="resumeStudyVideo"
+            @ended="handleStudyVideoEnded"
+            object-fit="cover"
+          ></video>
 
-        <template v-if="!hasFrameImages">
-          <view class="sun"></view>
-          <view class="cloud cloud-one">☁️</view>
-          <view class="cloud cloud-two">☁️</view>
-          <view class="mountain mountain-one"></view>
-          <view class="mountain mountain-two"></view>
-          <view class="willow">🌿</view>
-          <view class="bird bird-one">🐦</view>
-          <view class="bird bird-two">🐦</view>
+          <!-- #ifndef APP-PLUS -->
+          <cover-image class="video-cover-back" src="/static/final-ui/nav-back.png" @click="goBack"></cover-image>
+          <!-- #endif -->
+          <!-- #ifndef APP-PLUS -->
+          <cover-view class="video-cover-title">正在播放：{{ poemData.title }}</cover-view>
+          <cover-view class="video-cover-done" :class="{ disabled: !canFinishStudy }" @click="finishStudy">{{ canFinishStudy ? '看完了 ✓' : '播放中…' }}</cover-view>
+          <!-- #endif -->
+          <cover-view class="video-cover-voice" @click="toggleReadPoem">{{ ttsLoading ? '…' : isPlayingAudio ? '🔊' : '🔈' }}</cover-view>
+          <cover-view class="video-cover-subtitle">{{ subtitleFirst }}{{ subtitleSecond ? `，${subtitleSecond}。` : '' }}</cover-view>
+          <cover-view class="video-cover-progress-track"></cover-view>
+          <cover-view class="video-cover-progress-bar" :style="{ width: (progressPercent * 0.64) + '%' }"></cover-view>
+        </template>
 
-          <view class="scene-card">
-            <view class="scene-child">👧</view>
-            <view class="scene-bed">🛏️</view>
-            <view class="scene-text">{{ sceneText }}</view>
-          </view>
+        <template v-else>
+          <image
+            v-for="(frame, index) in aiFrames"
+            :key="frame.frame_key || `${index}-${frame.image_url}`"
+            class="ai-frame-image"
+            :class="{ active: currentFrameIndex === index }"
+            :src="frame.image_url"
+            mode="aspectFill"
+            @error="handleFrameImageError(index, $event)"
+          ></image>
+
+          <template v-if="!hasFrameImages">
+            <view class="sun"></view>
+            <view class="cloud cloud-one">☁️</view>
+            <view class="cloud cloud-two">☁️</view>
+            <view class="mountain mountain-one"></view>
+            <view class="mountain mountain-two"></view>
+            <view class="willow">🌿</view>
+            <view class="bird bird-one">🐦</view>
+            <view class="bird bird-two">🐦</view>
+
+            <view class="scene-card">
+              <view class="scene-child">👧</view>
+              <view class="scene-bed">🛏️</view>
+              <view class="scene-text">{{ sceneText }}</view>
+            </view>
+          </template>
         </template>
       </view>
 
-      <view class="subtitle-box">
+      <view v-if="!shouldShowStudyVideo" class="subtitle-box">
         <button
           class="voice-btn"
           :class="{ playing: isPlayingAudio }"
@@ -121,8 +157,8 @@
 
 <script setup>
 import { computed, onMounted, onUnmounted, ref } from 'vue'
-import { onLoad, onUnload, onHide } from '@dcloudio/uni-app'
-import { API, getLocalPoemById, normalizeAssetUrl, getPoetAvatarStaticUrl } from '@/utils/api.js'
+import { onLoad, onReady, onUnload, onHide } from '@dcloudio/uni-app'
+import { API, LOCAL_POEMS, normalizeAssetUrl, getPoetAvatarStaticUrl } from '@/utils/api.js'
 import { speakText } from '@/utils/speech.js'
 
 const DESIGN_WIDTH = 844
@@ -164,17 +200,28 @@ onUnmounted(() => {
 
 const showGuide = ref(false)
 const poemId = ref('poem_001')
-const poemData = ref(getLocalPoemById('poem_001'))
+const poemData = ref({
+  id: '',
+  title: '这首古诗',
+  author: '',
+  dynasty: '',
+  content: []
+})
 const ttsLoading = ref(false)
 const isPlayingAudio = ref(false)
 const aiFrames = ref([])
 const currentFrameIndex = ref(0)
+// 字幕的当前句独立于画面索引：视频替换画面后，仍可随逐句朗读更新。
+const currentLineIndex = ref(0)
 const progressPercent = ref(0)
 const playbackCompleted = ref(false)
 const isImageLoading = ref(true)
 const loadingPercent = ref(6)
 const loadingMessage = ref('正在铺开画卷，请稍等一下')
 const poetAvatarUrl = ref('')
+const studyVideoUrl = ref('')
+const videoGenerationStatus = ref('idle')
+const isStudyVideoVisible = ref(false)
 
 let audioContext = null
 let studyStartTime = Date.now()
@@ -185,6 +232,8 @@ let loadingTimer = null
 let framePlaybackToken = 0
 let audioRequestToken = 0
 let pageAlive = true
+let learningPlaybackStarted = false
+let nativeHeaderSyncToken = 0
 
 // 逐句 TTS 缓存：让画面、字幕跟着“正在朗读的句子”切换，而不是按固定秒数猜。
 const lineAudioUrlCache = new Map()
@@ -268,16 +317,62 @@ const hasFrameImages = computed(() => {
   return aiFrames.value.length > 0
 })
 
-const canFinishStudy = computed(() => {
-  return playbackCompleted.value && !isImageLoading.value
+const shouldShowStudyVideo = computed(() => {
+  return Boolean(studyVideoUrl.value) && isStudyVideoVisible.value && !showGuide.value
 })
+
+const canFinishStudy = computed(() => playbackCompleted.value && !isImageLoading.value)
+
+const syncNativeVideoHeader = () => {
+  // #ifdef APP-PLUS
+  try {
+    const header = uni.getSubNVueById('study-video-header')
+    if (!header) return
+
+    const visible = shouldShowStudyVideo.value
+    const currentSyncToken = ++nativeHeaderSyncToken
+    const payload = {
+      type: 'state',
+      title: `正在播放：${poemData.value.title || '这首古诗'}`,
+      completed: canFinishStudy.value,
+      visible
+    }
+    const sendState = () => {
+      if (currentSyncToken !== nativeHeaderSyncToken || !pageAlive) return
+      header.postMessage(payload)
+      uni.$emit('study-video-header-state', payload)
+    }
+
+    // 原生 video 在首次绘制和重新进入页面时都会覆盖一次普通层：
+    // 必须先显示原生顶栏，再在视频实际开始时补发状态，保证每次进入一致。
+    if (visible) {
+      header.show('none', 0)
+      sendState()
+      setTimeout(sendState, 60)
+      setTimeout(sendState, 240)
+    } else {
+      header.hide('none', 0)
+    }
+  } catch (err) {
+    console.log('视频原生顶部栏暂不可用：', err)
+  }
+  // #endif
+}
+
+const handleNativeVideoHeaderAction = (payload = {}) => {
+  if (payload.action === 'back') {
+    goBack()
+  } else if (payload.action === 'finish') {
+    finishStudy()
+  }
+}
 
 const subtitleFirst = computed(() => {
   if (currentFrame.value?.line) {
     return currentFrame.value.line
   }
 
-  return poemLines.value[0] || ''
+  return poemLines.value[currentLineIndex.value] || poemLines.value[0] || ''
 })
 
 const subtitleSecond = computed(() => {
@@ -285,7 +380,7 @@ const subtitleSecond = computed(() => {
     return ''
   }
 
-  return poemLines.value[1] || ''
+  return ''
 })
 
 const handlePoetAvatarError = () => {
@@ -394,6 +489,51 @@ const clearFrameTimers = () => {
   }
 }
 
+const activateStudyVideo = (videoUrl) => {
+  const nextUrl = String(videoUrl || '').trim()
+  if (!nextUrl) return false
+
+  studyVideoUrl.value = nextUrl
+  isStudyVideoVisible.value = true
+  clearLoadingTimer()
+  isImageLoading.value = false
+  loadingPercent.value = 100
+
+  // 视频只替换画面；朗读、字幕、进度和完成条件仍沿用原学习流程。
+  if (!learningPlaybackStarted) {
+    startFramePlayback({ autoRead: true })
+  }
+  syncNativeVideoHeader()
+  return true
+}
+
+const handleStudyVideoEnded = () => {
+  // 视频停在最后一帧；原样式的“看完了”按钮在视频上方解锁。
+  stopAudio()
+  progressPercent.value = 100
+  playbackCompleted.value = true
+  syncNativeVideoHeader()
+}
+
+const handleStudyVideoReady = () => {
+  syncNativeVideoHeader()
+}
+
+const resumeStudyVideo = () => {
+  if (!shouldShowStudyVideo.value || playbackCompleted.value || !pageAlive) return
+
+  // App 原生 video 的双击暂停手势无法可靠禁用；学习视频不提供暂停，暂停后直接续播。
+  setTimeout(() => {
+    if (!shouldShowStudyVideo.value || playbackCompleted.value || !pageAlive) return
+
+    try {
+      uni.createVideoContext('study-generated-poem-video').play()
+    } catch (err) {
+      console.log('恢复学习视频播放失败：', err)
+    }
+  }, 0)
+}
+
 const getNormalizedPoemLines = () => {
   return poemLines.value
     .map(line => String(line || '').trim())
@@ -421,9 +561,14 @@ const getFrameArrayIndexByLine = (lineIndex) => {
 }
 
 const setActiveLineFrame = (lineIndex) => {
+  const lineCount = poemLines.value.length
+  currentLineIndex.value = lineCount
+    ? Math.max(0, Math.min(Number(lineIndex) || 0, lineCount - 1))
+    : 0
+
   if (!aiFrames.value.length) return
 
-  currentFrameIndex.value = getFrameArrayIndexByLine(lineIndex)
+  currentFrameIndex.value = getFrameArrayIndexByLine(currentLineIndex.value)
 }
 
 const loadLineAudioUrls = async () => {
@@ -485,6 +630,7 @@ const startTimedFramePlaybackFallback = (playbackToken) => {
     if (playbackToken !== framePlaybackToken || !pageAlive) return
 
     currentFrameIndex.value = index
+    setActiveLineFrame(index)
 
     frameTimer = setTimeout(() => {
       if (playbackToken !== framePlaybackToken || !pageAlive) return
@@ -504,19 +650,41 @@ const startTimedFramePlaybackFallback = (playbackToken) => {
 }
 
 const startFramePlayback = (options = {}) => {
-  const { autoRead = true } = options
+  const { autoRead = true, force = false } = options
+  if (learningPlaybackStarted && !force) return
+
+  learningPlaybackStarted = true
 
   clearFrameTimers()
   const playbackToken = framePlaybackToken
   playbackCompleted.value = false
 
   if (!aiFrames.value.length) {
-    progressPercent.value = 100
-    playbackCompleted.value = true
+    currentFrameIndex.value = 0
+    setActiveLineFrame(0)
+    progressPercent.value = 0
+
+    if (autoRead) {
+      playPoemAudio({
+        restart: true,
+        silent: true,
+        syncFrames: false
+      }).then((result) => {
+        if (playbackToken !== framePlaybackToken || !pageAlive) return
+        if (result === 'failed') {
+          progressPercent.value = 100
+          playbackCompleted.value = true
+        }
+      })
+    } else {
+      progressPercent.value = 100
+      playbackCompleted.value = true
+    }
     return
   }
 
   currentFrameIndex.value = 0
+  setActiveLineFrame(0)
   progressPercent.value = 0
 
   if (autoRead) {
@@ -703,17 +871,52 @@ const loadAiFrames = async () => {
   }
 }
 
+const startStudyVideoGeneration = () => {
+  const cachedVideo = API.getStoredPoemVideo(poemData.value)
+  activateStudyVideo(cachedVideo?.video_url)
+  videoGenerationStatus.value = cachedVideo?.status || 'submitted'
+
+  API.generatePoemVideo(poemData.value)
+    .then((videoState) => {
+      if (!pageAlive) return
+
+      activateStudyVideo(videoState?.video_url)
+      videoGenerationStatus.value = videoState?.status || 'succeeded'
+    })
+    .catch((err) => {
+      if (!pageAlive) return
+
+      videoGenerationStatus.value = 'failed'
+      console.log('视频生成暂不可用，继续使用逐句配图：', err)
+    })
+}
+
 onLoad(async (options) => {
   pageAlive = true
   studyStartTime = Date.now()
   studyRecorded = false
   poemId.value = options.poem_id || 'poem_001'
-  poemData.value = getLocalPoemById(poemId.value)
+  const localPoem = LOCAL_POEMS.find(item => item.id === poemId.value)
+  const cachedPoem = uni.getStorageSync(`study-poem:${poemId.value}`)
+  // 非本地诗库内容先显示当前诗的路由信息，绝不回退到第一首《春晓》。
+  poemData.value = localPoem || (cachedPoem && String(cachedPoem.id || cachedPoem.poem_id || '') === poemId.value ? cachedPoem : null) || {
+    id: poemId.value,
+    title: options.poem_title || '这首古诗',
+    author: options.poet_name || '',
+    dynasty: '',
+    content: []
+  }
   aiFrames.value = []
   currentFrameIndex.value = 0
+  currentLineIndex.value = 0
   progressPercent.value = 0
   playbackCompleted.value = false
   poetAvatarUrl.value = ''
+  studyVideoUrl.value = ''
+  videoGenerationStatus.value = 'submitted'
+  isStudyVideoVisible.value = false
+  syncNativeVideoHeader()
+  learningPlaybackStarted = false
   isImageLoading.value = true
   loadingPercent.value = 6
   loadingMessage.value = '正在铺开画卷，请稍等一下'
@@ -730,6 +933,8 @@ onLoad(async (options) => {
     console.log('古诗详情接口暂不可用，使用本地数据', err)
   }
 
+  // 图片和视频同时开始：图片先用来承接等待，视频就绪后立刻接管主画面。
+  startStudyVideoGeneration()
   await loadAiFrames()
   // 诗人形象在分镜图片生成完、即将进入图片播放时开始生成；聊天页可复用 api.js 里的 Promise 缓存。
   loadPoetAvatar()
@@ -763,7 +968,10 @@ const finishStudy = async () => {
 
   stopAudio()
   clearFrameTimers()
+  isStudyVideoVisible.value = false
+  syncNativeVideoHeader()
   await recordStudyOnce()
+  await new Promise(resolve => setTimeout(resolve, 120))
   showGuide.value = true
   speakText('去和诗人聊聊吧')
 }
@@ -889,6 +1097,9 @@ const playSingleLineAudio = (url, lineIndex, token) => {
     }
 
     innerAudio.autoplay = false
+    // 让诗句朗读可以与视频背景音乐同时播放，朗读保持前景音量。
+    innerAudio.sessionCategory = 'ambient'
+    innerAudio.volume = 1
     innerAudio.src = normalizeAssetUrl(url)
 
     innerAudio.onCanplay(() => {
@@ -1028,6 +1239,8 @@ const toggleReadPoem = async () => {
   playbackCompleted.value = false
   progressPercent.value = 0
   currentFrameIndex.value = 0
+  currentLineIndex.value = 0
+  syncNativeVideoHeader()
 
   await playPoemAudio({
     restart: false,
@@ -1038,16 +1251,24 @@ const toggleReadPoem = async () => {
 
 const replayStudy = () => {
   showGuide.value = false
+  isStudyVideoVisible.value = Boolean(studyVideoUrl.value)
   studyStartTime = Date.now()
   studyRecorded = false
   playbackCompleted.value = false
+  learningPlaybackStarted = false
+  currentLineIndex.value = 0
+  syncNativeVideoHeader()
+
   startFramePlayback({
-    autoRead: true
+    autoRead: true,
+    force: true
   })
 }
 
 const cleanupStudyPlayback = () => {
   pageAlive = false
+  isStudyVideoVisible.value = false
+  syncNativeVideoHeader()
   clearFrameTimers()
   stopAudio()
   clearLoadingTimer()
@@ -1057,7 +1278,17 @@ onHide(() => {
   cleanupStudyPlayback()
 })
 
+onReady(() => {
+  // #ifdef APP-PLUS
+  uni.$on('study-video-header-action', handleNativeVideoHeaderAction)
+  syncNativeVideoHeader()
+  // #endif
+})
+
 onUnload(() => {
+  // #ifdef APP-PLUS
+  uni.$off('study-video-header-action', handleNativeVideoHeaderAction)
+  // #endif
   cleanupStudyPlayback()
 })
 
@@ -1192,6 +1423,116 @@ button::after {
   inset: 0;
   background: linear-gradient(to bottom, #e0f2fe, #fef3c7);
   overflow: hidden;
+}
+
+.generated-poem-video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  z-index: 3;
+}
+
+/* App 端原生 video 位于普通页面控件上方，覆盖层只承载交互。 */
+.video-cover-back,
+.video-cover-title,
+.video-cover-done,
+.video-cover-voice,
+.video-cover-subtitle,
+.video-cover-progress-track,
+.video-cover-progress-bar {
+  position: absolute;
+  z-index: 80;
+}
+
+.video-cover-back {
+  left: 16px;
+  top: 11px;
+  width: 52px;
+  height: 52px;
+}
+
+.video-cover-title {
+  top: 7px;
+  left: 50%;
+  width: 200px;
+  height: 42px;
+  margin-left: -100px;
+  line-height: 42px;
+  text-align: center;
+  border: 4px solid #a66a2d;
+  border-radius: 999px;
+  background: rgba(255, 244, 216, 0.96);
+  color: #704117;
+  font-size: 17px;
+  font-weight: 950;
+  box-shadow: 0 5px 0 rgba(112, 65, 23, 0.25);
+}
+
+.video-cover-done {
+  right: 16px;
+  top: 11px;
+  width: 112px;
+  height: 36px;
+  line-height: 36px;
+  text-align: center;
+  border-radius: 999px;
+  background: #a66a2d;
+  color: #fff8e7;
+  font-size: 15px;
+  font-weight: 900;
+  box-shadow: 0 7px 16px rgba(112, 65, 23, 0.3);
+}
+
+.video-cover-done.disabled {
+  background: #aa9780;
+  color: #f8efe2;
+}
+
+.video-cover-voice {
+  left: 17%;
+  bottom: 32px;
+  width: 36px;
+  height: 36px;
+  line-height: 36px;
+  text-align: center;
+  border-radius: 50%;
+  background: #ffe057;
+  color: #5d4e8c;
+  font-size: 18px;
+}
+
+.video-cover-subtitle {
+  left: 15%;
+  bottom: 24px;
+  width: 70%;
+  min-height: 52px;
+  padding: 10px 28px 10px 58px;
+  border: 2px solid #ffffff;
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.92);
+  color: #5d4e8c;
+  font-size: 21px;
+  font-weight: 900;
+  text-align: center;
+}
+
+.video-cover-progress-track {
+  left: 18%;
+  bottom: 31px;
+  width: 64%;
+  height: 4px;
+  border-radius: 999px;
+  background: #e4dcf2;
+}
+
+.video-cover-progress-bar {
+  left: 18%;
+  bottom: 31px;
+  height: 4px;
+  border-radius: 999px;
+  background: #ff9b64;
 }
 
 .ai-frame-image {

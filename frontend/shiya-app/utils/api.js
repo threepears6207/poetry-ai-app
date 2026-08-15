@@ -4,7 +4,7 @@
 // 1. 后端基础地址
 // =====================================================
 // 电脑浏览器本机联调：使用 127.0.0.1
-const BASE_URL = 'http://192.168.3.18:8000'
+const BASE_URL = 'http://192.168.3.29:8000'
 export const LIVE_ASR_STREAM_URL = `${BASE_URL.replace(/^http/, 'ws')}/asr/stream`
 
 // 手机真机联调时，不要用 127.0.0.1。
@@ -44,8 +44,70 @@ const imageGeneratePromiseCache = new Map()
 const imageGenerateProgressListeners = new Map()
 const imageGenerateLastProgress = new Map()
 const poetAvatarPromiseCache = new Map()
+const videoGeneratePromiseCache = new Map()
+const POEM_VIDEO_STATE_KEY = 'shiYaPoemVideoStatesV1'
 
 const wait = (milliseconds) => new Promise(resolve => setTimeout(resolve, milliseconds))
+
+const getPoemVideoCacheKey = (poem = {}) => {
+  const poemId = poem.id || poem.poem_id || ''
+  const poemTitle = poem.title || poem.poem_title || ''
+
+  return String(poemId || poemTitle || '').trim()
+}
+
+const readPoemVideoStates = () => {
+  try {
+    const rawValue = uni.getStorageSync(POEM_VIDEO_STATE_KEY)
+    const parsed = typeof rawValue === 'string' ? JSON.parse(rawValue) : rawValue
+
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {}
+  } catch (err) {
+    console.log('读取视频生成状态失败：', err)
+    return {}
+  }
+}
+
+const writePoemVideoStates = (states = {}) => {
+  try {
+    uni.setStorageSync(POEM_VIDEO_STATE_KEY, JSON.stringify(states))
+  } catch (err) {
+    console.log('保存视频生成状态失败：', err)
+  }
+}
+
+const extractVideoUrl = (result = {}) => {
+  if (result.video_url) return normalizeAssetUrl(result.video_url)
+
+  const completedSegment = Array.isArray(result.segments)
+    ? result.segments.find(item => item?.status === 'succeeded' && item?.video_url)
+    : null
+
+  return completedSegment?.video_url ? normalizeAssetUrl(completedSegment.video_url) : ''
+}
+
+const normalizePoemVideoState = (result = {}) => ({
+  group_id: result.group_id || '',
+  status: result.status || 'submitted',
+  video_url: extractVideoUrl(result),
+  error: result.error || '',
+  updated_at: result.updated_at || new Date().toISOString()
+})
+
+const savePoemVideoState = (poem = {}, state = {}) => {
+  const cacheKey = getPoemVideoCacheKey(poem)
+  if (!cacheKey) return state
+
+  const states = readPoemVideoStates()
+  const nextState = {
+    ...(states[cacheKey] || {}),
+    ...state
+  }
+
+  states[cacheKey] = nextState
+  writePoemVideoStates(states)
+  return nextState
+}
 
 const addImageProgressListener = (cacheKey, listener) => {
   if (typeof listener !== 'function') return
@@ -587,6 +649,140 @@ export const API = {
       console.log('AI 配图预热失败：', err)
       return null
     })
+  },
+
+  // -----------------------------------------------------
+  // AI 连续视频生成
+  // POST /generate/video 后由 GET /generate/video/group/{group_id} 查询。
+  // 视频始终在后台生成，页面先使用已经准备好的逐句配图。
+  // -----------------------------------------------------
+  async getReadyPoemVideos() {
+    try {
+      const result = await request({
+        url: '/generate/video/ready-poems',
+        method: 'GET',
+        timeout: 30000
+      })
+      const videos = Array.isArray(result?.videos) ? result.videos : []
+
+      return videos.reduce((states, video) => {
+        const poemId = String(video?.poem_id || '').trim()
+        if (!poemId) return states
+
+        const state = normalizePoemVideoState(video)
+        if (state.status === 'succeeded' && state.video_url) {
+          states[poemId] = savePoemVideoState({ id: poemId }, state)
+        }
+        return states
+      }, {})
+    } catch (err) {
+      console.log('读取已生成视频列表失败：', err)
+      return {}
+    }
+  },
+
+  getStoredPoemVideo(poem = {}) {
+    const cacheKey = getPoemVideoCacheKey(poem)
+    if (!cacheKey) return null
+
+    return readPoemVideoStates()[cacheKey] || null
+  },
+
+  async refreshPoemVideo(poem = {}) {
+    const storedState = API.getStoredPoemVideo(poem)
+    if (!storedState?.group_id || storedState.status === 'succeeded') {
+      return storedState
+    }
+
+    try {
+      const result = await request({
+        url: `/generate/video/group/${encodeURIComponent(storedState.group_id)}`,
+        method: 'GET',
+        timeout: 30000
+      })
+      const nextState = normalizePoemVideoState(result)
+
+      return savePoemVideoState(poem, {
+        ...storedState,
+        ...nextState
+      })
+    } catch (err) {
+      console.log('刷新视频生成状态失败：', err)
+      return storedState
+    }
+  },
+
+  generatePoemVideo(poem = {}) {
+    const content = buildPoemContent(poem)
+    const cacheKey = getPoemVideoCacheKey(poem)
+    const storedState = API.getStoredPoemVideo(poem)
+
+    if (!cacheKey || !content.length) {
+      return Promise.reject(new Error('缺少古诗信息，无法生成视频'))
+    }
+    if (storedState?.status === 'succeeded' && storedState.video_url) {
+      return Promise.resolve(storedState)
+    }
+    if (videoGeneratePromiseCache.has(cacheKey)) {
+      return videoGeneratePromiseCache.get(cacheKey)
+    }
+
+    const requestData = {
+      poem_id: poem.id || poem.poem_id || '',
+      poem_title: poem.title || poem.poem_title || '',
+      poem_content: content,
+      poet_name: poem.author || poem.poet_name || '',
+      dynasty: poem.dynasty || '',
+      tags: Array.isArray(poem.tags) ? poem.tags : [],
+      model: 'Doubao-Seedance-2.0-fast',
+      duration: 12,
+      ratio: '16:9',
+      force_regenerate: Boolean(poem.force_regenerate),
+      dry_run: false
+    }
+
+    const taskPromise = (async () => {
+      const submitResult = await request({
+        url: '/generate/video',
+        method: 'POST',
+        data: requestData,
+        timeout: 60000
+      })
+
+      if (!submitResult?.success || !submitResult?.group_id) {
+        throw new Error(submitResult?.error || '启动视频生成失败')
+      }
+
+      let videoState = savePoemVideoState(poem, normalizePoemVideoState(submitResult))
+      const deadline = Date.now() + 10 * 60 * 1000
+
+      while (Date.now() < deadline) {
+        if (videoState.status === 'succeeded' && videoState.video_url) {
+          return videoState
+        }
+        if (['failed', 'partial_failed', 'partial_submission_failed'].includes(videoState.status)) {
+          throw new Error(videoState.error || '视频生成失败')
+        }
+
+        await wait(5000)
+        const statusResult = await request({
+          url: `/generate/video/group/${encodeURIComponent(videoState.group_id)}`,
+          method: 'GET',
+          timeout: 30000
+        })
+        videoState = savePoemVideoState(poem, {
+          ...videoState,
+          ...normalizePoemVideoState(statusResult)
+        })
+      }
+
+      throw new Error('视频生成超时，请稍后在集章墙查看')
+    })().finally(() => {
+      videoGeneratePromiseCache.delete(cacheKey)
+    })
+
+    videoGeneratePromiseCache.set(cacheKey, taskPromise)
+    return taskPromise
   },
 
 

@@ -1,0 +1,130 @@
+<template>
+  <view class="header-root">
+    <view class="back-button" @click="goBack">
+      <image class="back-image" src="/static/final-ui/nav-back.png"></image>
+    </view>
+    <view class="title-pill">
+      <text class="title-text">{{ title }}</text>
+    </view>
+    <view class="done-pill" :class="{ disabled: !completed }" @click="finishStudy">
+      <text class="done-text">{{ completed ? '看完了 ✓' : '播放中…' }}</text>
+    </view>
+  </view>
+</template>
+
+<script>
+export default {
+  data() {
+    return {
+      title: '正在播放：这首古诗',
+      completed: false
+    }
+  },
+  beforeCreate() {
+    try {
+      const domModule = uni.requireNativePlugin('dom')
+      const fontPath = plus.io.convertLocalFileSystemURL('_www/static/fonts/LXGWZhenKaiGB-Regular.ttf')
+      domModule.addRule('fontFace', {
+        fontFamily: 'ShiyaZhenKaiNative',
+        src: `url('${fontPath}')`
+      })
+    } catch (err) {
+      console.log('原生顶栏字体加载失败，使用系统字体：', err)
+    }
+  },
+  created() {
+    const current = uni.getCurrentSubNVue()
+    current.hide('none', 0)
+    current.onMessage(this.applyHeaderState)
+    uni.$on('study-video-header-state', this.applyHeaderState)
+  },
+  beforeDestroy() {
+    uni.$off('study-video-header-state', this.applyHeaderState)
+  },
+  methods: {
+    applyHeaderState(payload = {}) {
+      if (payload.type !== 'state') return
+      this.title = payload.title || this.title
+      this.completed = Boolean(payload.completed)
+    },
+    goBack() {
+      uni.$emit('study-video-header-action', { action: 'back' })
+    },
+    finishStudy() {
+      uni.$emit('study-video-header-action', { action: 'finish' })
+    }
+  }
+}
+</script>
+
+<style>
+.header-root {
+  position: relative;
+  width: 750rpx;
+  height: 56rpx;
+}
+
+.back-button {
+  position: absolute;
+  left: 14rpx;
+  top: 9rpx;
+  width: 38rpx;
+  height: 38rpx;
+  justify-content: center;
+  align-items: center;
+}
+
+.back-image {
+  width: 38rpx;
+  height: 38rpx;
+}
+
+.title-pill {
+  position: absolute;
+  left: 286rpx;
+  top: 6rpx;
+  width: 178rpx;
+  height: 37rpx;
+  border-width: 4rpx;
+  border-style: solid;
+  border-color: #a66a2d;
+  border-radius: 999rpx;
+  background-color: rgba(255, 244, 216, 0.96);
+  justify-content: center;
+  align-items: center;
+}
+
+.title-text {
+  color: #704117;
+  font-family: ShiyaZhenKaiNative;
+  font-size: 13rpx;
+  font-weight: 900;
+  line-height: 18rpx;
+  text-align: center;
+}
+
+.done-pill {
+  position: absolute;
+  right: 14rpx;
+  top: 10rpx;
+  width: 100rpx;
+  height: 32rpx;
+  border-radius: 999rpx;
+  background-color: #a66a2d;
+  justify-content: center;
+  align-items: center;
+}
+
+.done-pill.disabled {
+  background-color: #aa9780;
+}
+
+.done-text {
+  color: #fff8e7;
+  font-family: ShiyaZhenKaiNative;
+  font-size: 12rpx;
+  font-weight: 900;
+  line-height: 16rpx;
+  text-align: center;
+}
+</style>

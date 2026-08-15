@@ -721,6 +721,330 @@
       "parallel_workers": 4
     }
   },
+  "poem_164": {
+    "success": true,
+    "poem_title": "咏柳",
+    "has_character": false,
+    "character_desc": "",
+    "recurring_elements": "",
+    "total_lines": 4,
+    "frames": [
+      {
+        "index": 0,
+        "line": "碧玉妆成一树高",
+        "scene": "画面主体是一棵高大的柳树，树干笔直，树冠呈伞状，整体色调翠绿如玉，背景是早春的淡蓝色天空和远山，柳树占画面中央，无人物。",
+        "shot_type": "远景",
+        "image_url": "/static/images/poems/poem_164/frame_0.jpg",
+        "duration_ms": 3000,
+        "elapsed_seconds": 13.683
+      },
+      {
+        "index": 1,
+        "line": "万条垂下绿丝绦",
+        "scene": "镜头拉近，聚焦于垂下的柳枝，柳条纤细柔软，呈绿色丝带状，随风微微摆动，画面下方可见一小段树干，柳条布满画面。",
+        "shot_type": "近景",
+        "image_url": "/static/images/poems/poem_164/frame_1.jpg",
+        "duration_ms": 3000,
+        "elapsed_seconds": 18.666
+      },
+      {
+        "index": 2,
+        "line": "不知细叶谁裁出",
+        "scene": "特写一簇柳叶，叶片鲜嫩细长，边缘整齐，叶脉清晰，叶片上有清晨的露珠，画面背景虚化，营造疑惑惊叹的氛围。",
+        "shot_type": "特写",
+        "image_url": "/static/images/poems/poem_164/frame_2.jpg",
+        "duration_ms": 3000,
+        "elapsed_seconds": 18.731
+      },
+      {
+        "index": 3,
+        "line": "二月春风似剪刀",
+        "scene": "画面从柳叶特写拉远，转为中景，春风无形但通过柳枝摇曳和叶片轻微摆动来表现，一道柔和的绿色光影（类似剪刀形状的光晕）从画面右上角划过，轻抚柳枝。",
+        "shot_type": "中景",
+        "image_url": "/static/images/poems/poem_164/frame_3.jpg",
+        "duration_ms": 3000,
+        "elapsed_seconds": 15.465
+      }
+    ],
+    "errors": [],
+    "from_cache": false,
+    "timings": {
+      "planning_seconds": 9.109,
+      "image_seconds": 20.136,
+      "total_seconds": 29.246,
+      "parallel_workers": 4
+    }
+  },
+  "poem_017": {
+    "success": true,
+    "poem_title": "村居",
+    "has_character": true,
+    "character_desc": "8岁左右的男童，身穿浅蓝色交领短褐长裤，腰系布带，头梳总角（头顶两个小发髻），体型瘦小灵活，赤脚或穿草鞋",
+    "recurring_elements": "",
+    "total_lines": 4,
+    "frames": [
+      {
+        "index": 0,
+        "line": "草长莺飞二月天",
+        "scene": "远景：早春二月，远处青山隐隐，近处草地绿意盎然，数只黄莺在空中展翅飞翔，天空淡蓝，几缕白云飘浮。",
+        "shot_type": "远景",
+        "image_url": "/static/images/poems/poem_017/frame_0.jpg",
+        "duration_ms": 3000,
+        "elapsed_seconds": 16.098
+      },
+      {
+        "index": 1,
+        "line": "拂堤杨柳醉春烟",
+        "scene": "中景：堤岸边，数株杨柳垂枝轻拂水面，枝条在微风中摇曳，水面泛起淡淡波纹，远处有薄雾般的春烟弥漫，色调柔和朦胧。",
+        "shot_type": "中景",
+        "image_url": "/static/images/poems/poem_017/frame_1.jpg",
+        "duration_ms": 3000,
+        "elapsed_seconds": 14.242
+      },
+      {
+        "index": 2,
+        "line": "儿童散学归来早",
+        "scene": "中景：一个头扎总角的男童背着小书包，从村路快步走来，左手扶住书包带，右手自然摆动，面带笑容，双眼明亮，路旁有青草和野花。",
+        "shot_type": "中景",
+        "image_url": "/static/images/poems/poem_017/frame_2.jpg",
+        "duration_ms": 3000,
+        "elapsed_seconds": 12.695
+      },
+      {
+        "index": 3,
+        "line": "忙趁东风放纸鸢",
+        "scene": "中景：男童来到开阔草地上，右手高举风筝线轴，左手扯着线，风筝（蝴蝶形状）正迎风飞起，男童仰头望着风筝，嘴角上扬，脚步轻快，东风拂动衣角。",
+        "shot_type": "中景",
+        "image_url": "/static/images/poems/poem_017/frame_3.jpg",
+        "duration_ms": 3000,
+        "elapsed_seconds": 17.831
+      }
+    ],
+    "errors": [],
+    "from_cache": false,
+    "timings": {
+      "planning_seconds": 9.524,
+      "image_seconds": 20.166,
+      "total_seconds": 29.693,
+      "parallel_workers": 4
+    }
+  },
+  "poem_026": {
+    "success": true,
+    "poem_title": "悯农",
+    "has_character": true,
+    "character_desc": "35岁，男性，身穿灰褐色粗布短褐（唐代农人服装），头戴草编斗笠，体形瘦削、皮肤黝黑粗糙，双手布满老茧",
+    "recurring_elements": "",
+    "total_lines": 4,
+    "frames": [
+      {
+        "index": 0,
+        "line": "春种一粒粟",
+        "scene": "春日田野，远处山峦淡蓝。农夫（画面中央偏左）弯腰，左手捧着一粒谷种，右手正在将种子埋入土中的小坑里。他头戴斗笠，背部微弯，神情专注。",
+        "shot_type": "中景",
+        "image_url": "/static/images/poems/poem_026/frame_0.jpg",
+        "duration_ms": 3000,
+        "elapsed_seconds": 13.583
+      },
+      {
+        "index": 1,
+        "line": "秋收万颗子",
+        "scene": "秋日金黄田野，谷穗低垂。农夫（画面右侧）站在一堆收割的谷物旁，右手握镰刀，左手擦汗，嘴角微扬，眼神疲惫但有一丝欣慰。身后谷堆高高堆起，阳光斜照。",
+        "shot_type": "中景",
+        "image_url": "/static/images/poems/poem_026/frame_1.jpg",
+        "duration_ms": 3000,
+        "elapsed_seconds": 17.983
+      },
+      {
+        "index": 2,
+        "line": "四海无闲田",
+        "scene": "高坡上，农夫（画面左侧）站立，双手叉腰，远眺前方大片整齐的农田。农田向远方延伸，不见尽头，远处山峦连绵，天空广阔。他眉头微皱，若有所思。",
+        "shot_type": "远景",
+        "image_url": "/static/images/poems/poem_026/frame_2.jpg",
+        "duration_ms": 3000,
+        "elapsed_seconds": 18.064
+      },
+      {
+        "index": 3,
+        "line": "农夫犹饿死",
+        "scene": "田埂边，农夫（画面中央偏下）侧卧在地，身体蜷缩，头枕在手臂上，双眼紧闭，嘴唇干裂。身旁散落着几根枯草，远处谷堆依旧，天空灰暗。",
+        "shot_type": "近景",
+        "image_url": "/static/images/poems/poem_026/frame_3.jpg",
+        "duration_ms": 3000,
+        "elapsed_seconds": 18.003
+      }
+    ],
+    "errors": [],
+    "from_cache": false,
+    "timings": {
+      "planning_seconds": 9.582,
+      "image_seconds": 19.561,
+      "total_seconds": 29.145,
+      "parallel_workers": 4
+    }
+  },
+  "poem_014": {
+    "success": true,
+    "poem_title": "所见",
+    "has_character": true,
+    "character_desc": "8岁，男童，身穿浅蓝色对襟布衣，头戴小斗笠，体型瘦小活泼",
+    "recurring_elements": "",
+    "total_lines": 4,
+    "frames": [
+      {
+        "index": 0,
+        "line": "牧童骑黄牛",
+        "scene": "远景：一条乡间土路从画面右下角延伸至左上角，路旁有一棵大柳树。一个身穿浅蓝色布衣、头戴小斗笠的牧童骑在黄牛背上，牛缓缓前行。牧童双手自然垂在身体两侧，脸朝前方，嘴角微微上扬。",
+        "shot_type": "远景",
+        "image_url": "/static/images/poems/poem_014/frame_0.jpg",
+        "duration_ms": 3000,
+        "elapsed_seconds": 16.775
+      },
+      {
+        "index": 1,
+        "line": "歌声振林樾",
+        "scene": "中景：牧童骑在黄牛背上，嘴巴张开，正在歌唱。阳光透过树叶洒下斑驳光影。牧童双手放在牛背上，身体微微前倾。旁边的柳树和远处的树林在阳光下显得生机勃勃。",
+        "shot_type": "中景",
+        "image_url": "/static/images/poems/poem_014/frame_1.jpg",
+        "duration_ms": 3000,
+        "elapsed_seconds": 13.515
+      },
+      {
+        "index": 2,
+        "line": "意欲捕鸣蝉",
+        "scene": "近景：牧童骑在黄牛背上，目光转向树上的一只蝉，蝉正鸣叫。牧童右手抬起，手掌张开，指向蝉的方向，左手垂在身体左侧。嘴巴微张，表情专注，眼睛亮晶晶的。",
+        "shot_type": "近景",
+        "image_url": "/static/images/poems/poem_014/frame_2.jpg",
+        "duration_ms": 3000,
+        "elapsed_seconds": 13.454
+      },
+      {
+        "index": 3,
+        "line": "忽然闭口立",
+        "scene": "中景：牧童骑在黄牛背上，嘴巴紧闭，身体挺直，双手自然下垂。牛停下脚步，牧童保持静止，目光锁定树上的蝉。背景是斑驳的树影和安静的树林。",
+        "shot_type": "中景",
+        "image_url": "/static/images/poems/poem_014/frame_3.jpg",
+        "duration_ms": 3000,
+        "elapsed_seconds": 16.677
+      }
+    ],
+    "errors": [],
+    "from_cache": false,
+    "timings": {
+      "planning_seconds": 11.051,
+      "image_seconds": 18.449,
+      "total_seconds": 29.504,
+      "parallel_workers": 4
+    }
+  },
+  "poem_022": {
+    "success": true,
+    "poem_title": "池上",
+    "has_character": true,
+    "character_desc": "一个约七八岁的小男孩，身穿浅蓝色唐代圆领短衫，腰间束带，头梳两个小髻（总角），体型瘦小灵活，脸蛋圆润红扑扑",
+    "recurring_elements": "",
+    "total_lines": 4,
+    "frames": [
+      {
+        "index": 0,
+        "line": "小娃撑小艇",
+        "scene": "夏日池塘边的中景画面：一个穿浅蓝短衫的小男孩站在木制小船上，双手握住长竹篙低头撑船，船头微微翘起，水面浮萍被推开，背景是碧绿的莲叶和几朵白莲",
+        "shot_type": "中景",
+        "image_url": "/static/images/poems/poem_022/frame_0.jpg",
+        "duration_ms": 3000,
+        "elapsed_seconds": 13.884
+      },
+      {
+        "index": 1,
+        "line": "偷采白莲回",
+        "scene": "近景：小船靠近一丛白莲，小男孩身体前倾，右手伸向一朵盛开的白色莲花，左手扶着船沿，脸上带着调皮的笑容，眼角微弯，莲花花瓣在阳光下洁白透亮",
+        "shot_type": "近景",
+        "image_url": "/static/images/poems/poem_022/frame_1.jpg",
+        "duration_ms": 3000,
+        "elapsed_seconds": 12.076
+      },
+      {
+        "index": 2,
+        "line": "不解藏踪迹",
+        "scene": "中景：小男孩已经采到莲花，正坐在船尾抱着莲蓬，回头看向船后水面，脸上露出疑惑的表情，头顶飘着一个大问号；阳光洒在水面，浮萍上有一道明显的水痕",
+        "shot_type": "中景",
+        "image_url": "/static/images/poems/poem_022/frame_2.jpg",
+        "duration_ms": 3000,
+        "elapsed_seconds": 16.225
+      },
+      {
+        "index": 3,
+        "line": "浮萍一道开",
+        "scene": "远景：小船已经划到池塘中央，船尾后留下一道笔直的绿色水路，两侧浮萍被分开，小男孩背对镜头，手上抱着白莲，水中倒影清晰",
+        "shot_type": "远景",
+        "image_url": "/static/images/poems/poem_022/frame_3.jpg",
+        "duration_ms": 3000,
+        "elapsed_seconds": 18.079
+      }
+    ],
+    "errors": [],
+    "from_cache": false,
+    "timings": {
+      "planning_seconds": 9.682,
+      "image_seconds": 19.391,
+      "total_seconds": 29.075,
+      "parallel_workers": 4
+    }
+  },
+  "poem_011": {
+    "success": true,
+    "poem_title": "风",
+    "has_character": false,
+    "character_desc": "",
+    "recurring_elements": "",
+    "total_lines": 4,
+    "frames": [
+      {
+        "index": 0,
+        "line": "解落三秋叶",
+        "scene": "秋日树林，地面铺满黄色落叶，几片红叶正从树枝上飘落，空中悬浮着多片叶子，树枝光秃。",
+        "shot_type": "远景",
+        "image_url": "/static/images/poems/poem_011/frame_0.jpg",
+        "duration_ms": 3000,
+        "elapsed_seconds": 17.646
+      },
+      {
+        "index": 1,
+        "line": "能开二月花",
+        "scene": "春日花园，几株粉红色桃花盛放，花瓣随风微颤，花苞绽开，地上有少量落花，背景是绿草地。",
+        "shot_type": "中景",
+        "image_url": "/static/images/poems/poem_011/frame_1.jpg",
+        "duration_ms": 3000,
+        "elapsed_seconds": 17.731
+      },
+      {
+        "index": 2,
+        "line": "过江千尺浪",
+        "scene": "宽阔江面，蓝色波浪翻滚，浪尖白色泡沫飞溅，浪高约两米，远处有隐约山影。",
+        "shot_type": "远景",
+        "image_url": "/static/images/poems/poem_011/frame_2.jpg",
+        "duration_ms": 3000,
+        "elapsed_seconds": 12.091
+      },
+      {
+        "index": 3,
+        "line": "入竹万竿斜",
+        "scene": "翠绿竹林，所有竹竿朝同一方向倾斜约45度，竹叶纷飞，地面积聚落叶，光线透过竹隙。",
+        "shot_type": "中景",
+        "image_url": "/static/images/poems/poem_011/frame_3.jpg",
+        "duration_ms": 3000,
+        "elapsed_seconds": 15.988
+      }
+    ],
+    "errors": [],
+    "from_cache": false,
+    "timings": {
+      "planning_seconds": 9.92,
+      "image_seconds": 19.011,
+      "total_seconds": 28.933,
+      "parallel_workers": 4
+    }
+  },
   "poem_100": {
     "success": true,
     "poem_title": "秋月",
@@ -880,6 +1204,114 @@
       "planning_seconds": 8.611,
       "image_seconds": 18.013,
       "total_seconds": 26.627,
+      "parallel_workers": 4
+    }
+  },
+  "poem_050": {
+    "success": true,
+    "poem_title": "送上人",
+    "has_character": true,
+    "character_desc": "40岁，男性，身着青色宽袖圆领袍衣，腰束黑色带子，头戴黑色幞头，体型清瘦修长",
+    "recurring_elements": "",
+    "total_lines": 4,
+    "frames": [
+      {
+        "index": 0,
+        "line": "孤云将野鹤",
+        "scene": "远景：山间小径上，诗人（身着青衣，头戴幞头）站在左侧，双手在身前拱手作揖，目光望向右侧远处。右侧远处小路上，一位灰衣友人（形如野鹤）正缓步前行。天空上孤云飘浮。",
+        "shot_type": "远景",
+        "image_url": "/static/images/poems/poem_050/frame_0.jpg",
+        "duration_ms": 3000,
+        "elapsed_seconds": 17.317
+      },
+      {
+        "index": 1,
+        "line": "岂向人间住",
+        "scene": "中景：诗人仍站在原处，但改为侧身，双手自然垂于身侧或微微抬起，目光望向友人远去的方向，头顶飘出一个白色半透明云朵气泡，气泡内画着简陋的仙人居所（以山石云雾表现仙境），暗示友人不应居于世俗。诗人表情略带怅然，眼角有极小泪珠。",
+        "shot_type": "中景",
+        "image_url": "/static/images/poems/poem_050/frame_1.jpg",
+        "duration_ms": 3000,
+        "elapsed_seconds": 14.812
+      },
+      {
+        "index": 2,
+        "line": "莫买沃洲山",
+        "scene": "中景：诗人抬手向前方，指向远处一座隐约可见的青山（沃洲山），另一只手抚胸，表情劝诫。画面上只有诗人一人，友人已不见踪影。",
+        "shot_type": "中景",
+        "image_url": "/static/images/poems/poem_050/frame_2.jpg",
+        "duration_ms": 3000,
+        "elapsed_seconds": 13.141
+      },
+      {
+        "index": 3,
+        "line": "时人已知处",
+        "scene": "远景：诗人独自站在山间小径上，双手自然垂放，背对观众，面朝远处云雾缭绕的群山。镜头拉远，突出诗人与自然交融的孤独感，色调偏冷蓝。",
+        "shot_type": "远景",
+        "image_url": "/static/images/poems/poem_050/frame_3.jpg",
+        "duration_ms": 3000,
+        "elapsed_seconds": 17.349
+      }
+    ],
+    "errors": [],
+    "from_cache": false,
+    "timings": {
+      "planning_seconds": 17.925,
+      "image_seconds": 18.765,
+      "total_seconds": 36.692,
+      "parallel_workers": 4
+    }
+  },
+  "poem_033": {
+    "success": true,
+    "poem_title": "别卢秦卿",
+    "has_character": true,
+    "character_desc": "两位都是30岁左右的男性，诗人穿深蓝色交领宽袖袍服，友人穿青灰色直裾长袍，两人均束发戴幞头，体态清瘦文雅。",
+    "recurring_elements": "木制酒桌、长条凳、陶制酒壶酒杯、油灯一盏",
+    "total_lines": 4,
+    "frames": [
+      {
+        "index": 0,
+        "line": "知有前期在",
+        "scene": "酒馆内，油灯微黄，诗人与友人相对坐在木桌两侧，诗人双手捧杯，友人右手轻放桌上，两人正对谈，神情平和。窗外夜色可见江水。",
+        "shot_type": "中景",
+        "image_url": "/static/images/poems/poem_033/frame_0.jpg",
+        "duration_ms": 3000,
+        "elapsed_seconds": 18.559
+      },
+      {
+        "index": 1,
+        "line": "难分此夜中",
+        "scene": "同一场景，夜色更深，诗人身体前倾，双手交握于桌上，眼角有小泪珠，友人低头看着酒杯，右手握杯，左手指尖轻触杯沿，气氛伤感。",
+        "shot_type": "近景",
+        "image_url": "/static/images/poems/poem_033/frame_1.jpg",
+        "duration_ms": 3000,
+        "elapsed_seconds": 13.926
+      },
+      {
+        "index": 2,
+        "line": "无将故人酒",
+        "scene": "诗人站起，双手端着酒杯向友人递去，友人抬头，双手微微抬起作推辞状，桌上酒壶已倾斜。背景中窗外船只隐约可见。",
+        "shot_type": "中景",
+        "image_url": "/static/images/poems/poem_033/frame_2.jpg",
+        "duration_ms": 3000,
+        "elapsed_seconds": 18.515
+      },
+      {
+        "index": 3,
+        "line": "不及石尤风",
+        "scene": "近景，诗人端着酒杯的手停在半空，友人已起身，一只手握着酒杯，另一只手轻拍诗人手腕，眼神坚定。窗外江风吹动船帆，油灯摇曳。没有直接画风，而是通过船帆和灯焰表现。",
+        "shot_type": "近景",
+        "image_url": "/static/images/poems/poem_033/frame_3.jpg",
+        "duration_ms": 3000,
+        "elapsed_seconds": 15.612
+      }
+    ],
+    "errors": [],
+    "from_cache": false,
+    "timings": {
+      "planning_seconds": 7.329,
+      "image_seconds": 19.956,
+      "total_seconds": 27.286,
       "parallel_workers": 4
     }
   }

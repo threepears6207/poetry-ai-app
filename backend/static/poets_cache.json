@@ -85,6 +85,78 @@
       "signature": "蹲在池塘边，小手指向水里的白鹅，眼睛睁得大大的充满惊喜"
     }
   },
+  "贺知章": {
+    "success": true,
+    "from_cache": false,
+    "poet_name": "贺知章",
+    "dynasty": "唐",
+    "avatar_url": "/static/images/poets/贺知章.jpg",
+    "profile": {
+      "desc": "约80岁，男性，身着宽松淡绿色长衫，白色长须，白发以木簪随意束起，面容苍老但眼神童真活泼，体态圆胖",
+      "personality": "童心未泯、风趣可爱，眼神透着老顽童的调皮笑意，满脸皱纹都堆成笑脸，像超有趣的白胡子老爷爷",
+      "signature": "右手拄拐杖，左手摸着白胡子，歪头看着一棵绿柳树，眼神充满惊喜"
+    }
+  },
+  "李绅": {
+    "success": true,
+    "from_cache": false,
+    "poet_name": "李绅",
+    "dynasty": "唐",
+    "avatar_url": "/static/images/poets/李绅.jpg",
+    "profile": {
+      "desc": "约35岁，男性，身着简朴灰色交领长衫，黑色发髻束于头顶，面容清瘦但眼神温厚，中等身材",
+      "personality": "悲悯善良、关心百姓，眉头轻蹙但眼神充满温柔关怀，嘴角带着忧愁而温暖的微笑",
+      "signature": "低头看向手中捧着的一碗白米饭，神情感慨而珍惜，仿佛在思念辛苦耕作的农民"
+    }
+  },
+  "高鼎": {
+    "success": true,
+    "from_cache": false,
+    "poet_name": "高鼎",
+    "dynasty": "清",
+    "avatar_url": "/static/images/poets/高鼎.jpg",
+    "profile": {
+      "desc": "外貌：7岁男童，圆脸，穿黄色布衣配绿色小马甲，梳双髻发髻，体型圆润可爱。",
+      "personality": "神态：弯弯笑眼，嘴角上扬，露出小酒窝，眼神温柔好奇，带着孩童的天真活泼。",
+      "signature": "标志性动作：手持纸鸢（风筝）线轴，抬头仰望天空，仿佛在诗里放风筝。"
+    }
+  },
+  "袁枚": {
+    "success": true,
+    "from_cache": false,
+    "poet_name": "袁枚",
+    "dynasty": "清",
+    "avatar_url": "/static/images/poets/袁枚.jpg",
+    "profile": {
+      "desc": "外貌：约60岁慈祥爷爷，男，穿浅灰色长袍系青布腰带，头发花白束成小髻，微胖圆脸",
+      "personality": "神态：眯眼微笑，嘴角上扬，眼睛弯成月牙形，手里轻摇蒲扇，慈祥温和",
+      "signature": "标志性物品：一手举小牧童草帽，一手捏蟋蟀笼，源自《所见》诗童趣"
+    }
+  },
+  "白居易": {
+    "success": true,
+    "from_cache": false,
+    "poet_name": "白居易",
+    "dynasty": "唐",
+    "avatar_url": "/static/images/poets/白居易.jpg",
+    "profile": {
+      "desc": "约60岁，男性，身着素白交领长衫系棕色布腰带，头发灰白以木簪束起，面容圆润慈祥，体型微胖",
+      "personality": "亲切平易、慈祥温暖，眼神柔和，嘴角带着爷爷般的温暖笑容，像爱给孩子讲故事的老爷爷",
+      "signature": "双手捧着一卷展开的竹简书卷，侧头微笑，像在朗读自己写的诗"
+    }
+  },
+  "李峤": {
+    "success": true,
+    "from_cache": false,
+    "poet_name": "李峤",
+    "dynasty": "唐",
+    "avatar_url": "/static/images/poets/李峤.jpg",
+    "profile": {
+      "desc": "外貌：5岁男童，圆脸，穿青色唐朝小圆领袍，头梳双髻，体型微胖，手里举着一枚红彤彤的枫叶。",
+      "personality": "神态：笑眯眯的圆眼睛弯成月牙，嘴角上扬，眼神温暖明亮，像在邀请小朋友一起玩。",
+      "signature": "标志性动作：双手举着一片红枫叶，做出“解落三秋叶”的吟诗姿势。"
+    }
+  },
   "程颢": {
     "success": true,
     "from_cache": false,
@@ -119,6 +191,30 @@
       "desc": "外貌：7岁模样，男童，穿蓝色圆领小袍，头戴小冠，圆脸微胖，手持毛笔。",
       "personality": "神态：眉眼弯弯，嘴角上扬，眼神温和好奇，像在等待伙伴玩耍。",
       "signature": "一手举毛笔，一手握小纸卷画月亮，暗喻“明月几时有”。"
+    }
+  },
+  "刘长卿": {
+    "success": true,
+    "from_cache": false,
+    "poet_name": "刘长卿",
+    "dynasty": "唐",
+    "avatar_url": "/static/images/poets/刘长卿.jpg",
+    "profile": {
+      "desc": "外貌：50岁男性，慈祥微笑，身穿青色圆领长袍，腰间系一条草绿腰带，白发束起成髻，微胖体型。",
+      "personality": "神态：温和慈祥，嘴角上扬，眼睛弯成月牙形，透出关爱与宁静。",
+      "signature": "形象来源于《逢雪宿芙蓉山主人》，手持一盏油灯，肩披轻雪，面带温暖微笑。"
+    }
+  },
+  "司空曙": {
+    "success": true,
+    "from_cache": false,
+    "poet_name": "司空曙",
+    "dynasty": "唐",
+    "avatar_url": "/static/images/poets/司空曙.jpg",
+    "profile": {
+      "desc": "约40岁中年男性，面容温和，身穿浅青色唐代圆领袍衫，头发束成低髻，体型适中偏瘦",
+      "personality": "嘴角微扬，眼神温柔似水，神情亲切宁静，仿佛在静静聆听风声",
+      "signature": "手持一片枫叶，低头凝视，象征《云阳馆与韩绅宿别》中的‘故人江海别’"
     }
   }
 }

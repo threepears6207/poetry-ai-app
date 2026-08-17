@@ -392,6 +392,28 @@ def diversify_recommendations(ranked, debug=False):
     return result
 
 
+def extract_recommendation_filters(poems, limit=4):
+    """从本次推荐结果中提取高频标签，供前端做当前列表的本地筛选。"""
+    counts = Counter()
+    first_seen = {}
+    sequence = 0
+    for poem in poems or []:
+        poem_tags = unique_list([
+            *(poem.get("tags") or []),
+            *(poem.get("theme_tags") or []),
+        ])
+        for raw_tag in poem_tags:
+            tag = str(raw_tag or "").strip()
+            if not tag:
+                continue
+            if tag not in first_seen:
+                first_seen[tag] = sequence
+                sequence += 1
+            counts[tag] += 1
+    ordered = sorted(counts, key=lambda tag: (-counts[tag], first_seen[tag]))
+    return ordered[:max(0, int(limit))]
+
+
 def rank_recommendations(
     poems, context, age_level, category=None, exclude_ids=None, debug=False,
 ):
@@ -507,7 +529,7 @@ def get_user_profile(user_id: str):
 def recommend_poems(
     user_id: str = Query("test_user", description="用户ID"),
     age_level: Optional[str] = Query(None, description="年龄层：age_3_4 或 age_5_7"),
-    limit: int = Query(5, ge=1, le=20, description="推荐数量"),
+    limit: int = Query(20, ge=1, le=20, description="推荐数量"),
     category: Optional[str] = Query(None, description="可选分类：spring / animal / nature"),
     exclude_ids: str = Query("", description="换一首时排除的 poem_id，逗号分隔"),
     debug: bool = Query(False, description="是否返回内部评分明细"),
@@ -526,6 +548,7 @@ def recommend_poems(
         poems, context, current_age_level, category, excluded, debug,
     )
     selected = candidates[:limit]
+    filters = extract_recommendation_filters(selected, limit=4)
     return {
         "success": True,
         "user_id": user_id,
@@ -538,6 +561,7 @@ def recommend_poems(
         "strong_tags": profile["strong_tags"],
         "total": len(selected),
         "poems": selected,
+        "filters": filters,
         "data": selected,
         "recommendations": selected,
         "message": "已排除学过的古诗，并按适龄、近期偏好、难度递进和内容多样性排序",

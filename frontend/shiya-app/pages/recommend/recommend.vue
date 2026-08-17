@@ -74,13 +74,7 @@ const activeFilter = ref('all')
 const pageIndex = ref(0)
 const results = ref([...LOCAL_POEMS])
 const scaleStyle = computed(() => `transform: scale(${scale.value});`)
-const filters = [
-  { label: '全部', value: 'all' },
-  { label: '春日', value: '春' },
-  { label: '月夜', value: '月' },
-  { label: '山水', value: '山' },
-  { label: '动物', value: '动物' }
-]
+const filters = ref([{ label: '全部', value: 'all' }])
 const isLongPoemTitle = (title = '') => Array.from(String(title).replace(/\s/g, '')).length > 4
 const isExtraLongPoemTitle = (title = '') => Array.from(String(title).replace(/\s/g, '')).length > 6
 
@@ -91,7 +85,10 @@ const updateScale = () => {
   } catch (err) { scale.value = 1 }
 }
 
-const poemSearchText = (poem) => `${poem.title || ''}${poem.author || ''}${(poem.tags || []).join('')}${(poem.content || []).join('')}`
+const poemFilterTags = (poem) => [
+  ...(Array.isArray(poem?.tags) ? poem.tags : []),
+  ...(Array.isArray(poem?.theme_tags) ? poem.theme_tags : [])
+].map(tag => String(tag || '').trim()).filter(Boolean)
 const speakPoemAuthor = (poem) => {
   const dynasty = String(poem?.dynasty || '').trim()
   const author = String(poem?.author || '').trim()
@@ -99,8 +96,7 @@ const speakPoemAuthor = (poem) => {
 }
 const filteredPoems = computed(() => {
   if (activeFilter.value === 'all') return results.value
-  if (activeFilter.value === '动物') return results.value.filter(item => /鹅|鸟|动物|鱼|蜂|蝉/.test(poemSearchText(item)))
-  return results.value.filter(item => poemSearchText(item).includes(activeFilter.value))
+  return results.value.filter(poem => poemFilterTags(poem).includes(activeFilter.value))
 })
 const maxPage = computed(() => Math.max(0, Math.ceil(filteredPoems.value.length / 4) - 1))
 const visiblePoems = computed(() => filteredPoems.value.slice(pageIndex.value * 4, pageIndex.value * 4 + 4))
@@ -160,6 +156,15 @@ const loadRecommendations = async () => {
     const response = await API.getRecommend(20, '', uni.getStorageSync('shiYaChildAgeText') || '4岁')
     if (response?.success && Array.isArray(response.data) && response.data.length) {
       results.value = response.data
+      const dynamicFilters = Array.isArray(response.filters)
+        ? response.filters.map(tag => String(tag || '').trim()).filter(Boolean).slice(0, 4)
+        : []
+      filters.value = [
+        { label: '全部', value: 'all' },
+        ...dynamicFilters.map(tag => ({ label: tag, value: tag }))
+      ]
+      activeFilter.value = 'all'
+      pageIndex.value = 0
     }
   } catch (err) {
     console.log('加载推荐诗单失败，使用本地兜底：', err)

@@ -1,7 +1,7 @@
 import unittest
 from collections import Counter
 
-from recommend import rank_recommendations
+from recommend import extract_recommendation_filters, rank_recommendations
 
 
 def poem(poem_id, title, tags, difficulty=1, author="甲", age="age_3_4"):
@@ -78,6 +78,21 @@ class RecommendRankingTests(unittest.TestCase):
         result = rank_recommendations(poems, self.context(), "age_3_4", debug=True)
         self.assertEqual(result[0]["score_components"]["list_diversity_penalty"], 0.0)
         self.assertLess(result[1]["score_components"]["list_diversity_penalty"], 0)
+
+    def test_filters_count_tags_and_theme_tags_from_selected_poems(self):
+        poems = [
+            {"tags": ["动物", "童趣"], "theme_tags": ["动物", "夏天"]},
+            {"tags": ["动物", "田园"], "theme_tags": ["夏天"]},
+            {"tags": ["山水"], "theme_tags": ["田园", "童趣"]},
+        ]
+        self.assertEqual(
+            extract_recommendation_filters(poems),
+            ["动物", "童趣", "夏天", "田园"],
+        )
+
+    def test_filters_ignore_empty_values_and_respect_limit(self):
+        poems = [{"tags": ["", "月亮"], "theme_tags": [None, "山水"]}]
+        self.assertEqual(extract_recommendation_filters(poems, limit=1), ["月亮"])
 
 
 if __name__ == "__main__":

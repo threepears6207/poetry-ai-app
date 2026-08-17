@@ -405,9 +405,9 @@ export const API = {
 
   // -----------------------------------------------------
   // 推荐古诗
-  // GET /recommend?user_id=test_user&limit=5
+  // GET /recommend?user_id=test_user&limit=20
   // -----------------------------------------------------
-  getRecommend(limit = 5, category = '', ageValue = '') {
+  getRecommend(limit = 20, category = '', ageValue = '') {
     const categoryQuery = category && category !== 'all'
       ? `&category=${encodeURIComponent(category)}`
       : ''

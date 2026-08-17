@@ -2,6 +2,7 @@ import unittest
 
 from tag_rules import (
     ALLOWED_KNOWLEDGE_TAGS,
+    extract_visual_object_tags,
     normalize_poem_metadata,
     validate_tag_metadata,
 )
@@ -42,6 +43,31 @@ class TagRulesTests(unittest.TestCase):
         self.assertTrue(any("tags 必须" in error for error in errors))
         self.assertTrue(any("knowledge_tags" in error for error in errors))
         self.assertTrue(any("difficulty" in error for error in errors))
+
+    def test_visual_tags_include_parent_and_specific_object(self):
+        value = self.poem(content=["鹅鹅鹅，曲项向天歌", "白毛浮绿水，红掌拨清波"])
+        self.assertEqual(extract_visual_object_tags(value)[:2], ["动物", "白鹅"])
+        result = normalize_poem_metadata(value)
+        self.assertIn("动物", result["tags"])
+        self.assertIn("白鹅", result["tags"])
+
+    def test_visual_tags_cover_terminal_scene_vocabulary(self):
+        value = self.poem(content=["白鹭飞过雪山", "渔舟停在溪边柳下"])
+        visual = extract_visual_object_tags(value)
+        for expected in ("动物", "白鹭", "水", "溪水", "山", "雪山", "树", "柳树", "船", "渔船"):
+            self.assertIn(expected, visual)
+
+    def test_visual_tags_do_not_treat_galaxy_or_niulang_as_scene_objects(self):
+        value = self.poem(content=["疑是银河落九天", "牛郎织女遥相望"])
+        visual = extract_visual_object_tags(value)
+        self.assertNotIn("河流", visual)
+        self.assertNotIn("耕牛", visual)
+
+    def test_fishing_action_and_boat_across_lines_produce_fishing_boat(self):
+        value = self.poem(content=["孤舟蓑笠翁", "独钓寒江雪"])
+        visual = extract_visual_object_tags(value)
+        self.assertIn("船", visual)
+        self.assertIn("渔船", visual)
 
 
 if __name__ == "__main__":

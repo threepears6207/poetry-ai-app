@@ -31,6 +31,67 @@ SEASON_TAGS = {"春天", "夏天", "秋天", "冬天", "春天景象", "秋天�
 NATURE_MARKERS = {"月亮", "莲花", "鸟鸣", "风雨", "冰雪", "山峰", "江河湖泊", "花朵", "自然", "山水", "山林"}
 EMOTION_MARKERS = {"思乡", "送别", "友情", "亲情", "孤独", "忧愁", "情感表达"}
 ACTION_MARKERS = {"钓鱼", "划船", "劳动", "登高", "旅行", "观察", "自然观察"}
+GENERIC_SCENE_TAGS = {"自然", "景色", "自然观察", "生活观察", "观察", "变化"}
+
+
+def extract_visual_object_tags(poem):
+    """从原诗正文提取端侧拍图可识别的“上层概念 + 具体物体”标签。"""
+    content = "".join(str(line) for line in poem.get("content") or [])
+    result = []
+
+    def add(parent, detail):
+        for value in (parent, detail):
+            if value and value not in result:
+                result.append(value)
+
+    animal_details = []
+    for needles, detail in (
+        (("鹅",), "白鹅"), (("蜂",), "蜜蜂"), (("蝉",), "知了"),
+        (("鹭",), "白鹭"), (("蝶",), "蝴蝶"),
+        (("鱼",), "鱼儿"), (("燕",), "燕子"), (("黄鹂", "鹂"), "黄鹂"),
+    ):
+        if any(needle in content for needle in needles):
+            animal_details.append(detail)
+    if any(char in content for char in "鸟莺鹊雁") and not animal_details:
+        animal_details.append("小鸟")
+    if "牛" in content and not any(value in content for value in ("牵牛", "牛郎")):
+        animal_details.append("耕牛")
+    for detail in animal_details:
+        add("动物", detail)
+
+    if "桃花" in content:
+        add("花", "桃花")
+    if any(value in content for value in ("荷", "莲", "芙蓉")):
+        add("花", "荷花")
+    if any(value in content for value in ("花落", "落花", "飞花")):
+        add("花", "花瓣")
+
+    # 船和动物属于画面主体，优先于水面、山峰等背景进入有限标签位。
+    if any(value in content for value in ("舟", "船", "艇")):
+        is_fishing_boat = any(value in content for value in ("渔", "钓"))
+        add("船", "渔船" if is_fishing_boat else "小船")
+
+    if "溪" in content:
+        add("水", "溪水")
+    terrestrial_water = content.replace("银河", "")
+    if any(value in terrestrial_water for value in ("江", "河")):
+        add("水", "河流")
+    if any(value in content for value in ("湖", "潭", "池")):
+        add("水", "水面")
+
+    if any(value in content for value in ("山", "峰", "岭")):
+        add("山", "雪山" if "雪" in content else "山峰")
+
+    if "柳" in content:
+        add("树", "柳树")
+    if "竹" in content:
+        add("树", "竹林")
+    if "松" in content:
+        add("树", "松树")
+    if "林" in content and not any(value in content for value in ("柳", "竹", "松")):
+        add("树", "树林")
+
+    return result
 
 
 def _clean_tag(tag, poem):
@@ -48,11 +109,16 @@ def _clean_tag(tag, poem):
 
 
 def normalize_tags(poem):
-    result = []
+    visual_tags = extract_visual_object_tags(poem)
+    result = list(visual_tags[:4])
     for tag in poem.get("tags") or []:
         value = _clean_tag(tag, poem)
+        if visual_tags and value in GENERIC_SCENE_TAGS:
+            continue
         if value and value not in result:
             result.append(value)
+        if len(result) >= 5:
+            break
     if len(result) < 2:
         content = "".join(poem.get("content") or [])
         for needles, label in CONTENT_TAG_RULES:
@@ -74,6 +140,8 @@ def normalize_theme_tags(poem, tags):
     existing = []
     for tag in poem.get("theme_tags") or []:
         value = _clean_tag(tag, poem)
+        if extract_visual_object_tags(poem) and value in GENERIC_SCENE_TAGS:
+            continue
         if value and value not in tags and value not in existing:
             existing.append(value)
     marker = None

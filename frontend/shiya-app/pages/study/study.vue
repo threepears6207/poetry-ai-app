@@ -158,7 +158,7 @@
 <script setup>
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { onLoad, onReady, onUnload, onHide } from '@dcloudio/uni-app'
-import { API, LOCAL_POEMS, normalizeAssetUrl, getPoetAvatarStaticUrl } from '@/utils/api.js'
+import { API, LOCAL_POEMS, normalizeAssetUrl } from '@/utils/api.js'
 import { speakText } from '@/utils/speech.js'
 
 const DESIGN_WIDTH = 844
@@ -302,7 +302,7 @@ const loadingPoemLine = computed(() => {
 })
 
 const poetAvatarImage = computed(() => {
-  return poetAvatarUrl.value || getPoetAvatarStaticUrl(getPoetName()) || '/static/meng-haoran.png'
+  return poetAvatarUrl.value
 })
 
 const currentFrame = computed(() => {
@@ -384,12 +384,8 @@ const subtitleSecond = computed(() => {
 })
 
 const handlePoetAvatarError = () => {
-  if (poetAvatarUrl.value) {
-    poetAvatarUrl.value = ''
-    return
-  }
-
-  console.log('诗人头像加载失败，使用本地默认头像')
+  // 不清空当前地址：旧图片迟到的失败事件不能覆盖刚返回的新头像。
+  console.log('诗人头像图片加载失败')
 }
 
 const clearLoadingTimer = () => {
@@ -778,10 +774,6 @@ const loadPoetAvatar = async () => {
   const poetName = getPoetName()
   const dynasty = getPoetDynasty()
 
-  // 先直接尝试后端静态目录里的头像，比如 /static/images/poets/李白.jpg。
-  // 这样即使生成接口暂时不可用，已有图片也能显示。
-  poetAvatarUrl.value = getPoetAvatarStaticUrl(poetName)
-
   try {
     const res = await API.generatePoetAvatar({
       poet_name: poetName,
@@ -794,13 +786,21 @@ const loadPoetAvatar = async () => {
       poetAvatarUrl.value = normalizeAssetUrl(avatarUrl)
     }
   } catch (err) {
-    console.log('诗人形象接口暂不可用，继续使用静态头像', err)
+    console.log('诗人形象接口暂不可用', err)
   }
 }
 
 const loadAiFrames = async () => {
   startImageLoadingProgress()
   let playbackStarted = false
+  let avatarRequested = false
+
+  const startPoetAvatarGeneration = () => {
+    if (avatarRequested) return
+
+    avatarRequested = true
+    loadPoetAvatar()
+  }
 
   const handleGenerationProgress = (progress = {}) => {
     const progressFrames = Array.isArray(progress.frames) ? progress.frames : []
@@ -825,6 +825,8 @@ const loadAiFrames = async () => {
 
     aiFrames.value = partialFrames
     playbackStarted = true
+    // 第一幅画可播放时即并行生成头像，不再等全部分镜完成。
+    startPoetAvatarGeneration()
     loadingMessage.value = '第一幅画已完成，其余画面继续生成中'
     finishImageLoading(() => {
       startFramePlayback({ autoRead: true })
@@ -840,6 +842,7 @@ const loadAiFrames = async () => {
 
     if (!res?.success || !Array.isArray(rawFrames) || !rawFrames.length) {
       console.log('AI 配图暂不可用，使用默认动画', res)
+      startPoetAvatarGeneration()
       progressPercent.value = 0
       stopImageLoadingWithFallback()
       return
@@ -852,12 +855,15 @@ const loadAiFrames = async () => {
     aiFrames.value = normalizeFrameList(rawFrames)
 
     if (!aiFrames.value.length) {
+      startPoetAvatarGeneration()
       stopImageLoadingWithFallback()
       return
     }
 
     if (!playbackStarted) {
       playbackStarted = true
+      // 缓存命中等路径不会逐步回调；这里也在播放前触发头像生成。
+      startPoetAvatarGeneration()
       finishImageLoading(() => {
         startFramePlayback({
           autoRead: true
@@ -866,6 +872,7 @@ const loadAiFrames = async () => {
     }
   } catch (err) {
     console.log('AI 配图接口暂不可用，使用默认动画', err)
+    startPoetAvatarGeneration()
     progressPercent.value = 0
     stopImageLoadingWithFallback()
   }
@@ -936,8 +943,6 @@ onLoad(async (options) => {
   // 图片和视频同时开始：图片先用来承接等待，视频就绪后立刻接管主画面。
   startStudyVideoGeneration()
   await loadAiFrames()
-  // 诗人形象在分镜图片生成完、即将进入图片播放时开始生成；聊天页可复用 api.js 里的 Promise 缓存。
-  loadPoetAvatar()
 })
 
 const toast = (title) => {

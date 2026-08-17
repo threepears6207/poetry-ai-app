@@ -146,7 +146,7 @@
 <script setup>
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { onLoad, onUnload } from '@dcloudio/uni-app'
-import { API, getLocalPoemById, normalizeAssetUrl, getPoetAvatarStaticUrl } from '@/utils/api.js'
+import { API, getLocalPoemById, normalizeAssetUrl } from '@/utils/api.js'
 import { speakText } from '@/utils/speech.js'
 import { isLiveAsrActive, startLiveAsr, stopLiveAsr } from '@/utils/live-asr.js'
 
@@ -237,7 +237,7 @@ const MAX_CHAT_RECORD_DURATION_MS = 30000
 let chatRequestToken = 0
 
 const poetAvatarImage = computed(() => {
-  return poetAvatarUrl.value || getPoetAvatarStaticUrl(getPoetName()) || '/static/meng-haoran.png'
+  return poetAvatarUrl.value
 })
 
 const messages = ref([])
@@ -594,21 +594,13 @@ const getPoetDynasty = () => {
 }
 
 const handlePoetAvatarError = () => {
-  if (poetAvatarUrl.value) {
-    poetAvatarUrl.value = ''
-    return
-  }
-
-  console.log('诗人头像加载失败，使用本地默认头像')
+  // 不清空当前地址：旧图片迟到的失败事件不能覆盖刚返回的新头像。
+  console.log('诗人头像图片加载失败')
 }
 
 const loadPoetAvatar = async () => {
   const poetName = getPoetName()
   const dynasty = getPoetDynasty()
-
-  // 先尝试已有静态头像，比如 /static/images/poets/李白.jpg；
-  // 然后继续调用 /generate/peot_avatar，接口返回后再覆盖。
-  poetAvatarUrl.value = getPoetAvatarStaticUrl(poetName)
 
   try {
     const res = await API.generatePoetAvatar({
@@ -622,7 +614,7 @@ const loadPoetAvatar = async () => {
       poetAvatarUrl.value = normalizeAssetUrl(avatarUrl)
     }
   } catch (err) {
-    console.log('诗人形象接口暂不可用，继续使用静态头像', err)
+    console.log('诗人形象接口暂不可用', err)
   }
 }
 

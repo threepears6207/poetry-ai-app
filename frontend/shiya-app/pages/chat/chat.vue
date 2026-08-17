@@ -1153,10 +1153,19 @@ const interruptPoetForLiveVoice = () => {
 }
 
 const startLiveVoiceInput = async () => {
+  isVoiceRecording.value = true
+  chatRecordStopTimer.value = setTimeout(() => {
+    if (isVoiceRecording.value) {
+      isVoicePressing.value = false
+      stopVoiceInput()
+    }
+  }, MAX_CHAT_RECORD_DURATION_MS)
+
   await startLiveAsr({
     onVoiceStart: interruptPoetForLiveVoice,
     onPartial: () => {},
     onFinal: async (recognizedText) => {
+      clearChatRecordStopTimer()
       isVoiceRecording.value = false
       isRecognizingVoice.value = false
 
@@ -1170,6 +1179,7 @@ const startLiveVoiceInput = async () => {
       await sendMessage()
     },
     onError: (error) => {
+      clearChatRecordStopTimer()
       isVoiceRecording.value = false
       isRecognizingVoice.value = false
       isVoicePressing.value = false
@@ -1178,14 +1188,9 @@ const startLiveVoiceInput = async () => {
     }
   })
 
-  isVoiceRecording.value = true
-  toast('正在聆听，说话即可打断诗人')
-  chatRecordStopTimer.value = setTimeout(() => {
-    if (isVoiceRecording.value) {
-      isVoicePressing.value = false
-      stopVoiceInput()
-    }
-  }, MAX_CHAT_RECORD_DURATION_MS)
+  if (isLiveAsrActive()) {
+    toast('正在聆听，说话即可打断诗人')
+  }
 }
 
 const startVoiceInput = async () => {

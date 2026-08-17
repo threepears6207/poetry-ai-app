@@ -45,6 +45,38 @@ const containsHumanVoice = (pcmBuffer) => {
   return peak >= 1200 || average >= 350
 }
 
+const sendSocketData = (socketTask, data, errorMessage) => new Promise((resolve, reject) => {
+  socketTask.send({
+    data,
+    success: resolve,
+    fail: (error) => reject(new Error(error?.errMsg || errorMessage))
+  })
+})
+
+const enqueueSocketData = (session, data, errorMessage) => {
+  session.sendQueue = session.sendQueue.then(() => {
+    if (session.finished) return undefined
+    return sendSocketData(session.socketTask, data, errorMessage)
+  })
+  return session.sendQueue
+}
+
+const flushBufferedAudioAndEnd = (session) => {
+  if (!session || !session.ready || session.finished) return
+
+  const bufferedFrames = session.bufferedFrames.splice(0)
+  bufferedFrames.forEach((pcmBuffer) => {
+    enqueueSocketData(session, pcmBuffer, 'Failed to send buffered live PCM')
+      .catch((error) => failSession(session, error))
+  })
+
+  if (session.ending && !session.endSent) {
+    session.endSent = true
+    enqueueSocketData(session, JSON.stringify({ type: 'end' }), 'Failed to finish live ASR')
+      .catch((error) => failSession(session, error))
+  }
+}
+
 const closeSession = (session) => {
   if (!session || activeSession !== session) return
   try {
@@ -90,6 +122,11 @@ export const startLiveAsr = ({
       socketTask,
       finished: false,
       ending: false,
+      ready: false,
+      endSent: false,
+      audioStarted: false,
+      bufferedFrames: [],
+      sendQueue: Promise.resolve(),
       voiceDetected: false,
       onError,
     }
@@ -101,11 +138,39 @@ export const startLiveAsr = ({
       failSession(session, normalized)
     }
 
-    socketTask.onOpen(() => {
-      socketTask.send({
-        data: JSON.stringify({ type: 'start', user_id: userId, net_type: 1, end_vad_time: endVadTime }),
-        fail: (error) => rejectBeforeReady(new Error(error?.errMsg || 'Unable to start live ASR')),
+    const startNativeCapture = () => {
+      if (session.audioStarted || session.finished || session.ending) return
+
+      onLiveAudioFrame((pcmBase64) => {
+        if (activeSession !== session || session.finished) return
+
+        const pcmBuffer = uni.base64ToArrayBuffer(pcmBase64)
+        if (!session.voiceDetected && containsHumanVoice(pcmBuffer)) {
+          session.voiceDetected = true
+          onVoiceStart?.()
+        }
+
+        if (!session.ready) {
+          session.bufferedFrames.push(pcmBuffer)
+          return
+        }
+
+        enqueueSocketData(session, pcmBuffer, 'Failed to send live PCM')
+          .catch((error) => failSession(session, error))
       })
+      onLiveAudioError((message) => failSession(session, new Error(message || 'Native live recording failed')))
+      startLiveAudio()
+      session.audioStarted = true
+    }
+
+    socketTask.onOpen(() => {
+      sendSocketData(
+        socketTask,
+        JSON.stringify({ type: 'start', user_id: userId, net_type: 1, end_vad_time: endVadTime }),
+        'Unable to start live ASR'
+      )
+        .then(startNativeCapture)
+        .catch(rejectBeforeReady)
     })
 
     socketTask.onMessage((message) => {
@@ -119,21 +184,8 @@ export const startLiveAsr = ({
 
       if (event?.event === 'ready') {
         try {
-          // UTS keeps on... functions with one callback alive for continuous events.
-          onLiveAudioFrame((pcmBase64) => {
-              if (activeSession !== session || session.finished || session.ending) return
-              const pcmBuffer = uni.base64ToArrayBuffer(pcmBase64)
-              if (!session.voiceDetected && containsHumanVoice(pcmBuffer)) {
-                session.voiceDetected = true
-                onVoiceStart?.()
-              }
-              socketTask.send({
-                data: pcmBuffer,
-                fail: (error) => failSession(session, new Error(error?.errMsg || 'Failed to send live PCM')),
-              })
-          })
-          onLiveAudioError((message) => failSession(session, new Error(message || 'Native live recording failed')))
-          startLiveAudio()
+          session.ready = true
+          flushBufferedAudioAndEnd(session)
           resolved = true
           onReady?.(event)
           resolve(event)
@@ -167,7 +219,7 @@ export const startLiveAsr = ({
 
     socketTask.onError((error) => rejectBeforeReady(new Error(error?.errMsg || 'Live ASR socket error')))
     socketTask.onClose(() => {
-      if (!session.finished && !session.ending) {
+      if (!session.finished && activeSession === session) {
         rejectBeforeReady(new Error('Live ASR socket closed'))
       }
     })
@@ -184,9 +236,6 @@ export const stopLiveAsr = () => {
   } catch (error) {
     console.log('Failed to stop native recorder:', error)
   }
-  session.socketTask.send({
-    data: JSON.stringify({ type: 'end' }),
-    fail: (error) => failSession(session, new Error(error?.errMsg || 'Failed to finish live ASR')),
-  })
+  flushBufferedAudioAndEnd(session)
   return true
 }

@@ -1314,5 +1314,167 @@
       "total_seconds": 27.286,
       "parallel_workers": 4
     }
+  },
+  "poem_165": {
+    "success": true,
+    "poem_title": "村居即事",
+    "has_character": true,
+    "character_desc": "30岁农妇，健康红润，穿浅蓝色窄袖短衫和深灰色布裙，发髻挽于脑后，体型结实偏瘦。",
+    "recurring_elements": "",
+    "total_lines": 4,
+    "frames": [
+      {
+        "index": 0,
+        "line": "绿遍山原白满川",
+        "scene": "远景，起伏的绿色山原占满画面，近处几块水田泛着白亮的水光，天空淡蓝，没有人物。",
+        "shot_type": "远景",
+        "image_url": "/static/images/poems/poem_165/frame_0.jpg",
+        "duration_ms": 3000,
+        "elapsed_seconds": 11.29
+      },
+      {
+        "index": 1,
+        "line": "子规声里雨如烟",
+        "scene": "远景，天空飘着细密雨丝，如烟雾般朦胧，一只杜鹃鸟停在山坡小树枝头，山原和水田颜色略深，无人物。",
+        "shot_type": "远景",
+        "image_url": "/static/images/poems/poem_165/frame_1.jpg",
+        "duration_ms": 3000,
+        "elapsed_seconds": 15.182
+      },
+      {
+        "index": 2,
+        "line": "乡村四月闲人少",
+        "scene": "中景，远处田埂上，几个弯腰插秧的村民剪影，近处一位农妇（28岁）正挑着空桑篮从蚕房走出，左手扶篮，右手擦额汗，表情平静带劳作后的微倦。",
+        "shot_type": "中景",
+        "image_url": "/static/images/poems/poem_165/frame_2.jpg",
+        "duration_ms": 3000,
+        "elapsed_seconds": 13.592
+      },
+      {
+        "index": 3,
+        "line": "才了蚕桑又插田",
+        "scene": "近景，农妇卷起裤脚站在水田里，弯腰双手握秧苗插入水中，脸上挂小汗珠，嘴角微抿，旁有白气泡内画一片桑叶和蚕茧。",
+        "shot_type": "近景",
+        "image_url": "/static/images/poems/poem_165/frame_3.jpg",
+        "duration_ms": 3000,
+        "elapsed_seconds": 17.752
+      }
+    ],
+    "errors": [],
+    "from_cache": false,
+    "timings": {
+      "planning_seconds": 11.028,
+      "image_seconds": 20.18,
+      "total_seconds": 31.21,
+      "parallel_workers": 4
+    }
+  },
+  "poem_158": {
+    "success": true,
+    "poem_title": "绝句",
+    "has_character": true,
+    "character_desc": "40岁左右，男性，穿浅灰色宽袖长袍，腰间束带，头戴黑色幞头，身形清瘦，立于窗前",
+    "recurring_elements": "",
+    "total_lines": 4,
+    "frames": [
+      {
+        "index": 0,
+        "line": "两个黄鹂鸣翠柳",
+        "scene": "画面以窗外翠绿柳树为主，两只黄色羽毛的小鸟站在柳枝上，张嘴鸣叫。诗人站在屋内窗边，露出上半身，双手扶在窗沿，面带微笑，眼神明亮。",
+        "shot_type": "中景",
+        "image_url": "/static/images/poems/poem_158/frame_0.jpg",
+        "duration_ms": 3000,
+        "elapsed_seconds": 17.464
+      },
+      {
+        "index": 1,
+        "line": "一行白鹭上青天",
+        "scene": "诗人保持站在窗边的姿势，仰头望向天空，目光追随着七只排列成行的白鹭向蓝天高处飞去，左手仍扶窗沿，右手微微抬起指向天空。",
+        "shot_type": "远景",
+        "image_url": "/static/images/poems/poem_158/frame_1.jpg",
+        "duration_ms": 3000,
+        "elapsed_seconds": 15.63
+      },
+      {
+        "index": 2,
+        "line": "窗含西岭千秋雪",
+        "scene": "诗人视线从空中收回，望向窗外远处的雪山，身体微微前倾靠向窗框，双手自然垂放在窗沿上，目光专注，眼神柔和。远处雪山顶部覆盖着白色积雪，天空湛蓝。",
+        "shot_type": "中景",
+        "image_url": "/static/images/poems/poem_158/frame_2.jpg",
+        "duration_ms": 3000,
+        "elapsed_seconds": 12.789
+      },
+      {
+        "index": 3,
+        "line": "门泊东吴万里船",
+        "scene": "诗人低头看向门外的江边，身体略转向门口方向，露出侧身，左手扶着门框，右手指向门外，目光落在一艘桅杆高耸的帆船上，船身有斑驳的水痕，江水微微荡漾。",
+        "shot_type": "中景",
+        "image_url": "/static/images/poems/poem_158/frame_3.jpg",
+        "duration_ms": 3000,
+        "elapsed_seconds": 15.707
+      }
+    ],
+    "errors": [],
+    "from_cache": false,
+    "timings": {
+      "planning_seconds": 8.945,
+      "image_seconds": 18.811,
+      "total_seconds": 27.758,
+      "parallel_workers": 4
+    }
+  },
+  "poem_012": {
+    "success": true,
+    "poem_title": "小池",
+    "has_character": false,
+    "character_desc": "",
+    "recurring_elements": "",
+    "total_lines": 4,
+    "frames": [
+      {
+        "index": 0,
+        "line": "泉眼无声惜细流",
+        "scene": "小池边的泉眼处，一股细细的清水无声流出，沿着石缝缓缓淌入池中，水面泛起小小涟漪，周围绿草和苔藓湿润。",
+        "shot_type": "特写",
+        "image_url": "/static/images/poems/poem_012/frame_0.jpg",
+        "duration_ms": 3000,
+        "elapsed_seconds": 16.002
+      },
+      {
+        "index": 1,
+        "line": "树阴照水爱晴柔",
+        "scene": "镜头拉远，池边一棵大树的浓密树影倒映在清澈的水面上，阳光透过树叶洒下斑驳光影，水面波光粼粼，整个画面柔和明亮。",
+        "shot_type": "中景",
+        "image_url": "/static/images/poems/poem_012/frame_1.jpg",
+        "duration_ms": 3000,
+        "elapsed_seconds": 15.933
+      },
+      {
+        "index": 2,
+        "line": "小荷才露尖尖角",
+        "scene": "水面中央，一朵嫩绿的荷叶刚刚钻出水面，卷成尖尖的角，周围水面平静，倒映着蓝天和树影。",
+        "shot_type": "特写",
+        "image_url": "/static/images/poems/poem_012/frame_2.jpg",
+        "duration_ms": 3000,
+        "elapsed_seconds": 15.937
+      },
+      {
+        "index": 3,
+        "line": "早有蜻蜓立上头",
+        "scene": "一只红蜻蜓轻盈地停在小荷的尖角上，翅膀微微张开，阳光下蜻蜓翅膀泛着虹彩光芒，小荷微微颤动。",
+        "shot_type": "特写",
+        "image_url": "/static/images/poems/poem_012/frame_3.jpg",
+        "duration_ms": 3000,
+        "elapsed_seconds": 11.467
+      }
+    ],
+    "errors": [],
+    "from_cache": false,
+    "timings": {
+      "planning_seconds": 7.209,
+      "image_seconds": 17.59,
+      "total_seconds": 24.801,
+      "parallel_workers": 4
+    }
   }
 }

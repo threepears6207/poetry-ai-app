@@ -216,5 +216,29 @@
       "personality": "嘴角微扬，眼神温柔似水，神情亲切宁静，仿佛在静静聆听风声",
       "signature": "手持一片枫叶，低头凝视，象征《云阳馆与韩绅宿别》中的‘故人江海别’"
     }
+  },
+  "范成大": {
+    "success": true,
+    "from_cache": false,
+    "poet_name": "范成大",
+    "dynasty": "宋",
+    "avatar_url": "/static/images/poets/范成大.jpg",
+    "profile": {
+      "desc": "外貌：40岁左右男性，宋代圆领绿色长袍，头戴黑色方巾，微胖体型，圆脸和蔼",
+      "personality": "神态：眼睛弯成月牙形，嘴角上扬露出温暖笑容，眼神温柔慈祥",
+      "signature": "手持硕大金黄的麦穗，另一手轻抚稻谷，笑容满面"
+    }
+  },
+  "杨万里": {
+    "success": true,
+    "from_cache": false,
+    "poet_name": "杨万里",
+    "dynasty": "宋",
+    "avatar_url": "/static/images/poets/杨万里.jpg",
+    "profile": {
+      "desc": "外貌：中年男性，身穿浅绿色长衫，头戴方巾，体型偏瘦，留着短须，笑容温和。",
+      "personality": "神态：嘴角上扬，眯眼微笑，眼神温柔如春风拂过荷塘，充满童趣与诗意。",
+      "signature": "手持小荷叶，弯腰作势要接住露珠，动作活泼如孩童戏水。"
+    }
   }
 }

@@ -485,6 +485,7 @@ export const API = {
         dynasty: data.dynasty || '唐',
         poem_title: data.poem_title || '',
         poem_content: data.poem_content || '',
+        poem_translation: data.poem_translation || '',
         history: Array.isArray(data.history) ? data.history : [],
         age,
         include_audio: data.include_audio !== false

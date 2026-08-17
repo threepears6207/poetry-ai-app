@@ -581,6 +581,10 @@ const getPoemContentText = () => {
   return String(poemData.value.content || '')
 }
 
+const getPoemTranslationText = () => {
+  return String(poemData.value?.translation || '')
+}
+
 const getPoetName = () => {
   return poemData.value.author || poemData.value.poet_name || '古代诗人'
 }
@@ -637,6 +641,7 @@ const initPoetChat = async () => {
       dynasty: getPoetDynasty(),
       poem_title: poemData.value.title || '',
       poem_content: getPoemContentText(),
+      poem_translation: getPoemTranslationText(),
       history: [],
       age: childAge.value,
       include_audio: false
@@ -1289,6 +1294,7 @@ const sendMessage = async () => {
       dynasty: getPoetDynasty(),
       poem_title: poemData.value.title || '',
       poem_content: getPoemContentText(),
+      poem_translation: getPoemTranslationText(),
       history: history.value,
       age: childAge.value,
       include_audio: false

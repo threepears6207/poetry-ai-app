@@ -1387,15 +1387,15 @@ button[disabled] {
 }
 .result-subtitle { position: absolute; left: 515px; top: 163px; width: 645px; text-align: center; color: #9a714b; font-size: 22px; font-weight: 800;
 }
-.result-cards { position: absolute; left: 264px; top: 230px; width: 1142px; height: 470px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); column-gap: 34px;
+.result-cards { position: absolute; left: 264px; top: 230px; width: 1142px; height: 470px; display: flex; gap: 34px;
 }
-.result-poem-card { position: relative; min-width: 0; padding: 8px 28px 18px; display: flex; flex-direction: column; align-items: center; color: #704117;
+.result-poem-card { position: relative; width: 358px; flex: 0 0 358px; box-sizing: border-box; padding: 8px 28px 18px; display: flex; flex-direction: column; align-items: center; color: #704117;
 }
 .result-poem-card.best { transform: none;
 }
 .result-poem-card:nth-child(1) { transform: translateX(10px); }
 .result-poem-card:nth-child(3) { transform: translateX(-10px); }
-.result-cards.single-result .result-poem-card { grid-column: 2; transform: none; }
+.result-cards.single-result .result-poem-card { margin-left: 392px; transform: none; }
 .candidate-title { width: 100%; height: 68px; display: flex; align-items: center; justify-content: center; font-size: 38px; font-weight: 900; letter-spacing: 7px;
 }
 .candidate-title.long-title { font-size: 31px; letter-spacing: 2px; }

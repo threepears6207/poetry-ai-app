@@ -43,7 +43,7 @@
         <button class="result-back-hotspot result-back-native" @tap="pageState = 'camera'" aria-label="返回"></button>
         <view class="result-page-title" @tap.stop="speakText('诗芽为你找到了这些古诗')">诗芽为你找到了这些古诗</view>
         <view class="result-subtitle">点击你想学习的诗，打开画卷开始学习吧</view>
-        <view class="result-cards">
+        <view class="result-cards" :class="{ 'single-result': resultCandidates.length === 1 }">
           <view v-for="(poem, index) in resultCandidates" :key="poem.id" class="result-poem-card" :class="{ best: index === resultCandidates.length - 1 }" @tap="selectResult(poem)">
             <view class="candidate-title" :class="{ 'long-title': isLongPoemTitle(poem.title), 'extra-long-title': isExtraLongPoemTitle(poem.title) }">{{ poem.title }}</view>
             <view class="candidate-author">{{ poem.dynasty }} · {{ poem.author }}</view>
@@ -1387,14 +1387,15 @@ button[disabled] {
 }
 .result-subtitle { position: absolute; left: 515px; top: 163px; width: 645px; text-align: center; color: #9a714b; font-size: 22px; font-weight: 800;
 }
-.result-cards { position: absolute; left: 264px; top: 230px; width: 1142px; height: 470px; display: flex; gap: 34px;
+.result-cards { position: absolute; left: 264px; top: 230px; width: 1142px; height: 470px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); column-gap: 34px;
 }
-.result-poem-card { position: relative; flex: 1; padding: 8px 28px 18px; display: flex; flex-direction: column; align-items: center; color: #704117;
+.result-poem-card { position: relative; min-width: 0; padding: 8px 28px 18px; display: flex; flex-direction: column; align-items: center; color: #704117;
 }
 .result-poem-card.best { transform: none;
 }
-.result-poem-card:first-child { transform: translateX(10px); }
-.result-poem-card:last-child { transform: translateX(-10px); }
+.result-poem-card:nth-child(1) { transform: translateX(10px); }
+.result-poem-card:nth-child(3) { transform: translateX(-10px); }
+.result-cards.single-result .result-poem-card { grid-column: 2; transform: none; }
 .candidate-title { width: 100%; height: 68px; display: flex; align-items: center; justify-content: center; font-size: 38px; font-weight: 900; letter-spacing: 7px;
 }
 .candidate-title.long-title { font-size: 31px; letter-spacing: 2px; }

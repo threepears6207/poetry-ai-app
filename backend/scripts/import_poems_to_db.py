@@ -24,6 +24,11 @@ REQUIRED_FIELDS = (
     "recommend_reason",
 )
 VALID_AGE_LEVELS = {"age_3_4", "age_5_7"}
+MAX_TITLE_HAN_CHARACTERS = 6
+
+
+def title_han_character_count(value):
+    return sum(0x3400 <= ord(character) <= 0x9FFF for character in str(value or ""))
 
 
 def load_catalog(source_path=DEFAULT_SOURCE_PATH):
@@ -81,6 +86,12 @@ def validate_catalog(poems):
         for field in ("id", "title", "author", "dynasty", "translation", "age_range", "recommend_reason"):
             if not str(poem.get(field) or "").strip():
                 errors.append(f"{label} 的 {field} 不能为空")
+        title_length = title_han_character_count(poem.get("title"))
+        if title_length > MAX_TITLE_HAN_CHARACTERS:
+            errors.append(
+                f"{label} 的标题超过 {MAX_TITLE_HAN_CHARACTERS} 个汉字："
+                f"{poem.get('title')}（{title_length}字）"
+            )
         for field in ARRAY_FIELDS:
             value = poem.get(field)
             if not isinstance(value, list) or not value:

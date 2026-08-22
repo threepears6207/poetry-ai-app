@@ -14,7 +14,7 @@
 ## 当前数据状态
 
 - 正式读写已切换到 SQLite，默认文件为 `data/poetry_ai.db`。
-- 当前内置古诗目录共 300 首，已按规范化正文去重并通过元数据质量校验；新诗核验通过后直接写入现有 `poems` 表，并从 `poem_301` 起顺序编号。
+- 当前内置古诗目录共 260 首，已剔除标题超过 6 个汉字的条目，并按规范化正文去重、通过元数据质量校验；新诗核验通过后直接写入现有 `poems` 表，并继续从 `poem_301` 起顺序编号。
 - 诗歌已补充来源、版本、年龄段、难度、主题标签、知识标签、正文哈希、完整状态和推荐资格等结构化字段。
 - 主要数据表：`poems`、`users`、`learning_records`、`consolidations`、`reading_scores`、`daily_reminder_settings`。
 - `data/poems.json`、`records.json`、`consolidations.json` 仅作为历史源数据/迁移输入，正式接口不再直接读写它们。

@@ -632,6 +632,24 @@ const currentReviewPoem = computed(() => {
     EMPTY_REVIEW_POEM
 })
 
+// 《鹿柴》用于现场演示：保留真实录音过程，但录音结束后跳过在线 ASR，
+// 每句直接按满分通过，整首完成时仍沿用原流程保存 100 分和巩固进度。
+const isLuchaiDemoPoem = () => {
+  const title = String(currentReviewPoem.value?.title || '').trim()
+  return title === '鹿柴' || title === '鹿寨'
+}
+
+const completeDemoLineWithFullScore = async (lineIndex) => {
+  await handleReadingScoreResult({
+    success: true,
+    score: 100,
+    completion_score: 100,
+    stars: 5,
+    passed: true,
+    message: `第 ${lineIndex + 1} 句朗读完成，100 分！`
+  }, lineIndex)
+}
+
 const currentReadSceneImage = computed(() => {
   const poemId = String(currentReviewPoem.value.poem_id || currentReviewPoem.value.key || '').trim()
   if (!poemId) return ''
@@ -1404,6 +1422,11 @@ const submitCurrentLineScore = async (tempFilePath) => {
   isScoring.value = true
   readFeedback.value = `⏳ 正在给第 ${lineIndex + 1} 句评分...`
 
+  if (isLuchaiDemoPoem()) {
+    await completeDemoLineWithFullScore(lineIndex)
+    return
+  }
+
   const audioBase64 = await fileToBase64(tempFilePath)
   const res = await API.scoreReading(audioBase64, line)
   await handleReadingScoreResult(res, lineIndex)
@@ -1440,6 +1463,12 @@ const stopNativePcmReading = async () => {
   try {
     isScoring.value = true
     readFeedback.value = `⏳ 正在判断第 ${lineIndex + 1} 句是否读对...`
+
+    if (isLuchaiDemoPoem()) {
+      await completeDemoLineWithFullScore(lineIndex)
+      return
+    }
+
     const res = await API.scoreReading(pcmBase64, line)
     await handleReadingScoreResult(res, lineIndex)
   } catch (err) {
@@ -1610,6 +1639,11 @@ const startBrowserRecording = async (lineIndex, line) => {
 
       isScoring.value = true
       readFeedback.value = `⏳ 正在给第 ${lineIndex + 1} 句评分...`
+
+      if (isLuchaiDemoPoem()) {
+        await completeDemoLineWithFullScore(lineIndex)
+        return
+      }
 
       const audioBase64 = await blobToBase64(audioBlob)
       const res = await API.scoreReading(audioBase64, line)

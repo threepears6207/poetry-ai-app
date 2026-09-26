@@ -1,8 +1,8 @@
 # 诗芽小学堂后端
 
-后端使用 FastAPI，负责古诗数据、学习记录、巩固计划、个性化推荐、OCR、语音识别、诗人对话、语音合成、AI 配图和视频生成实验。
+后端使用 FastAPI，负责古诗数据、学习记录、巩固计划、个性化推荐、图片理解、语音识别、诗人对话、语音合成、AI 配图和视频生成。
 
-## 最新进展（2026-08-06）
+## 最新进展（2026-09-26）
 
 - 已完成诗库结构化、来源追踪、正文哈希去重、标签规范化和可信内容筛选。
 - 已新增图片理解结果候选检索：明确文字命中返回 1 首，风景结果返回 2—3 首可靠候选诗。
@@ -25,7 +25,7 @@
 - Windows
 - Python 3.11
 - pip
-- 可访问 vivo 蓝心开放平台、百度 AI 开放平台和 edge-tts 服务的网络
+- 可访问 DeepSeek、火山方舟、阿里云百炼和 edge-tts 服务的网络
 
 ## 安装
 
@@ -37,30 +37,28 @@ python -m pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
-`requirements.txt` 已包含 FastAPI、Uvicorn、edge-tts、websocket-client 和 websockets 等运行依赖。实时语音识别通过 vivo WebSocket 服务完成，不再下载或加载本地 FunASR 模型。
+`requirements.txt` 已包含 FastAPI、Uvicorn、edge-tts、websocket-client 和 websockets 等运行依赖。实时语音识别通过阿里云百炼 Fun-ASR WebSocket 服务完成，不在本机下载或加载语音模型。
 
 ## 环境变量
 
 在 `backend/.env` 中配置：
 
 ```env
-# vivo 大模型、生图、TTS 和视频生成
-VIVO_APP_KEY=你的APIKey
-VIVO_APP_ID=你的APPID
+# 阿里云百炼：千问视觉、Fun-ASR、千问3-TTS 和 Wan3 视频
+DASHSCOPE_API_KEY=你的百炼APIKey
+DASHSCOPE_API_BASE_URL=https://dashscope.aliyuncs.com
 
-# 百度文字 OCR
-BAIDU_OCR_API_KEY=你的OCR_API_Key
-BAIDU_OCR_SECRET_KEY=你的OCR_Secret_Key
+# DeepSeek 对话、诗歌补全和内容规划
+DEEPSEEK_API_KEY=你的DeepSeek_API_Key
 
-# 百度图像识别，用于风景图匹配古诗
-BAIDU_IMAGE_API_KEY=你的图像识别API_Key
-BAIDU_IMAGE_SECRET_KEY=你的图像识别Secret_Key
+# 火山方舟 Seedream 4.5 生图
+ARK_API_KEY=你的火山方舟API_Key
 
 # 可选：改用其他 SQLite 文件
 POETRY_DB_PATH=data/poetry_ai.db
 ```
 
-`VIVO_APP_KEY` 未配置时，古诗查询、学习记录和 SQLite 接口仍可运行，但对话、生图、vivo TTS 和视频能力不可用。
+`DASHSCOPE_API_KEY` 未配置时，古诗查询、学习记录和文字对话仍可运行，但千问图片理解、实时语音识别、诗人对话语音和 Wan3 视频不可用。`DASHSCOPE_API_BASE_URL` 是 Wan3 任务提交和查询的百炼基础地址。`DEEPSEEK_API_KEY` 与 `ARK_API_KEY` 分别影响对话/规划和生图能力。
 
 ## 初始化数据库
 
@@ -156,7 +154,8 @@ uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 - `/chat` 使用年龄分层提示词和诗人性格设定生成回复。
 - 回复会清理思考标签、括号动作描写等不适合直接呈现给儿童的内容。
 - 新前端使用 `include_audio=false` 先获取文字，再调用 `/chat/voice-preview` 生成语音，降低回答等待感。
-- vivo WebSocket TTS 失败时使用 edge-tts 降级；语音失败不影响文字回复。
+- 已出现过的诗人使用 `static/poet_voice_profiles.json` 中的固定音色；新诗人依据既有性格描述自动选择音色并持久化，之后始终复用。
+- 诗人对话语音由千问3-TTS生成；语音失败不影响文字回复。普通古诗范读仍由独立的 `/tts` 流程负责。
 
 ### AI 配图
 
@@ -165,18 +164,18 @@ uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 - 图片保持原有高质量 prompt，最多 4 帧并行调用，单帧完成后可立即返回。
 - 成功结果保存到 `static/images/poems/{poem_id}/` 和 `static/poem_images_cache.json`。
 
-### 视频生成实验
+### AI 视频
 
-`POST /generate/video` 提交整首诗的文生视频任务，`GET /generate/video/{task_id}` 查询进度并在成功后下载 MP4。
+`POST /generate/video` 由 DeepSeek 规划整首诗的连续镜头，再提交给百炼 `wan3.0-video-prime`；`GET /generate/video/{task_id}` 查询进度并在成功后下载 MP4。
 
-调试 prompt 时应使用 `dry_run=true`，此时只返回分镜和 prompt，不提交真实生成任务，不消耗视频额度。该功能目前为独立实验，前端正式学习流程仍使用图片分镜。
+调试 prompt 时应使用 `dry_run=true`，此时只返回分镜和 prompt，不提交真实生成任务、不消耗视频额度。前端默认关闭新视频自动生成，只播放正式缓存视频；未命中缓存时继续使用逐句图片，答辩演示前再显式打开生成开关。
 
 ## 接口总览
 
 | 方法 | 路径 | 说明 |
 |---|---|---|
 | GET | `/` | 服务状态 |
-| GET | `/ping` | 健康检查和 vivo 配置状态 |
+| GET | `/ping` | 健康检查和当前云端能力配置状态 |
 | GET | `/poems/search` | 标题、作者、朝代、诗句、标签搜索与分页 |
 | GET | `/poems/{poem_id}` | 古诗详情 |
 | POST | `/poems/candidates` | 根据文字、景物、季节和氛围返回候选诗卡 |
@@ -196,7 +195,7 @@ uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 | GET | `/reminders/status` | 当日练习提醒状态 |
 | POST | `/reminders/suppress-today` | 今天先不提醒 |
 | GET | `/parent/overview` | 家长端学习聚合数据 |
-| POST | `/ocr` | 文字 OCR 识诗或风景匹配 |
+| POST | `/image/analyze` | 千问视觉理解图片并返回原始结构化结果 |
 | POST | `/asr` | 语音转文字 |
 | POST | `/asr/score` | 当前单句跟读评分 |
 | POST | `/tts` | 古诗范读 MP3 |
@@ -207,7 +206,7 @@ uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 | POST | `/generate/image/start` | 开启渐进式配图 |
 | GET | `/generate/image/status/{task_id}` | 配图任务进度 |
 | POST | `/generate/poet_avatar` | 诗人形象生成 |
-| POST | `/generate/video` | 提交视频生成实验任务 |
+| POST | `/generate/video` | 提交视频生成任务 |
 | GET | `/generate/video/{task_id}` | 查询视频任务 |
 
 具体入参和实时返回结构以 Swagger `/docs` 为准。
@@ -226,11 +225,11 @@ uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 | `consolidation.py` | 分阶段练习、集章状态和 1/3/7 天复习节奏 |
 | `learning_dashboard.py` | 当日提醒与家长端聚合数据 |
 | `recommend.py` | 适龄、巩固优先、偏好、难度和多样性推荐 |
-| `ocr.py` | 百度 OCR、图像识别和 SQLite 古诗匹配 |
-| `asr.py` | vivo 实时语音识别、流式 WebSocket 转发和单句评分 |
-| `chat.py` / `poet_voice.py` / `vivo_tts.py` | 诗人对话、声音档案、vivo TTS 和降级 |
+| `image_understanding.py` | 千问视觉理解图片并输出候选检索所需结构 |
+| `asr.py` | 百炼 Fun-ASR 实时语音识别、流式 WebSocket 转发和单句评分 |
+| `chat.py` / `poet_voice.py` / `dashscope_tts.py` | 诗人对话、固定/自动声音档案和千问3-TTS |
 | `generate.py` | 分镜规划、并行生图、渐进任务和图片缓存 |
-| `video_generate.py` | 整首古诗文生视频实验 |
+| `video_generate.py` | DeepSeek 整诗规划、Wan3 异步视频任务、下载与缓存 |
 | `data_sources/` | 150 首古诗源数据、译文和标签质检报告 |
 | `scripts/` | 建库、导入、迁移、元数据生成与审核脚本 |
 | `static/` | 已生成的诗歌图片、诗人头像、音频和缓存 |

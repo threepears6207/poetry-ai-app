@@ -1,7 +1,7 @@
 # 诗芽小学堂 API 接口文档
 
-> 文档版本：v1.4
-> 更新时间：2026-08-07
+> 文档版本：v1.5
+> 更新时间：2026-09-24
 > 接口负责人：按下表及各章节标注
 > 后端基础URL：http://localhost:8000（开发环境）
 
@@ -20,7 +20,7 @@
 | 学习统计 | GET | /record/summary | 陈誉文 | ✅ |
 | 推荐古诗 | GET | /recommend | 陈誉文 | ✅ |
 | 今天学什么 | GET | /recommend/today | 陈誉文 | ✅ |
-| 拍照识诗 | POST | /ocr | 陈誉文 | ✅ |
+| 图片理解 | POST | /image/analyze | 陈俪姗 | ✅ |
 | 图片候选检索 | POST | /poems/candidates | 陈誉文 | ✅ |
 | 可信诗歌解析 | POST | /poems/resolve | 陈誉文 | ✅ |
 | 练习进度 | POST | /consolidation/progress | 陈誉文 | ✅ |
@@ -29,6 +29,8 @@
 | 今天先不提醒 | POST | /reminders/suppress-today | 陈誉文 | ✅ |
 | 家长端聚合 | GET | /parent/overview | 陈誉文 | ✅ |
 | 语音朗读 | POST | /tts | 陈誉文 | ✅ |
+| 诗人对话语音 | POST | /chat/voice-preview | 陈俪姗 | ✅ |
+| AI诗歌视频 | POST | /generate/video | 陈俪姗 | ✅ |
 
 ---
 
@@ -41,8 +43,10 @@
 ```json
 {
   "message": "pong",
-  "vivo_app_id": "your_app_id",
-  "has_api_key": true
+  "has_deepseek_api_key": true,
+  "has_dashscope_api_key": true,
+  "asr_provider": "dashscope-fun-asr-realtime",
+  "poet_tts_provider": "dashscope-qwen3-tts"
 }
 ```
 
@@ -52,7 +56,7 @@
 
 - 接口路径：POST /chat
 - 功能：用户向AI诗人提问，AI以对应诗人的语气和性格回答
-- 模型：Volc-DeepSeek-V3.2
+- 模型：DeepSeek `deepseek-flash`
 - 负责人：陈俪姗
 
 ### 请求参数
@@ -101,7 +105,8 @@
 **前端注意：**
 - `history` 每轮对话后追加，格式为 `[{"role":"user","content":"..."},{"role":"assistant","content":"..."}]`
 - 第一轮 `message` 传 `""` 或 `"__init__"`，诗人会主动开口介绍自己
-- 内置性格库：李白、杜甫、苏轼、白居易、王维；其他诗人走通用性格
+- 已出现诗人的声音使用固定档案；新诗人根据性格描述自动匹配千问3-TTS音色并持久化。
+- 新版前端先以 `include_audio=false` 获取文字，再调用 `/chat/voice-preview` 获取语音。
 
 ---
 
@@ -109,7 +114,7 @@
 
 - 接口路径：POST /generate/image
 - 功能：为古诗每句话分别生成一张横版配图，图片之间有连续性
-- 模型：Doubao-Seedream-4.5（蓝心图像生成）
+- 模型：火山方舟直连 `Doubao-Seedream-4.5`
 - 负责人：陈俪姗
 
 ### 请求参数
@@ -333,34 +338,21 @@ GET /recommend?user_id=test_user&limit=5
 
 ---
 
-## 9. 拍照识诗
+## 9. 图片理解与候选检索
 
-- 接口路径：POST /ocr
-- 功能：识别图片中的古诗文字并匹配数据库
-- 负责人：陈誉文
+- 图片理解：POST `/image/analyze`
+- 候选检索：POST `/poems/candidates`
+- 功能：千问视觉模型先返回原始结构化 JSON，前端将该 JSON 直接交给候选接口检索本地诗库。
+- 模型：`qwen3-vl-plus-2025-12-19`
 
-请求示例：
+图片理解请求示例：
 ```json
 {
-  "image": "data:image/jpeg;base64,/9j/4AAQ...",
-  "mode": "text"
+  "image_base64": "/9j/4AAQ..."
 }
 ```
 
-成功返回（匹配到）：
-```json
-{
-  "success": true,
-  "recognized_text": "床前明月光疑是地上霜",
-  "matched_poem": {
-    "id": "poem_002",
-    "title": "静夜思",
-    "author": "李白",
-    "dynasty": "唐",
-    "content": ["床前明月光", "疑是地上霜", "举头望明月", "低头思故乡"]
-  }
-}
-```
+成功响应包含供候选接口直接使用的 `analysis` 原始结构化结果以及 `usage` Token 用量。当前正式流程不再使用旧 `/ocr` 和端侧 vivo 多模态兼容输入。
 
 ---
 
@@ -438,6 +430,18 @@ GET /recommend?user_id=test_user&limit=5
 
 ---
 
+## 12. AI诗歌视频
+
+- 提交任务：POST `/generate/video`
+- 查询任务：GET `/generate/video/{task_id}`
+- 规划模型：DeepSeek `deepseek-flash`
+- 视频模型：百炼 `wan3.0-video-prime`
+- 默认输出：12 秒、720P、16:9
+
+`dry_run=true` 时只返回分镜和最终提示词，不创建百炼任务、不消耗视频额度。正式前端默认只读取已有视频缓存；未命中时继续使用逐句配图，不会自动提交付费任务。
+
+---
+
 ## 通用规范
 
 陈誉文负责的新接口详细字段和示例见：
@@ -474,3 +478,4 @@ GET /recommend?user_id=test_user&limit=5
 | v1.2 | 2026-05-27 | 更新 /generate/image 为逐句生成，新增 /record/summary | 陈俪姗 |
 | v1.3 | 2026-08-06 | 新增候选检索、可信诗歌解析、推荐排序、学习巩固、集章墙、提醒与家长端接口说明 | 陈誉文 |
 | v1.4 | 2026-08-07 | 统一候选接口入参；核验通过的新诗直接写 poems 表并采用 poem_301+ 编号 | 陈誉文 |
+| v1.5 | 2026-09-26 | 图片理解、对话、生图、ASR、诗人语音和视频切换为当前云端模型链路，移除旧 vivo 运行入口 | 陈俪姗 |

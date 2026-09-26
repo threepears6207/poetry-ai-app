@@ -7,15 +7,14 @@
 import json
 import os
 import re
-import uuid
 from typing import Any
 
 import requests
 
 
-VIVO_CHAT_COMPLETIONS_URL = "https://api-ai.vivo.com.cn/v1/chat/completions"
-VIVO_POEM_COMPLETION_MODEL = os.getenv(
-    "VIVO_POEM_COMPLETION_MODEL", "Volc-DeepSeek-V3.2"
+DEEPSEEK_CHAT_COMPLETIONS_URL = "https://api.deepseek.com/chat/completions"
+DEEPSEEK_POEM_COMPLETION_MODEL = os.getenv(
+    "DEEPSEEK_POEM_COMPLETION_MODEL", "deepseek-flash"
 )
 REQUEST_TIMEOUT_SECONDS = 30
 MAX_ATTEMPTS = 2
@@ -292,26 +291,27 @@ def build_completion_messages(terminal_analysis: dict[str, Any]) -> list[dict[st
 def complete_poem_from_terminal_analysis(
     terminal_analysis: dict[str, Any],
 ) -> dict[str, Any]:
-    """调用 vivo 云端模型，返回校验后的完整诗库记录草稿。"""
-    app_key = os.getenv("VIVO_APP_KEY")
-    if not app_key:
-        raise PoemCompletionError("未配置 VIVO_APP_KEY，无法调用云端古诗补全")
+    """调用 DeepSeek 云端模型，返回校验后的完整诗库记录草稿。"""
+    api_key = os.getenv("DEEPSEEK_API_KEY", "").strip()
+    if not api_key:
+        raise PoemCompletionError("未配置 DEEPSEEK_API_KEY，无法调用云端古诗补全")
 
     payload = {
-        "requestId": str(uuid.uuid4()),
-        "model": VIVO_POEM_COMPLETION_MODEL,
+        "model": DEEPSEEK_POEM_COMPLETION_MODEL,
         "messages": build_completion_messages(terminal_analysis),
+        "thinking": {"type": "disabled"},
+        "response_format": {"type": "json_object"},
     }
     headers = {
         "Content-Type": "application/json",
-        "Authorization": f"Bearer {app_key}",
+        "Authorization": f"Bearer {api_key}",
     }
 
     last_error: Exception | None = None
     for _ in range(MAX_ATTEMPTS):
         try:
             response = requests.post(
-                VIVO_CHAT_COMPLETIONS_URL,
+                DEEPSEEK_CHAT_COMPLETIONS_URL,
                 json=payload,
                 headers=headers,
                 timeout=REQUEST_TIMEOUT_SECONDS,

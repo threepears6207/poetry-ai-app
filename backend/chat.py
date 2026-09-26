@@ -4,13 +4,14 @@ from typing import List
 import os
 import re
 import requests
-import uuid
 
 from poet_voice import get_poet_voice_profile, synthesize_poet_speech
 
 router = APIRouter()
 
-VIVO_APP_KEY = os.getenv("VIVO_APP_KEY")
+DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY")
+DEEPSEEK_CHAT_URL = "https://api.deepseek.com/chat/completions"
+DEEPSEEK_MODEL = "deepseek-flash"
 
 
 # ── 请求模型 ──────────────────────────────────────────────────────────────────
@@ -34,6 +35,7 @@ class ChatRequest(BaseModel):
 
 class PoetVoicePreviewRequest(BaseModel):
     poet_name: str
+    dynasty: str = ""
     text: str = "小朋友，你好呀！我们一起读诗吧。"
 
 
@@ -160,15 +162,15 @@ def get_poet_style(poet_name: str, dynasty: str) -> str:
     print(f"[诗人性格] 首次遇到「{poet_name}」，正在生成性格描述...")
     try:
         prompt = _POET_STYLE_GEN_PROMPT.format(poet_name=poet_name, dynasty=dynasty)
-        url = "https://api-ai.vivo.com.cn/v1/chat/completions"
+        url = DEEPSEEK_CHAT_URL
         headers = {
             "Content-Type": "application/json",
-            "Authorization": f"Bearer {VIVO_APP_KEY}",
+            "Authorization": f"Bearer {DEEPSEEK_API_KEY}",
         }
         data = {
-            "requestId": str(uuid.uuid4()),
-            "model": "Volc-DeepSeek-V3.2",
+            "model": DEEPSEEK_MODEL,
             "messages": [{"role": "user", "content": prompt}],
+            "thinking": {"type": "disabled"},
         }
         response = requests.post(url, json=data, headers=headers, timeout=30)
         result = response.json()
@@ -592,9 +594,15 @@ def sanitize_chat_reply(text: str) -> str:
 
 @router.post("/chat/voice-preview")
 def preview_poet_voice(request: PoetVoicePreviewRequest):
-    """不调用大模型，直接生成指定诗人的试听语音。"""
+    """按固定或自动持久化的诗人声音档案生成试听语音。"""
     try:
-        audio = synthesize_poet_speech(request.poet_name, request.text)
+        style = get_poet_style(request.poet_name, request.dynasty)
+        audio = synthesize_poet_speech(
+            request.poet_name,
+            request.text,
+            dynasty=request.dynasty,
+            style=style,
+        )
         return {
             "success": True,
             "poet_name": request.poet_name,
@@ -613,9 +621,14 @@ def preview_poet_voice(request: PoetVoicePreviewRequest):
 
 
 @router.get("/chat/voice-profile/{poet_name}")
-def get_voice_profile(poet_name: str):
+def get_voice_profile(poet_name: str, dynasty: str = ""):
     """返回诗人当前声音档案，不生成音频。"""
-    return {"success": True, "poet_name": poet_name, "profile": get_poet_voice_profile(poet_name)}
+    style = get_poet_style(poet_name, dynasty)
+    return {
+        "success": True,
+        "poet_name": poet_name,
+        "profile": get_poet_voice_profile(poet_name, dynasty=dynasty, style=style),
+    }
 
 @router.post("/chat")
 def chat(request: ChatRequest):
@@ -647,21 +660,21 @@ def chat(request: ChatRequest):
         else:
             messages.append({"role": "user", "content": request.message})
 
-        url = "https://api-ai.vivo.com.cn/v1/chat/completions"
+        url = DEEPSEEK_CHAT_URL
         headers = {
             "Content-Type": "application/json",
-            "Authorization": f"Bearer {VIVO_APP_KEY}",
+            "Authorization": f"Bearer {DEEPSEEK_API_KEY}",
         }
         data = {
-            "requestId": str(uuid.uuid4()),
-            "model": "Volc-DeepSeek-V3.2",
+            "model": DEEPSEEK_MODEL,
             "messages": messages,
+            "thinking": {"type": "disabled"},
         }
 
         response = requests.post(url, json=data, headers=headers, timeout=60)
         result = response.json()
 
-        print("vivo API 返回：", result)
+        print("DeepSeek API 返回：", result)
 
         ai_reply = result["choices"][0]["message"]["content"]
         ai_reply = sanitize_chat_reply(ai_reply) or "小朋友，我在听呢。"
@@ -670,7 +683,13 @@ def chat(request: ChatRequest):
         audio_error = ""
         if request.include_audio:
             try:
-                audio = synthesize_poet_speech(request.poet_name, ai_reply)
+                style = get_poet_style(request.poet_name, request.dynasty)
+                audio = synthesize_poet_speech(
+                    request.poet_name,
+                    ai_reply,
+                    dynasty=request.dynasty,
+                    style=style,
+                )
             except Exception as speech_error:
                 # 语音失败不能让整轮对话失败，前端仍可正常显示文字。
                 audio_error = str(speech_error)

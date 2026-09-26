@@ -267,45 +267,55 @@
     "success": true,
     "poem_title": "春晓",
     "has_character": true,
-    "character_desc": "①年龄：约25-30岁 ②性别：男 ③服装：淡青色或浅褐色交领右衽宽袖长袍，内着白色中衣 ④发型：黑色长发束于头顶，以简单发簪固定 ⑤体型：清瘦，文人气质",
-    "recurring_elements": "一张简单的木质床榻，床上有素色被褥；房间内有一扇木格窗，窗外可见树木一角。",
+    "character_desc": "40岁男性，唐代月白色宽袍大袖寝衣，束发挽髻以素青发带系之，身形清瘦颀长",
+    "recurring_elements": "卧室木质矮榻、素色布被、青瓷枕、木格窗棂；床榻不设帐幔帘帷",
     "total_lines": 4,
     "frames": [
       {
         "index": 0,
         "line": "春眠不觉晓",
-        "scene": "中景。人物在床上侧卧沉睡，被褥盖到胸口，一只手放在身侧，一只手自然搭在腹部。窗外天色微亮，透进柔和的光线。",
+        "scene": "卧室内，孟浩然侧卧木榻盖素布被，头枕青瓷枕闭目安睡，双手收于被中。木窗透进清晨淡金阳光，室内简朴安静。",
         "shot_type": "中景",
         "image_url": "/static/images/poems/poem_001/frame_0.jpg",
-        "duration_ms": 3000
+        "duration_ms": 3000,
+        "elapsed_seconds": 10.201
       },
       {
         "index": 1,
         "line": "处处闻啼鸟",
-        "scene": "近景。人物已从床上坐起，身体微微前倾，一只手撑在床沿，一只手轻放在膝上，侧耳倾听，表情专注。窗外传来清脆的鸟鸣声。",
+        "scene": "孟浩然卧于榻中半睁双眼，一手撑被微微抬身，嘴角上扬。窗外晨光里两只小鸟立于初绽桃枝上啼叫。",
         "shot_type": "近景",
         "image_url": "/static/images/poems/poem_001/frame_1.jpg",
-        "duration_ms": 3000
+        "duration_ms": 3000,
+        "elapsed_seconds": 11.403
       },
       {
         "index": 2,
         "line": "夜来风雨声",
-        "scene": "近景。人物已下床站在窗边，一只手扶着窗框，另一只手自然垂放。他微微低头，眼神飘向下方，表情若有所思。头部旁飘出一个白色半透明云朵气泡，气泡内画着风雨中摇曳的树枝。",
+        "scene": "孟浩然坐于榻上，双手扶膝抬头静听，身旁浮现淡蓝半透明回忆气泡，内为夜雨敲窗、风吹枝摇的暗色景象。",
         "shot_type": "近景",
         "image_url": "/static/images/poems/poem_001/frame_2.jpg",
-        "duration_ms": 3000
+        "duration_ms": 3000,
+        "elapsed_seconds": 10.767
       },
       {
         "index": 3,
         "line": "花落知多少",
-        "scene": "中景。人物站在敞开的门或窗边，双手交叠在身前，目光投向门外或窗外。门外/窗外地上散落着一些粉色的花瓣，色调偏柔和。人物嘴角微抿，眼神带着一丝淡淡的惋惜。",
+        "scene": "孟浩然起身立于窗前，双手扶木窗棂俯视。窗外湿润泥地上散落点点粉白花瓣，晨光映着落花。",
         "shot_type": "中景",
         "image_url": "/static/images/poems/poem_001/frame_3.jpg",
-        "duration_ms": 3000
+        "duration_ms": 3000,
+        "elapsed_seconds": 10.482
       }
     ],
     "errors": [],
-    "from_cache": false
+    "from_cache": false,
+    "timings": {
+      "planning_seconds": 20.052,
+      "image_seconds": 12.979,
+      "total_seconds": 33.035,
+      "parallel_workers": 4
+    }
   },
   "poem_006": {
     "success": true,

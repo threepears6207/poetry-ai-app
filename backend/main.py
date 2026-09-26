@@ -65,11 +65,10 @@ def read_root():
 def ping():
     import os
 
-    app_id = os.getenv("VIVO_APP_ID")
-    has_key = bool(os.getenv("VIVO_APP_KEY"))
-
     return {
         "message": "pong",
-        "vivo_app_id": app_id,
-        "has_api_key": has_key
+        "has_deepseek_api_key": bool(os.getenv("DEEPSEEK_API_KEY")),
+        "has_dashscope_api_key": bool(os.getenv("DASHSCOPE_API_KEY")),
+        "asr_provider": "dashscope-fun-asr-realtime",
+        "poet_tts_provider": "dashscope-qwen3-tts",
     }

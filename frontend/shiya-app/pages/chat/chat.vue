@@ -525,7 +525,7 @@ const requestPoetMessageAudio = async (text, messageIndex) => {
   const requestToken = ++poetAudioRequestToken
 
   try {
-    const res = await API.generatePoetSpeech(getPoetName(), text)
+    const res = await API.generatePoetSpeech(getPoetName(), text, getPoetDynasty())
     if (!isChatPageActive || requestToken !== poetAudioRequestToken) return
 
     const audioUrl = normalizeChatAudioUrl(getChatReplyAudioPath(res))

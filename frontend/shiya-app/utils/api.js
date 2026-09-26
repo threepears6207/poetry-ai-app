@@ -934,12 +934,13 @@ export const API = {
     })
   },
 
-  generatePoetSpeech(poetName, text) {
+  generatePoetSpeech(poetName, text, dynasty = '') {
     return request({
       url: '/chat/voice-preview',
       method: 'POST',
       data: {
         poet_name: poetName || '古代诗人',
+        dynasty: dynasty || '',
         text: text || ''
       },
       timeout: 60000

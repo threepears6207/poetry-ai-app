@@ -15,7 +15,12 @@ from pydantic import BaseModel
 
 router = APIRouter()
 
-VIVO_APP_KEY = os.getenv("VIVO_APP_KEY")
+DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY")
+DEEPSEEK_CHAT_URL = "https://api.deepseek.com/chat/completions"
+DEEPSEEK_MODEL = "deepseek-flash"
+ARK_API_KEY = os.getenv("ARK_API_KEY")
+ARK_IMAGE_URL = "https://ark.cn-beijing.volces.com/api/v3/images/generations"
+ARK_IMAGE_MODEL = "doubao-seedream-4-5-251128"
 
 BASE_DIR = Path(__file__).parent
 STATIC_DIR = BASE_DIR / "static"
@@ -238,18 +243,21 @@ character_desc必须同时包含五项：
   ]
 }}"""
 
-    url = "https://api-ai.vivo.com.cn/v1/chat/completions"
+    url = DEEPSEEK_CHAT_URL
     headers = {
         "Content-Type": "application/json",
-        "Authorization": f"Bearer {VIVO_APP_KEY}",
+        "Authorization": f"Bearer {DEEPSEEK_API_KEY}",
     }
     data = {
-        "requestId": str(uuid.uuid4()),
-        "model": "Volc-DeepSeek-V3.2",
+        "model": DEEPSEEK_MODEL,
         "messages": [
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt},
         ],
+        "thinking": {"type": "enabled"},
+        "reasoning_effort": "high",
+        "response_format": {"type": "json_object"},
+        "max_tokens": 12000,
     }
 
     try:
@@ -385,44 +393,54 @@ def build_image_prompt(
 
 # ── 第三阶段：调用图像生成 API ────────────────────────────────────────────────
 
-def call_image_api(prompt: str) -> dict:
-    url = "https://api-ai.vivo.com.cn/api/v1/image_generation"
-    params = {
-        "module": "aigc",
-        "request_id": str(uuid.uuid4()),
-        "system_time": int(time.time()),
-    }
+def _call_ark_image_api(prompt: str, size: str) -> dict:
+    if not ARK_API_KEY:
+        return {
+            "success": False,
+            "error": "未配置 ARK_API_KEY",
+            "image_url": "",
+        }
+
     headers = {
         "Content-Type": "application/json",
-        "Authorization": f"Bearer {VIVO_APP_KEY}",
+        "Authorization": f"Bearer {ARK_API_KEY}",
     }
     data = {
-        "model": "Doubao-Seedream-4.5",
+        "model": ARK_IMAGE_MODEL,
         "prompt": prompt,
-        "parameters": {
-            "size": "2560x1440",
-        },
+        "size": size,
+        "sequential_image_generation": "disabled",
+        "response_format": "url",
+        "watermark": False,
     }
 
     try:
-        response = requests.post(
-            url, json=data, headers=headers, params=params, timeout=60
-        )
-        result = response.json()
-
-        if result.get("code") != 0:
+        response = requests.post(ARK_IMAGE_URL, json=data, headers=headers, timeout=180)
+        try:
+            result = response.json()
+        except ValueError:
             return {
                 "success": False,
-                "error": result.get("message", "图像生成失败"),
+                "error": f"火山方舟返回非 JSON 响应（HTTP {response.status_code}）",
                 "image_url": "",
             }
 
-        images = result.get("data", {}).get("images", [])
-        image_url = (
-            images[0].get("url", "")
-            if images
-            else result.get("data", {}).get("image", "")
-        )
+        if response.status_code != 200:
+            error_detail = result.get("error", {})
+            if isinstance(error_detail, dict):
+                error_message = error_detail.get("message", "")
+            else:
+                error_message = str(error_detail)
+            return {
+                "success": False,
+                "error": error_message
+                or result.get("message")
+                or f"火山方舟图像生成失败（HTTP {response.status_code}）",
+                "image_url": "",
+            }
+
+        images = result.get("data", [])
+        image_url = images[0].get("url", "") if images else ""
 
         if not image_url:
             return {"success": False, "error": "返回图片URL为空", "image_url": ""}
@@ -433,6 +451,10 @@ def call_image_api(prompt: str) -> dict:
         return {"success": False, "error": "图像生成超时，请重试", "image_url": ""}
     except Exception as e:
         return {"success": False, "error": str(e), "image_url": ""}
+
+
+def call_image_api(prompt: str) -> dict:
+    return _call_ark_image_api(prompt, "2560x1440")
 
 
 # ── 配图生成接口 ──────────────────────────────────────────────────────────────
@@ -820,43 +842,7 @@ class PoetAvatarRequest(BaseModel):
 
 def call_image_api_portrait(prompt: str) -> dict:
     """专用于诗人形象生成，使用竖版尺寸（接近225:270 = 5:6比例）"""
-    url = "https://api-ai.vivo.com.cn/api/v1/image_generation"
-    params = {
-        "module": "aigc",
-        "request_id": str(uuid.uuid4()),
-        "system_time": int(time.time()),
-    }
-    headers = {
-        "Content-Type": "application/json",
-        "Authorization": f"Bearer {VIVO_APP_KEY}",
-    }
-    data = {
-        "model": "Doubao-Seedream-4.5",
-        "prompt": prompt,
-        "parameters": {
-            "size": "1800x2160",   # 竖版 4:5，接近前端展示尺寸225×270（5:6），前端等比例缩小即可
-        },
-    }
-
-    try:
-        response = requests.post(url, json=data, headers=headers, params=params, timeout=60)
-        result = response.json()
-
-        if result.get("code") != 0:
-            return {"success": False, "error": result.get("message", "图像生成失败"), "image_url": ""}
-
-        images = result.get("data", {}).get("images", [])
-        image_url = images[0].get("url", "") if images else result.get("data", {}).get("image", "")
-
-        if not image_url:
-            return {"success": False, "error": "返回图片URL为空", "image_url": ""}
-
-        return {"success": True, "image_url": image_url, "error": ""}
-
-    except requests.exceptions.Timeout:
-        return {"success": False, "error": "图像生成超时，请重试", "image_url": ""}
-    except Exception as e:
-        return {"success": False, "error": str(e), "image_url": ""}
+    return _call_ark_image_api(prompt, "1800x2160")
 
 
 def load_poets_cache() -> dict:
@@ -900,15 +886,18 @@ def plan_poet_profile(poet_name: str, dynasty: str) -> dict:
         f'"signature":"标志性物品或动作，让人一眼认出是{poet_name}，不超过35字"}}'
     )
 
-    url = "https://api-ai.vivo.com.cn/v1/chat/completions"
-    headers = {"Content-Type": "application/json", "Authorization": f"Bearer {VIVO_APP_KEY}"}
+    url = DEEPSEEK_CHAT_URL
+    headers = {"Content-Type": "application/json", "Authorization": f"Bearer {DEEPSEEK_API_KEY}"}
     data = {
-        "requestId": str(uuid.uuid4()),
-        "model": "Volc-DeepSeek-V3.2",
+        "model": DEEPSEEK_MODEL,
         "messages": [
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt},
         ],
+        "thinking": {"type": "enabled"},
+        "reasoning_effort": "high",
+        "response_format": {"type": "json_object"},
+        "max_tokens": 4000,
     }
 
     try:

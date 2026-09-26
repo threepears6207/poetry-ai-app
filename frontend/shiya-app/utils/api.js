@@ -494,47 +494,16 @@ export const API = {
     })
   },
 
-
-  // -----------------------------------------------------
-  // 拍照识诗 / 文字演示版
-  // POST /ocr
-  // -----------------------------------------------------
-  recognizePoem(text, mode = 'text') {
-    return request({
-      url: '/ocr',
-      method: 'POST',
-      data: {
-        image: text,
-        mode
-      },
-      timeout: 60000
-    })
-  },
-
-
-  // -----------------------------------------------------
-  // 拍照识诗 / 真实图片 base64 版
-  // POST /ocr
-  //
-  // 为兼容后端不同版本，同时传 image 和 image_base64：
-  // - image：带 data:image/jpeg;base64, 前缀
-  // - image_base64：纯 base64
-  // -----------------------------------------------------
-  recognizePoemImage(imageBase64) {
+  analyzePoemImage(imageBase64) {
     const pureBase64 = String(imageBase64 || '').replace(/^data:image\/\w+;base64,/, '')
-    const imageDataUrl = pureBase64.startsWith('data:image')
-      ? pureBase64
-      : `data:image/jpeg;base64,${pureBase64}`
 
     return request({
-      url: '/ocr',
+      url: '/image/analyze',
       method: 'POST',
       data: {
-        image: imageDataUrl,
-        image_base64: pureBase64,
-        mode: 'image_base64'
+        image_base64: pureBase64
       },
-      timeout: 90000
+      timeout: 120000
     })
   },
 

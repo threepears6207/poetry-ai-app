@@ -4,7 +4,7 @@ from difflib import SequenceMatcher
 from typing import List, Literal, Optional
 
 from fastapi import APIRouter
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field
 
 from database import get_connection, initialize_database
 from poem_catalog import normalize_poem_text
@@ -37,13 +37,6 @@ MOOD_MAP = {
 }
 
 
-class SceneAnalysisInput(BaseModel):
-    objects: List[str] = Field(default_factory=list)
-    tags: List[str] = Field(default_factory=list)
-    season: str = ""
-    mood: str = ""
-
-
 class PoemAnalysisInput(BaseModel):
     title: str = ""
     author: str = ""
@@ -55,60 +48,14 @@ class PoemAnalysisInput(BaseModel):
 class ImageAnalysisInput(BaseModel):
     content_type: Literal["poem_text", "scene"]
     poem: Optional[PoemAnalysisInput] = None
-    poem_text: str = ""
-    recognized_text: str = ""
-    recognized_title: str = ""
-    recognized_author: str = ""
     objects: List[str] = Field(default_factory=list)
     scene_tags: List[str] = Field(default_factory=list)
-    scene: Optional[SceneAnalysisInput] = None
     season: str = ""
     mood: str = ""
     confidence: float = Field(default=0.0, ge=0, le=1)
     age_level: Optional[Literal["age_3_4", "age_5_7"]] = None
     limit: int = Field(default=3, ge=1, le=3)
     debug: bool = False
-
-    @model_validator(mode="before")
-    @classmethod
-    def normalize_input_contract(cls, raw):
-        """Accept the compact contract while preserving existing client payloads."""
-        values = dict(raw or {})
-        raw_type = values.get("content_type") or values.get("type")
-        raw_type = {
-            "text_poem": "poem_text",
-            "handwritten": "poem_text",
-            "poem": "poem_text",
-        }.get(raw_type, raw_type)
-
-        poem = values.get("poem")
-        if isinstance(poem, BaseModel):
-            poem = poem.model_dump()
-        poem = poem if isinstance(poem, dict) else {}
-        poem_content = poem.get("content") or []
-        poem_text = (
-            values.get("poem_text") or values.get("recognized_text")
-            or "".join(str(line) for line in poem_content if line)
-        )
-        values["poem_text"] = poem_text
-        values["recognized_text"] = values.get("recognized_text") or poem_text
-        values["recognized_title"] = values.get("recognized_title") or poem.get("title") or ""
-        values["recognized_author"] = values.get("recognized_author") or poem.get("author") or ""
-
-        scene = values.get("scene")
-        if isinstance(scene, dict):
-            values["objects"] = values.get("objects") or scene.get("objects") or []
-            values["scene_tags"] = (
-                values.get("scene_tags") or scene.get("tags") or scene.get("scene_tags") or []
-            )
-            values["season"] = values.get("season") or scene.get("season") or ""
-            values["mood"] = values.get("mood") or scene.get("mood") or ""
-
-        has_text = bool(poem_text or values.get("recognized_title") or values.get("recognized_author"))
-        if not raw_type:
-            raw_type = "poem_text" if has_text else "scene"
-        values["content_type"] = raw_type
-        return values
 
 
 def _unique(values):
@@ -133,9 +80,12 @@ def _load_recommendable_poems(db_path=None):
 
 
 def _text_score(poem, request):
-    recognized = normalize_poem_text(request.recognized_text)
-    title_hint = normalize_poem_text(request.recognized_title)
-    author_hint = normalize_poem_text(request.recognized_author)
+    analysis_poem = request.poem
+    recognized = normalize_poem_text(
+        "".join(analysis_poem.content) if analysis_poem else ""
+    )
+    title_hint = normalize_poem_text(analysis_poem.title if analysis_poem else "")
+    author_hint = normalize_poem_text(analysis_poem.author if analysis_poem else "")
     title = normalize_poem_text(poem.get("title", ""))
     author = normalize_poem_text(poem.get("author", ""))
     lines = [normalize_poem_text(line) for line in poem.get("content", [])]
@@ -244,8 +194,9 @@ def _poem_card(item, debug=False):
 
 
 def search_candidates(request: ImageAnalysisInput, db_path=None):
-    has_text = bool(normalize_poem_text(
-        request.recognized_text + request.recognized_title + request.recognized_author
+    poem = request.poem
+    has_text = bool(poem and normalize_poem_text(
+        "".join(poem.content) + poem.title + poem.author
     ))
     has_scene = bool(request.objects or request.scene_tags or request.season or request.mood)
     if not has_text and not has_scene:
@@ -306,7 +257,9 @@ def search_candidates_with_cloud_completion(request: ImageAnalysisInput, db_path
     from tag_rules import normalize_poem_metadata
 
     try:
-        completed = complete_poem_from_terminal_analysis(request.model_dump())
+        completed = complete_poem_from_terminal_analysis(
+            request.model_dump(exclude_unset=True, exclude_none=True)
+        )
         poem = normalize_poem_metadata(completed["poem"])
         resolved = resolve_verified_poems(
             ResolvePoemsRequest(candidates=[VerifiedPoemCandidate(**poem)]),

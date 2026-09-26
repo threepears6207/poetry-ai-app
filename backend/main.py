@@ -28,7 +28,7 @@ from record import router as record_router
 from recommend import router as recommend_router
 from generate import router as generate_router
 from tts import router as tts_router
-from ocr import router as ocr_router
+from image_understanding import router as image_understanding_router
 from consolidation import router as consolidation_router
 from asr import router as asr_router
 from video_generate import router as video_generate_router
@@ -43,7 +43,7 @@ app.include_router(record_router)
 app.include_router(recommend_router)
 app.include_router(generate_router)
 app.include_router(tts_router)
-app.include_router(ocr_router)
+app.include_router(image_understanding_router)
 app.include_router(consolidation_router)
 app.include_router(video_generate_router)
 app.include_router(poem_catalog_router)

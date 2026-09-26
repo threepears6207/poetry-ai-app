@@ -63,14 +63,6 @@
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { API } from '@/utils/api.js'
 import { speakText } from '@/utils/speech.js'
-// #ifdef APP-PLUS
-import {
-  analyzeImage,
-  initializeImageModel,
-  openModelStoragePermissionSettings,
-  releaseImageModel,
-} from '@/uni_modules/shiya-image-analysis'
-// #endif
 
 const DESIGN_WIDTH = 1672
 const DESIGN_HEIGHT = 770
@@ -112,12 +104,8 @@ onUnmounted(() => {
     uni.offWindowResize(handleAppResize)
   }
 
-  // #ifdef APP-PLUS
-  releaseImageModel()
-  // #endif
 })
 
-const DEFAULT_COMPETITION_MODEL_PATH = '/sdcard/1225/1.7.0.4_1225_mtk9500'
 const pageState = ref('camera')
 const mode = ref('poem')
 const recognizing = ref(false)
@@ -125,8 +113,6 @@ const recognizing = ref(false)
 const matchedPoem = ref(null)
 const sceneTags = ref([])
 const matchType = ref('text')
-const modelReady = ref(false)
-let modelInitializing = null
 
 const displayTags = computed(() => {
   const poemTags = Array.isArray(matchedPoem.value?.tags) ? matchedPoem.value.tags : []
@@ -456,53 +442,22 @@ const handleOcrResult = async (res) => {
 }
 
 const recognizeByBase64 = async (imageBase64) => {
-  const res = await API.recognizePoemImage(imageBase64)
-  await handleOcrResult(res)
-}
-
-const ensureImageModelReady = () => {
-  if (modelReady.value) return Promise.resolve(true)
-  if (modelInitializing) return modelInitializing
-
-  modelInitializing = new Promise((resolve) => {
-    initializeImageModel(DEFAULT_COMPETITION_MODEL_PATH, (result) => {
-      modelInitializing = null
-      modelReady.value = result.state === 'ready'
-
-      if (result.state === 'permission_required') {
-        openModelStoragePermissionSettings()
-        toast('请授权模型文件访问后再试')
-      } else if (!modelReady.value) {
-        toast(result.message || '端侧模型初始化失败')
-      }
-
-      resolve(modelReady.value)
-    })
-  })
-
-  return modelInitializing
-}
-
-const analyzeLocalImage = (imagePath) => {
-  return new Promise((resolve) => {
-    analyzeImage(imagePath, (result) => resolve(result))
-  })
-}
-
-const getNativeImagePath = (chooseResult = {}) => {
-  const tempFile = chooseResult.tempFiles?.[0]
-  const imagePath = tempFile?.path || chooseResult.tempFilePaths?.[0] || chooseResult.tempImagePath || ''
-  if (!imagePath) return ''
-
-  if (typeof plus !== 'undefined' && plus.io && typeof plus.io.convertLocalFileSystemURL === 'function') {
-    const nativePath = plus.io.convertLocalFileSystemURL(imagePath)
-    if (nativePath) return nativePath
+  const result = await API.analyzePoemImage(imageBase64)
+  if (!result?.success || !result.analysis) {
+    toast(result?.message || '图片理解失败，请再拍一次')
+    return
   }
 
-  return imagePath
+  console.log('========== 千问分析 JSON（原样提交候选检索） ==========')
+  console.log(JSON.stringify(result.analysis, null, 2))
+  console.log('========== 千问 Token 用量 ==========')
+  console.log(JSON.stringify(result.usage || {}, null, 2))
+
+  const candidates = await API.findPoemCandidates(result.analysis)
+  await handleCandidateResult(candidates, result.analysis)
 }
 
-const handleCandidateResult = async (res) => {
+const handleCandidateResult = async (res, analysis = {}) => {
   if (!res?.success || !Array.isArray(res.poems) || !res.poems.length) {
     toast(res?.status === 'retake' ? '这张照片不够清楚，请再拍一次' : (res?.error || '暂未找到合适的古诗'))
     return
@@ -513,34 +468,14 @@ const handleCandidateResult = async (res) => {
   resultCandidates.value = matchedPoem.value
     ? [...loadedCandidates.slice(1), matchedPoem.value]
     : loadedCandidates
+  sceneTags.value = analysis.scene_tags || analysis.objects || []
+  matchType.value = analysis.content_type === 'scene' ? 'scene' : 'text'
   pageState.value = 'result'
 }
 
-const recognizeByLocalImage = async (imagePath) => {
-  const ready = await ensureImageModelReady()
-  if (!ready) return
-
-  const terminalResult = await analyzeLocalImage(imagePath)
-  if (terminalResult?.state !== 'success' || !terminalResult.analysis) {
-    toast(terminalResult?.message || '端侧图片识别失败，请再拍一次')
-    return
-  }
-
-  const candidates = await API.findPoemCandidates(terminalResult.analysis)
-  await handleCandidateResult(candidates)
-}
-
 const recognizeSelectedImage = async (chooseResult) => {
-  // #ifdef APP-PLUS
-  const imagePath = getNativeImagePath(chooseResult)
-  if (!imagePath) throw new Error('没有获取到图片路径')
-  await recognizeByLocalImage(imagePath)
-  // #endif
-
-  // #ifndef APP-PLUS
   const imageBase64 = await fileToBase64(chooseResult)
   await recognizeByBase64(imageBase64)
-  // #endif
 }
 
 const chooseCameraBySystem = () => {
@@ -579,7 +514,7 @@ const shootAndRecognize = async () => {
       return
     }
 
-    toast('拍照识别失败，请检查相机权限')
+    toast(err?.data?.detail || err?.data?.message || err?.message || '拍照识别失败，请检查网络和相机权限')
   } finally {
     uni.hideLoading()
     recognizing.value = false
@@ -608,7 +543,7 @@ const chooseAlbumAndRecognize = async () => {
   } catch (err) {
     console.log('相册识诗失败：', err)
 
-    toast(err?.message || '图片识别失败')
+    toast(err?.data?.detail || err?.data?.message || err?.message || '图片识别失败')
   } finally {
     uni.hideLoading()
     recognizing.value = false

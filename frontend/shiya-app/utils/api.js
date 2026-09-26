@@ -12,6 +12,8 @@ export const LIVE_ASR_STREAM_URL = `${BASE_URL.replace(/^http/, 'ws')}/asr/strea
 //const BASE_URL = 'http://192.168.43.235:8000'
 
 export const DEFAULT_USER_ID = 'test_user'
+// 答辩演示前再改为 true；关闭时学习页只播放已有缓存视频，不自动提交付费生成任务。
+export const AUTO_GENERATE_POEM_VIDEO = false
 const DAILY_RECOMMENDATION_KEY = 'shiYaDailyRecommendation'
 
 const normalizeAgeLevel = (ageValue = '') => {

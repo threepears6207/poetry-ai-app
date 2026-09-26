@@ -158,7 +158,7 @@
 <script setup>
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { onLoad, onReady, onUnload, onHide } from '@dcloudio/uni-app'
-import { API, LOCAL_POEMS, normalizeAssetUrl } from '@/utils/api.js'
+import { API, AUTO_GENERATE_POEM_VIDEO, LOCAL_POEMS, normalizeAssetUrl } from '@/utils/api.js'
 import { speakText } from '@/utils/speech.js'
 
 const DESIGN_WIDTH = 844
@@ -878,10 +878,24 @@ const loadAiFrames = async () => {
   }
 }
 
-const startStudyVideoGeneration = () => {
-  const cachedVideo = API.getStoredPoemVideo(poemData.value)
+const startStudyVideoGeneration = async () => {
+  let cachedVideo = API.getStoredPoemVideo(poemData.value)
+
+  // 搜索、推荐等入口不会像集章墙那样预先同步后端视频清单。
+  // 本地首次未命中时只读取已经生成好的视频，不提交新的生成任务。
+  if (!cachedVideo?.video_url) {
+    const readyVideoStates = await API.getReadyPoemVideos()
+    const poemKey = String(poemData.value.id || poemData.value.poem_id || poemId.value || '').trim()
+    cachedVideo = readyVideoStates[poemKey] || API.getStoredPoemVideo(poemData.value)
+  }
+
   activateStudyVideo(cachedVideo?.video_url)
-  videoGenerationStatus.value = cachedVideo?.status || 'submitted'
+  videoGenerationStatus.value = cachedVideo?.status || (AUTO_GENERATE_POEM_VIDEO ? 'submitted' : 'disabled')
+
+  if (!AUTO_GENERATE_POEM_VIDEO) {
+    console.log('古诗视频自动生成已关闭，仅使用已有缓存视频和逐句配图')
+    return
+  }
 
   API.generatePoemVideo(poemData.value)
     .then((videoState) => {
@@ -941,7 +955,7 @@ onLoad(async (options) => {
   }
 
   // 图片和视频同时开始：图片先用来承接等待，视频就绪后立刻接管主画面。
-  startStudyVideoGeneration()
+  await startStudyVideoGeneration()
   await loadAiFrames()
 })
 

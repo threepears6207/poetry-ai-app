@@ -6,14 +6,15 @@
 
 ## 当前已实现
 
-- 150 首儿童古诗库：3—4 岁 50 首，5—7 岁 100 首。
-- 古诗搜索、详情、拍照 OCR 识诗和风景匹配。
-- AI 连续分镜配图，支持并行生成、逐帧展示和本地缓存。
-- 诗人角色对话，根据年龄调整回答方式，并使用不同诗人声音播放回复。
+- SQLite 结构化儿童古诗库，支持年龄、难度、主题、知识标签和学习状态管理。
+- 古诗搜索、详情、千问视觉拍照识诗和风景匹配。
+- DeepSeek 规划整首诗的连续分镜，火山方舟 Seedream 4.5 并行生成逐句配图并写入正式缓存。
+- DeepSeek 诗人角色对话，根据年龄调整回答方式；千问3-TTS为已出现诗人保留固定声音，并为新诗人自动分配和持久化声音档案。
+- 百炼 Fun-ASR Realtime 支持实时语音识别和单句跟读评分，普通古诗范读使用独立语音流程。
 - 单句跟读评分、错句立即重读、整首通过后更新巩固进度。
 - 基于年龄、已学记录和跟读强项标签的个性化推荐。
 - 学习记录、巩固计划、跟读成绩和家长端统计。
-- 基于 vivo 平台的整首诗文生视频实验接口。
+- DeepSeek 规划整首诗视频，百炼 Wan3 生成正式视频；前端默认只播放已有缓存，未命中时继续使用逐句配图，不自动提交付费任务。
 
 ## 技术结构
 
@@ -22,8 +23,11 @@
 | 前端 | uni-app、Vue 3、HBuilderX，主要运行于 Android 横屏 App |
 | 后端 | Python 3.11、FastAPI、Uvicorn |
 | 数据 | SQLite，含古诗、用户、学习记录、巩固记录和跟读评分 |
-| AI 能力 | vivo 大模型、图像生成、WebSocket TTS、视频生成实验 |
-| 语音与识别 | FunASR、edge-tts、百度 OCR、百度图像识别 |
+| 对话与规划 | DeepSeek `deepseek-flash` |
+| 图片理解 | 阿里云百炼 `qwen3-vl-plus` |
+| 图片生成 | 火山方舟 `Doubao-Seedream-4.5` |
+| 视频生成 | 阿里云百炼 `wan3.0-video-prime` |
+| 语音与识别 | 百炼 Fun-ASR Realtime、千问3-TTS、edge-tts |
 
 ## 目录
 
@@ -37,9 +41,11 @@ poetry-ai-app/
 
 ## 快速开始
 
-1. 按 [后端说明](backend/README.md) 安装 Python 3.11 依赖、初始化 SQLite 并启动 `8000` 端口。
-2. 按 [前端说明](frontend/shiya-app/README.md) 修改 `utils/api.js` 中的后端地址。
-3. 在 HBuilderX 中打开 `frontend/shiya-app`，运行 H5 或 Android 真机。
+1. 按 [后端说明](backend/README.md) 安装 Python 3.11 依赖并初始化 SQLite。
+2. 在本机 `backend/.env` 中配置 DeepSeek、火山方舟和阿里云百炼密钥；该文件不会提交到 Git。
+3. 从 `backend` 目录启动 `uvicorn main:app --host 0.0.0.0 --port 8000 --reload`。
+4. 按 [前端说明](frontend/shiya-app/README.md) 将 `utils/api.js` 的 `BASE_URL` 改为当前开发机地址。
+5. 在 HBuilderX 中打开 `frontend/shiya-app`，运行 H5 或 Android 真机。
 
 后端启动后可访问：
 
@@ -49,6 +55,8 @@ poetry-ai-app/
 ## 当前用户方案
 
 比赛版本暂未开发注册登录，前后端共用 `test_user` 作为测试用户。孩子选择的年龄层会写入用户记录，学习、跟读、巩固和推荐数据均按 `user_id` 隔离。
+
+视频自动生成默认关闭，日常开发和答辩准备只读取已经验收的正式视频缓存，避免误提交付费任务；需要演示生成能力时再显式打开前端开关。
 
 ## 文档
 

@@ -9,12 +9,12 @@
 - 已升级推荐排序，硬性排除学过的古诗，并综合适龄与内容完整、近期偏好、难度递进和内容多样性。
 - 已完成学习巩固闭环：分镜朗读和诗句连线均完成后，集章墙诗卡由灰色变彩色并增加小红花。
 - 已提供当日练习提醒、暂停当日提醒以及家长端学习聚合数据。
-- 陈誉文负责范围的专项自动化测试共 30 项，当前全部通过。
+- 推荐、候选检索、学习巩固等核心后端模块均配有专项自动化测试。
 
 ## 当前数据状态
 
 - 正式读写已切换到 SQLite，默认文件为 `data/poetry_ai.db`。
-- 当前内置古诗目录共 260 首，已剔除标题超过 6 个汉字的条目，并按规范化正文去重、通过元数据质量校验；新诗核验通过后直接写入现有 `poems` 表，并继续从 `poem_301` 起顺序编号。
+- 正式古诗由 SQLite 统一管理，具体数量以当前数据库为准；导入时按规范化正文去重并执行元数据质量校验，新诗核验通过后直接写入现有 `poems` 表。
 - 诗歌已补充来源、版本、年龄段、难度、主题标签、知识标签、正文哈希、完整状态和推荐资格等结构化字段。
 - 主要数据表：`poems`、`users`、`learning_records`、`consolidations`、`reading_scores`、`daily_reminder_settings`。
 - `data/poems.json`、`records.json`、`consolidations.json` 仅作为历史源数据/迁移输入，正式接口不再直接读写它们。
@@ -230,7 +230,7 @@ uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 | `chat.py` / `poet_voice.py` / `dashscope_tts.py` | 诗人对话、固定/自动声音档案和千问3-TTS |
 | `generate.py` | 分镜规划、并行生图、渐进任务和图片缓存 |
 | `video_generate.py` | DeepSeek 整诗规划、Wan3 异步视频任务、下载与缓存 |
-| `data_sources/` | 150 首古诗源数据、译文和标签质检报告 |
+| `data_sources/` | 古诗源数据、译文和标签质检报告 |
 | `scripts/` | 建库、导入、迁移、元数据生成与审核脚本 |
 | `static/` | 已生成的诗歌图片、诗人头像、音频和缓存 |
 | `test_result/` | 后端测试脚本；运行结果文本已忽略 |
@@ -245,7 +245,7 @@ $env:PYTHONPATH=(Get-Location).Path
 python -m pytest tests -q
 ```
 
-当前基线结果：`30 passed`。
+测试数量会随功能迭代变化，以当前命令的实际输出为准。
 
 先启动后端，再在另一个终端运行：
 

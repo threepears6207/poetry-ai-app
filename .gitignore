@@ -5,3 +5,10 @@
 
 # Local environment secrets
 .env
+
+# Local review and presentation inspection workspaces
+/.codex_tmp_*/
+/.tmp_ppt_*/
+
+# Local editor and device-debug backups
+*.bak

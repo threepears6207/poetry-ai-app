@@ -3,7 +3,6 @@ import json
 import os
 import re
 import threading
-import time
 import uuid
 from datetime import datetime
 from pathlib import Path
@@ -16,10 +15,16 @@ from pydantic import AliasChoices, BaseModel, Field
 
 router = APIRouter()
 
-VIVO_VIDEO_SUBMIT_URL = "https://api-ai.vivo.com.cn/api/v1/submit_task"
-VIVO_VIDEO_QUERY_URL = "https://api-ai.vivo.com.cn/api/v1/query_task"
-VIVO_PLANNER_URL = "https://api-ai.vivo.com.cn/v1/chat/completions"
+DEEPSEEK_CHAT_URL = "https://api.deepseek.com/chat/completions"
+DEEPSEEK_MODEL = "deepseek-flash"
+DASHSCOPE_VIDEO_MODEL = os.getenv("DASHSCOPE_VIDEO_MODEL", "wan3.0-video-prime").strip()
 SUPPORTED_MODELS = {
+    "Wan3.0-Video-Prime",
+    "wan3.0-video-prime",
+    # 兼容当前前端仍会发送的旧模型标签；实际供应商模型统一由
+    # DASHSCOPE_VIDEO_MODEL 决定，避免本次迁移扩大到前端接口。
+    "Doubao-Seedance-1.5-pro",
+    "doubao-seedance-1-5-pro-251215",
     "Doubao-Seedance-1.0-pro",
     "Doubao-Seedance-2.0",
     "Doubao-Seedance-2.0-fast",
@@ -146,7 +151,7 @@ primary_visual 必须优先于泛化表情，且在该镜头中清楚可见。�
 {consistency_audit}
 
 【第七步：片段分组】
-整首诗只规划为一条连续12秒视频。每句对应一个镜头，镜头数必须等于输入诗句数；每句时长由服务端按“12秒 ÷ 诗句数”平均分配。segments 只能输出一个片段，line_indices 必须覆盖全部诗句，duration_seconds 必须为12，transition_to_next 为空字符串。视频不生成对白、配音或背景音乐。
+整首诗只规划为一条连续12秒视频。每句对应一个镜头，镜头数必须等于输入诗句数；每句时长由服务端按“12秒 ÷ 诗句数”平均分配。segments 只能输出一个片段，line_indices 必须覆盖全部诗句，duration_seconds 必须为12，transition_to_next 为空字符串。
 
 严格输出以下 JSON 结构：
 {{
@@ -182,7 +187,7 @@ class VideoGenerateRequest(BaseModel):
     poet_name: str = ""
     dynasty: str = ""
     tags: List[str] = Field(default_factory=list)
-    model: str = "Doubao-Seedance-2.0-fast"
+    model: str = "Wan3.0-Video-Prime"
     duration: int = 12
     ratio: str = "16:9"
     force_regenerate: bool = False
@@ -222,22 +227,43 @@ def _save_cache(cache: dict) -> None:
         os.replace(temp_file, CACHE_FILE)
 
 
-def _request_params() -> dict:
-    return {
-        "request_id": str(uuid.uuid4()),
-        "system_time": int(time.time()),
-        "module": "aigc",
-    }
-
-
-def _request_headers() -> dict:
-    app_key = os.getenv("VIVO_APP_KEY", "").strip()
-    if not app_key:
-        raise RuntimeError("缺少 VIVO_APP_KEY，无法调用视频生成接口")
+def _deepseek_headers() -> dict:
+    api_key = os.getenv("DEEPSEEK_API_KEY", "").strip()
+    if not api_key:
+        raise RuntimeError("缺少 DEEPSEEK_API_KEY，无法规划视频分镜")
     return {
         "Content-Type": "application/json",
-        "Authorization": f"Bearer {app_key}",
+        "Authorization": f"Bearer {api_key}",
     }
+
+
+def _dashscope_api_base_url() -> str:
+    base_url = os.getenv("DASHSCOPE_API_BASE_URL", "").strip().rstrip("/")
+    if not base_url:
+        raise RuntimeError("缺少 DASHSCOPE_API_BASE_URL，无法调用百炼视频生成接口")
+    return base_url
+
+
+def _dashscope_headers(async_request: bool = False) -> dict:
+    api_key = os.getenv("DASHSCOPE_API_KEY", "").strip()
+    if not api_key:
+        raise RuntimeError("缺少 DASHSCOPE_API_KEY，无法调用百炼视频生成接口")
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {api_key}",
+    }
+    if async_request:
+        headers["X-DashScope-Async"] = "enable"
+    return headers
+
+
+def _provider_error(result: dict, fallback: str) -> tuple[str, str]:
+    error = result.get("error")
+    if isinstance(error, dict):
+        return str(error.get("message") or fallback), str(error.get("code") or "")
+    if error:
+        return str(error), str(result.get("code") or "")
+    return str(result.get("message") or fallback), str(result.get("code") or "")
 
 
 def _validate_request(request: VideoGenerateRequest) -> str:
@@ -609,29 +635,52 @@ def plan_poem_video_sequence(request: VideoGenerateRequest) -> dict:
         video_style=VIDEO_STYLE,
         consistency_audit=VIDEO_CONSISTENCY_AUDIT,
     )
+    planner_diagnostics = {
+        "model": DEEPSEEK_MODEL,
+        "thinking": "disabled",
+        "reasoning_effort": "none",
+        "max_tokens": 16000,
+        "finish_reason": "",
+        "content_chars": 0,
+        "usage": {},
+    }
     try:
         response = requests.post(
-            VIVO_PLANNER_URL,
-            headers=_request_headers(),
+            DEEPSEEK_CHAT_URL,
+            headers=_deepseek_headers(),
             json={
-                "requestId": str(uuid.uuid4()),
-                "model": "Volc-DeepSeek-V3.2",
+                "model": DEEPSEEK_MODEL,
                 "messages": [
                     {"role": "system", "content": VIDEO_PLANNER_SYSTEM_PROMPT},
                     {"role": "user", "content": user_prompt},
                 ],
+                "thinking": {"type": "disabled"},
+                "reasoning_effort": "none",
+                "response_format": {"type": "json_object"},
+                "max_tokens": 16000,
             },
             timeout=90,
         )
         response.raise_for_status()
-        content = response.json()["choices"][0]["message"]["content"].strip()
+        result = response.json()
+        choice = result["choices"][0]
+        content = choice["message"]["content"].strip()
+        planner_diagnostics.update({
+            "finish_reason": _safe_text(choice.get("finish_reason")),
+            "content_chars": len(content),
+            "usage": result.get("usage") if isinstance(result.get("usage"), dict) else {},
+        })
         content = re.sub(r"```json|```", "", content).strip()
         raw_plan = json.loads(content)
         if not isinstance(raw_plan, dict):
             raise ValueError("视频规划模型未返回 JSON 对象")
-        return _normalize_video_plan(raw_plan, request)
+        plan = _normalize_video_plan(raw_plan, request)
+        plan["planner_diagnostics"] = planner_diagnostics
+        return plan
     except Exception as error:
-        return _build_fallback_video_plan(request, str(error))
+        plan = _build_fallback_video_plan(request, str(error))
+        plan["planner_diagnostics"] = planner_diagnostics
+        return plan
 
 
 def _character_contract(characters: List[dict]) -> str:
@@ -670,6 +719,7 @@ def _build_shot_block(frame: dict, number: int, duration_seconds: str) -> str:
     present_characters = "、".join(
         f"{item['id']}（{item['count']}人）" for item in frame["characters_present"]
     ) or "无人"
+    forbidden_elements = frame["forbidden_elements"]
     color_palette = "、".join(frame.get("color_palette", [])) or "必须由本句诗意选定三至五种清楚可辨的颜色"
     return (
         f"【镜头{number}｜约{duration_seconds}秒｜对应诗句“{frame['line']}”】\n"
@@ -691,7 +741,7 @@ def _build_shot_block(frame: dict, number: int, duration_seconds: str) -> str:
         "头部、视线、手臂、上半身或双手可从原空间自然伸向边界外侧；打开边界只改变可见范围。"
         "人物若要整体换到另一空间，必须有连续、可见的移动过程，不得瞬移或跳变。\n"
         f"只允许出现的本镜头元素：{'、'.join(frame['visible_elements']) or '按场景和主意象所需'}\n"
-        f"本镜头不得出现：{'、'.join(frame['forbidden_elements']) or '无额外限制'}\n"
+        f"本镜头不得出现：{'、'.join(forbidden_elements) or '无额外限制'}\n"
         f"空间硬边界：{frame['spatial_boundary']}\n"
         f"可出现人物（仅限这些已建档角色及人数）：{present_characters}\n"
         f"人物调度：{frame['character_blocking'] or '无人'}\n"
@@ -762,7 +812,10 @@ def build_segment_video_prompt(request: VideoGenerateRequest, plan: dict, segmen
         "情绪外化仅允许当前镜头指定的视觉方式。思维气泡和云朵气泡内部只能有画面，不得出现文字；"
         "只有镜头指定为疑惑或感叹时，才允许出现清晰的“？”或“！”情绪符号。\n"
         f"{VIDEO_CONSISTENCY_AUDIT}\n"
-        "视频内无对白、无配音、无字幕。前端将静音播放视频，并单独播放轻柔背景音乐。\n"
+        "【音频设计】\n"
+        "音频必须按镜头顺序清晰、准确、逐字朗读每个镜头所对应的原诗句，不得增字、漏字、改字、重复或调换诗句。\n"
+        "同时生成与当前画面相符的自然环境声和轻柔无歌词背景音乐；朗读清晰居前，环境声与背景音乐以较低音量持续衬托，"
+        "不得遮盖朗读；不生成额外对白、解说或原诗句之外的人声。\n"
         f"最后一镜（第{line_count}镜）必须在本句的核心意象上自然停留并结束，不得另起一个故事或突然跳变。\n"
         f"{VIDEO_STYLE_FINAL_LOCK}\n"
         f" --ratio {request.ratio} --dur {request.duration}"
@@ -779,6 +832,7 @@ def _public_task_result(record: dict, from_cache: bool = False) -> dict:
         "poem_id": record.get("poem_id", ""),
         "poem_title": record.get("poem_title", ""),
         "model": record.get("model", ""),
+        "provider_model": record.get("provider_model", ""),
         "duration": record.get("duration", 0),
         "ratio": record.get("ratio", ""),
         "status": record.get("status", ""),
@@ -794,9 +848,9 @@ def _group_status(segment_records: List[dict]) -> str:
     statuses = [record.get("status", "unknown") for record in segment_records]
     if statuses and all(status == "succeeded" for status in statuses):
         return "succeeded"
-    if statuses and all(status in {"failed", "download_failed"} for status in statuses):
+    if statuses and all(status in {"failed", "canceled", "cancelled", "download_failed"} for status in statuses):
         return "failed"
-    if any(status in {"failed", "download_failed"} for status in statuses):
+    if any(status in {"failed", "canceled", "cancelled", "download_failed"} for status in statuses):
         return "partial_failed"
     if any(status in {"submitted", "queued", "running", "processing"} for status in statuses):
         return "processing"
@@ -813,6 +867,7 @@ def _public_group_result(group: dict, cache: dict, from_cache: bool = False) -> 
         "poem_id": group.get("poem_id", ""),
         "poem_title": group.get("poem_title", ""),
         "model": group.get("model", ""),
+        "provider_model": group.get("provider_model", ""),
         "duration": group.get("duration", 0),
         "ratio": group.get("ratio", ""),
         "status": status,
@@ -882,10 +937,19 @@ def _download_video(source_url: str, cache_key: str, task_id: str) -> str:
 def _submit_segment_task(request: VideoGenerateRequest, cache_key: str, group_id: str, segment: dict, prompt: str) -> tuple[dict | None, dict | None]:
     try:
         response = requests.post(
-            VIVO_VIDEO_SUBMIT_URL,
-            params=_request_params(),
-            headers=_request_headers(),
-            json={"model": request.model, "content": [{"type": "text", "text": prompt}]},
+            f"{_dashscope_api_base_url()}/api/v1/services/aigc/video-generation/video-synthesis",
+            headers=_dashscope_headers(async_request=True),
+            json={
+                "model": DASHSCOPE_VIDEO_MODEL,
+                "input": {"prompt": prompt},
+                "parameters": {
+                    "resolution": "720P",
+                    "ratio": request.ratio,
+                    "duration": request.duration,
+                    "prompt_extend": False,
+                    "watermark": False,
+                },
+            },
             timeout=60,
         )
         result = response.json()
@@ -893,14 +957,16 @@ def _submit_segment_task(request: VideoGenerateRequest, cache_key: str, group_id
         return None, {"error": "视频任务提交超时，请稍后重试"}
     except Exception as error:
         return None, {"error": f"视频任务提交异常：{error}"}
-    if result.get("code") != 0:
+    if response.status_code < 200 or response.status_code >= 300:
+        message, code = _provider_error(result, "视频任务提交失败")
         return None, {
-            "error": result.get("message", "视频任务提交失败"),
-            "code": result.get("code"),
-            "trace_id": result.get("trace_id", ""),
-            "data": result.get("data"),
+            "error": message,
+            "code": code,
+            "request_id": result.get("request_id", ""),
+            "data": result,
         }
-    task_id = result.get("data", {}).get("id", "")
+    output = result.get("output") if isinstance(result.get("output"), dict) else {}
+    task_id = output.get("task_id", "")
     if not task_id:
         return None, {"error": "视频接口未返回 task_id", "raw": result}
     return {
@@ -912,6 +978,7 @@ def _submit_segment_task(request: VideoGenerateRequest, cache_key: str, group_id
         "poem_id": request.poem_id,
         "poem_title": request.poem_title,
         "model": request.model,
+        "provider_model": DASHSCOPE_VIDEO_MODEL,
         "duration": request.duration,
         "ratio": request.ratio,
         "status": "submitted",
@@ -942,6 +1009,20 @@ def submit_poem_video(request: VideoGenerateRequest):
             return _public_group_result(cached_group, cache, from_cache=True)
 
     plan = plan_poem_video_sequence(request)
+    if plan.get("planner_error"):
+        return {
+            "success": False,
+            "dry_run": request.dry_run,
+            "poem_id": request.poem_id,
+            "poem_title": request.poem_title,
+            "model": request.model,
+            "provider_model": DASHSCOPE_VIDEO_MODEL,
+            "duration": request.duration,
+            "ratio": request.ratio,
+            "error": f"视频规划失败：{plan['planner_error']}",
+            "plan": plan,
+            "segments": [],
+        }
     prompts = []
     try:
         for segment in plan["segments"]:
@@ -959,6 +1040,7 @@ def submit_poem_video(request: VideoGenerateRequest):
             "poem_id": request.poem_id,
             "poem_title": request.poem_title,
             "model": request.model,
+            "provider_model": DASHSCOPE_VIDEO_MODEL,
             "duration": request.duration,
             "ratio": request.ratio,
             "plan": plan,
@@ -972,6 +1054,7 @@ def submit_poem_video(request: VideoGenerateRequest):
         "poem_id": request.poem_id,
         "poem_title": request.poem_title,
         "model": request.model,
+        "provider_model": DASHSCOPE_VIDEO_MODEL,
         "duration": request.duration,
         "ratio": request.ratio,
         "status": "submitting",
@@ -1007,9 +1090,8 @@ def _query_video_task(task_id: str, cache: dict) -> dict:
         return _public_task_result(record, from_cache=True)
     try:
         response = requests.get(
-            VIVO_VIDEO_QUERY_URL,
-            params={"task_id": task_id, **_request_params()},
-            headers=_request_headers(),
+            f"{_dashscope_api_base_url()}/api/v1/tasks/{task_id}",
+            headers=_dashscope_headers(),
             timeout=60,
         )
         result = response.json()
@@ -1017,34 +1099,47 @@ def _query_video_task(task_id: str, cache: dict) -> dict:
         return {"success": False, "task_id": task_id, "error": "视频任务查询超时"}
     except Exception as error:
         return {"success": False, "task_id": task_id, "error": f"视频任务查询异常：{error}"}
-    if result.get("code") != 0:
+    if response.status_code < 200 or response.status_code >= 300:
+        message, code = _provider_error(result, "视频任务查询失败")
         return {
             "success": False,
             "task_id": task_id,
-            "error": result.get("message", "视频任务查询失败"),
-            "code": result.get("code"),
-            "trace_id": result.get("trace_id", ""),
+            "error": message,
+            "code": code,
+            "request_id": result.get("request_id", ""),
         }
-    data = result.get("data", {})
+    data = result.get("output") if isinstance(result.get("output"), dict) else {}
+    usage = result.get("usage") if isinstance(result.get("usage"), dict) else {}
     if record is None:
         record = {
             "task_id": task_id,
             "cache_key": f"task_{task_id}",
             "poem_id": "",
             "poem_title": "",
-            "model": data.get("model", ""),
-            "duration": data.get("duration", 0),
-            "ratio": data.get("ratio", ""),
+            "model": "Wan3.0-Video-Prime",
+            "provider_model": DASHSCOPE_VIDEO_MODEL,
+            "duration": usage.get("duration", usage.get("output_video_duration", 0)),
+            "ratio": usage.get("ratio", ""),
             "created_at": _now_text(),
             "video_url": "",
             "error": "",
         }
-    record["status"] = data.get("status", "unknown")
+    provider_status = str(data.get("task_status", "UNKNOWN")).strip().lower()
+    status_map = {
+        "pending": "submitted",
+        "running": "processing",
+        "succeeded": "succeeded",
+        "failed": "failed",
+        "canceled": "canceled",
+        "cancelled": "canceled",
+        "unknown": "unknown",
+    }
+    record["status"] = status_map.get(provider_status, provider_status or "unknown")
     record["updated_at"] = _now_text()
-    record["error"] = data.get("error") or ""
-    record["resolution"] = data.get("resolution", "")
+    record["error"] = data.get("message") or result.get("message") or ""
+    record["resolution"] = usage.get("SR", "")
     if record["status"] == "succeeded":
-        source_url = data.get("content", {}).get("video_url", "")
+        source_url = data.get("video_url", "")
         if not source_url:
             record["status"] = "download_failed"
             record["error"] = "视频任务成功，但结果中没有 video_url"
